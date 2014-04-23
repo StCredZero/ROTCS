@@ -12,7 +12,7 @@ import (
 	"text/template"
 )
 
-type hub struct {
+type cstserver struct {
 	// Registered connections.
 	connections map[*connection]bool
 
@@ -26,20 +26,20 @@ type hub struct {
 	unregister chan *connection
 }
 
-func (h *hub) run() {
+func (srv *cstserver) run() {
 	for {
 		select {
-		case c := <-h.register:
-			h.connections[c] = true
-		case c := <-h.unregister:
-			delete(h.connections, c)
+		case c := <-srv.register:
+			srv.connections[c] = true
+		case c := <-srv.unregister:
+			delete(srv.connections, c)
 			close(c.send)
-		case m := <-h.broadcast:
-			for c := range h.connections {
+		case m := <-srv.broadcast:
+			for c := range srv.connections {
 				select {
 				case c.send <- m:
 				default:
-					delete(h.connections, c)
+					delete(srv.connections, c)
 					close(c.send)
 				}
 			}
@@ -55,7 +55,7 @@ type connection struct {
 	send chan []byte
 }
 
-func (c *connection) reader(h *hub) {
+func (c *connection) reader(srv *cstserver) {
 	for {
 		_, message, err := c.ws.ReadMessage()
 		//n := bytes.Index(message, []byte{0})
@@ -64,7 +64,7 @@ func (c *connection) reader(h *hub) {
 		if err != nil {
 			break
 		}
-		h.broadcast <- message
+		srv.broadcast <- message
 	}
 	c.ws.Close()
 }
@@ -91,7 +91,7 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 	homeTempl.Execute(c, req.Host)
 }
 
-func (h *hub) wsHandler(w http.ResponseWriter, r *http.Request) {
+func (srv *cstserver) wsHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(w, "Not a websocket handshake", 400)
@@ -100,16 +100,16 @@ func (h *hub) wsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := &connection{send: make(chan []byte, 256), ws: ws}
-	h.register <- c
-	defer func() { h.unregister <- c }()
+	srv.register <- c
+	defer func() { srv.unregister <- c }()
 	go c.writer()
-	c.reader(h)
+	c.reader(srv)
 }
 
 func main() {
 	flag.Parse()
 
-	var h = hub{
+	var h = cstserver{
 		broadcast:   make(chan []byte),
 		register:    make(chan *connection),
 		unregister:  make(chan *connection),
