@@ -109,13 +109,13 @@ func (srv *cstserver) wsHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 
-	var h = cstserver{
+	var srv = cstserver{
 		broadcast:   make(chan []byte),
 		register:    make(chan *connection),
 		unregister:  make(chan *connection),
 		connections: make(map[*connection]bool),
 	}
-	go h.run()
+	go srv.run()
 
 	var addr = flag.String("addr", ":8080", "http service address")
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
@@ -125,7 +125,7 @@ func main() {
 		homeHandler(w, r, homeTempl)
 	})
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		h.wsHandler(w, r)
+		srv.wsHandler(w, r)
 	})
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
