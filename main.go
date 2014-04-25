@@ -6,63 +6,12 @@ import (
 	"github.com/gorilla/websocket"
 	"go/build"
 	"log"
-	"math/rand"
 	"net/http"
 	"path/filepath"
 	"runtime"
 	"text/template"
 	"time"
 )
-
-const subgrid_width = 79
-const subgrid_height = 25
-
-type Coord struct {
-	x int64
-	y int64
-}
-
-func randomSubgridCoord() Coord {
-	return Coord{
-		x: int64(rand.Intn(subgrid_width)),
-		y: int64(rand.Intn(subgrid_height)),
-	}
-}
-
-type Entity struct {
-	Id       uint32
-	Location Coord
-	//MoveQueue [1024]chan rune
-}
-
-type SubGrid struct {
-	GridCoord Coord
-	Grid      map[Coord]uint32
-	Entities  map[uint32]Entity
-}
-
-func (self *SubGrid) EmptyAt(loc Coord) bool {
-	_, present := self.Grid[loc]
-	return !present
-}
-
-func (self *SubGrid) NewEntity(id uint32) Entity {
-	var loc = randomSubgridCoord()
-	for !self.EmptyAt(loc) {
-		loc = randomSubgridCoord()
-	}
-	self.Entities[id] = Entity{
-		Id:       id,
-		Location: loc,
-	}
-	self.Grid[loc] = id
-	return self.Entities[id]
-}
-
-type WorldGrid struct {
-	grid       map[Coord]SubGrid
-	entityGrid map[uint32]Coord
-}
 
 func IdGenerator(lastId uint32) chan (uint32) {
 	next := make(chan uint32)
@@ -91,6 +40,10 @@ type CstServer struct {
 	world SubGrid
 }
 
+func (srv *CstServer) Update(now time.Time) {
+	//println("Updating ")
+}
+
 func (srv *CstServer) run() {
 	timer := time.Tick(125 * time.Millisecond)
 	for {
@@ -100,7 +53,7 @@ func (srv *CstServer) run() {
 			println("starting register")
 			var newId = <-srv.entityIdGen
 			srv.connections[c] = newId
-			var newEntity = srv.world.NewEntity(newId)
+			var _, newEntity = srv.world.NewEntity(newId, 100)
 			fmt.Println("Initialized entity: ", newEntity)
 		case c := <-srv.unregister:
 			delete(srv.connections, c)
@@ -124,10 +77,6 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() { srv.unregister <- c }()
 	go c.writer()
 	c.reader(srv)
-}
-
-func (srv *CstServer) Update(now time.Time) {
-	println("Updating ")
 }
 
 type connection struct {
@@ -205,6 +154,4 @@ func main() {
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
-
-	println("boo")
 }
