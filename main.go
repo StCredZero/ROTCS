@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	//"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"go/build"
 	"log"
@@ -188,9 +187,10 @@ func main() {
 
 	srv.entityIdGen = IdGenerator(0)
 	srv.world = SubGrid{
-		GridCoord: Coord{0, 0},
-		Grid:      make(map[Coord]uint32),
-		Entities:  make(map[uint32]Entity),
+		GridCoord:   Coord{0, 0},
+		Grid:        make(map[Coord]uint32),
+		Entities:    make(map[uint32]Entity),
+		ParentQueue: make(chan uint32, (subgrid_width * subgrid_height)),
 	}
 	go srv.run()
 

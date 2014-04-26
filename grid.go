@@ -18,9 +18,10 @@ type GridKeeper interface {
 type UpdateFunc func(*GridKeeper, Entity)
 
 type SubGrid struct {
-	GridCoord Coord
-	Grid      map[Coord]uint32
-	Entities  map[uint32]Entity
+	GridCoord   Coord
+	Grid        map[Coord]uint32
+	Entities    map[uint32]Entity
+	ParentQueue chan uint32
 }
 
 func (self *SubGrid) EmptyAt(loc Coord) bool {
@@ -32,10 +33,14 @@ const subgrid_placement_trys = 100
 
 func (self *SubGrid) MoveEntity(ntt Entity, loc Coord) {
 	if ntt.Location != loc {
-		delete(self.Grid, ntt.Location)
-		self.Grid[loc] = ntt.Id
-		ntt.Location = loc
-		self.Entities[ntt.Id] = ntt
+		if loc.Grid() != self.GridCoord {
+			self.ParentQueue <- ntt.Id
+		} else {
+			delete(self.Grid, ntt.Location)
+			self.Grid[loc] = ntt.Id
+			ntt.Location = loc
+			self.Entities[ntt.Id] = ntt
+		}
 	}
 }
 
@@ -104,9 +109,10 @@ func (self *WorldGrid) SubGridAtGrid(gridCoord Coord) SubGrid {
 	subgrid, present := self.grid[gridCoord]
 	if !present {
 		subgrid = SubGrid{
-			GridCoord: gridCoord,
-			Grid:      make(map[Coord]uint32),
-			Entities:  make(map[uint32]Entity),
+			GridCoord:   gridCoord,
+			Grid:        make(map[Coord]uint32),
+			Entities:    make(map[uint32]Entity),
+			ParentQueue: make(chan uint32, (subgrid_width * subgrid_height)),
 		}
 		self.grid[gridCoord] = subgrid
 	}
