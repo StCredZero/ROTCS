@@ -8,6 +8,7 @@ import (
 type GridKeeper interface {
 	DisplayString() string
 	EmptyAt(Coord) bool
+	MoveEntity(Entity, Coord)
 	NewEntity(Entity) (Entity, bool)
 	PutEntityAt(Entity, Coord)
 	RewriteEntity(Entity)
@@ -28,6 +29,15 @@ func (self *SubGrid) EmptyAt(loc Coord) bool {
 }
 
 const subgrid_placement_trys = 100
+
+func (self *SubGrid) MoveEntity(ntt Entity, loc Coord) {
+	if ntt.Location != loc {
+		delete(self.Grid, ntt.Location)
+		self.Grid[loc] = ntt.Id
+		ntt.Location = loc
+		self.Entities[ntt.Id] = ntt
+	}
+}
 
 func (self *SubGrid) NewEntity(ntt Entity) (Entity, bool) {
 	var loc = randomSubgridCoord()
@@ -65,7 +75,7 @@ func (self *SubGrid) Corner() Coord {
 func (self *SubGrid) DisplayString() string {
 	var first bool = true
 	var buffer bytes.Buffer
-	buffer.WriteString("{")
+	buffer.WriteString(`{"type":"update","data":{"maptype":"entity","entities":{`)
 	for _, id := range self.Grid {
 		if !first {
 			buffer.WriteString(",")
@@ -74,7 +84,7 @@ func (self *SubGrid) DisplayString() string {
 		buffer.WriteString(ntt.DisplayString())
 		first = false
 	}
-	buffer.WriteString("}")
+	buffer.WriteString(`}}}`)
 	return buffer.String()
 }
 

@@ -47,7 +47,7 @@ var Game = {
         }
 
         var initReq = new XMLHttpRequest();
-        initReq.open("get", "/wsaddr", false);
+        initReq.open("get", "/static/wsaddr", false);
         initReq.send();
         var wsaddr = (initReq.responseText).trim();
 
@@ -60,13 +60,14 @@ var Game = {
         this.ws.onmessage = function(event) {
             var jsonObj = JSON.parse(event.data);
             //var jsonObj = eval("("+event.data + ")");
-            //console.log(event.data);
+            console.log(event.data);
             if (jsonObj.type === "init") {
                 Game.uuid = jsonObj.uuid; 
                 Game.renderDisplay(jsonObj.data);
                 Game.initialized = true;
             }
-            if (Game.initialized && (jsonObj.type === "update")) {
+            //if (Game.initialized && (jsonObj.type === "update")) {
+            if (jsonObj.type === "update") {
                 Game.mapUpdateQueue.enqueue(jsonObj.data);
             }
         };
@@ -107,7 +108,8 @@ var Game = {
                 var data = JSON.stringify(jsonObj);
                 console.log("sending "+data);
                 Game.lastMoveTime = currentTime;
-                Game.ws.send(data);
+                Game.ws.send(actions);
+                //Game.ws.send(data);
             } else if (Game.loadTestMode && 
                        ((currentTime - Game.lastMoveTime) > Game.requestInterval * 9) && 
                        Game.sendMoveQueue.isEmpty()) 
@@ -233,8 +235,8 @@ Game.renderDisplay = function(updateObj) {
     if (updateObj.entities) {
         Game.entities = updateObj.entities; 
     }
-    var location = updateObj.location;
-    document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+location[0]+","+location[1];
+    //var location = updateObj.location;
+    //document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+location[0]+","+location[1];
     if (updateObj.maptype === "basic") {
         for (var j = 0; j < Game.dheight; j++) {
             for (var i = 0; i < Game.dwidth; i++) {

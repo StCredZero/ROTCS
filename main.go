@@ -41,7 +41,39 @@ type CstServer struct {
 	world SubGrid
 }
 
+func updateLoc(move rune, loc Coord) Coord {
+	if move == 'n' {
+		return Coord{loc.x, loc.y - 1}
+	} else if move == 's' {
+		return Coord{loc.x, loc.y + 1}
+	} else if move == 'w' {
+		return Coord{loc.x - 1, loc.y}
+	} else if move == 'e' {
+		return Coord{loc.x + 1, loc.y}
+	}
+	return loc
+}
+
 func updateFn(grid GridKeeper, ntt Entity) {
+
+	select {
+	case moves := <-ntt.Connection.moveQueue:
+		ntt.Moves = moves
+	default:
+	}
+
+	var move rune = '0'
+	for _, v := range ntt.Moves {
+		move = v
+		println(v)
+		ntt.Moves = ntt.Moves[1:]
+		break
+	}
+
+	newLoc := updateLoc(move, ntt.Location)
+	fmt.Println(newLoc)
+	grid.MoveEntity(ntt, newLoc)
+
 	ntt.Connection.send <- []byte(grid.DisplayString())
 }
 
@@ -61,6 +93,7 @@ func (srv *CstServer) run() {
 
 			newEntity := Entity{
 				Id:         newId,
+				Moves:      "",
 				Connection: c,
 			}
 			newEntity, _ = srv.world.NewEntity(newEntity)
@@ -85,7 +118,7 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	c := &connection{
 		send:      make(chan []byte, 256),
-		moveQueue: make(chan rune, 1024),
+		moveQueue: make(chan string, 10),
 		ws:        ws,
 	}
 	srv.register <- c
@@ -98,7 +131,7 @@ type connection struct {
 	// The websocket connection.
 	ws *websocket.Conn
 
-	moveQueue chan rune
+	moveQueue chan string
 
 	// Buffered channel of outbound messages.
 	send chan []byte
@@ -114,9 +147,7 @@ func (c *connection) reader(srv *CstServer) {
 		if err != nil {
 			break
 		}
-		for _, rn := range s {
-			c.moveQueue <- rn
-		}
+		c.moveQueue <- s
 	}
 	println("closing reader")
 	c.ws.Close()
