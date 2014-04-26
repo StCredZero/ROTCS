@@ -113,52 +113,11 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		return
 	}
-	c := &connection{
-		send:      make(chan []byte, 256),
-		moveQueue: make(chan string, 10),
-		ws:        ws,
-	}
+	c := newConnection(ws)
 	srv.register <- c
 	defer func() { srv.unregister <- c }()
 	go c.writer()
 	c.reader(srv)
-}
-
-type connection struct {
-	// The websocket connection.
-	ws *websocket.Conn
-
-	moveQueue chan string
-
-	// Buffered channel of outbound messages.
-	send chan []byte
-}
-
-func (c *connection) reader(srv *CstServer) {
-	for {
-		_, message, err := c.ws.ReadMessage()
-		//n := bytes.Index(message, []byte{0})
-		s := string(message[:])
-		print("got: ")
-		println(s)
-		if err != nil {
-			break
-		}
-		c.moveQueue <- s
-	}
-	println("closing reader")
-	c.ws.Close()
-}
-
-func (c *connection) writer() {
-	for message := range c.send {
-		err := c.ws.WriteMessage(websocket.TextMessage, message)
-		if err != nil {
-			break
-		}
-	}
-	println("closing writer")
-	c.ws.Close()
 }
 
 func defaultAssetPath() string {
