@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	//"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"go/build"
 	"log"
@@ -40,8 +41,12 @@ type CstServer struct {
 	world SubGrid
 }
 
+func updateFn(grid GridKeeper, ntt Entity) {
+	ntt.Connection.send <- []byte(grid.DisplayString())
+}
+
 func (srv *CstServer) Update(now time.Time) {
-	//println("Updating ")
+	srv.world.UpdateEntities(updateFn, srv)
 }
 
 func (srv *CstServer) run() {
@@ -53,10 +58,16 @@ func (srv *CstServer) run() {
 			println("starting register")
 			var newId = <-srv.entityIdGen
 			srv.connections[c] = newId
-			var _, newEntity = srv.world.NewEntity(newId, 100)
+
+			newEntity := Entity{
+				Id:         newId,
+				Connection: c,
+			}
+			newEntity, _ = srv.world.NewEntity(newEntity)
 			fmt.Println("Initialized entity: ", newEntity)
 		case c := <-srv.unregister:
 			delete(srv.connections, c)
+			println("closing-final")
 			close(c.send)
 		case now := <-timer:
 			srv.Update(now)
@@ -72,7 +83,11 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		return
 	}
-	c := &connection{send: make(chan []byte, 256), ws: ws}
+	c := &connection{
+		send:      make(chan []byte, 256),
+		moveQueue: make(chan rune, 1024),
+		ws:        ws,
+	}
 	srv.register <- c
 	defer func() { srv.unregister <- c }()
 	go c.writer()
@@ -83,6 +98,8 @@ type connection struct {
 	// The websocket connection.
 	ws *websocket.Conn
 
+	moveQueue chan rune
+
 	// Buffered channel of outbound messages.
 	send chan []byte
 }
@@ -92,12 +109,16 @@ func (c *connection) reader(srv *CstServer) {
 		_, message, err := c.ws.ReadMessage()
 		//n := bytes.Index(message, []byte{0})
 		s := string(message[:])
-		fmt.Printf("Got message: %q %s", message, s)
+		print("got: ")
+		println(s)
 		if err != nil {
 			break
 		}
-		//srv.broadcast <- message
+		for _, rn := range s {
+			c.moveQueue <- rn
+		}
 	}
+	println("closing reader")
 	c.ws.Close()
 }
 
@@ -108,6 +129,7 @@ func (c *connection) writer() {
 			break
 		}
 	}
+	println("closing writer")
 	c.ws.Close()
 }
 
@@ -145,12 +167,19 @@ func main() {
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
 	var homeTempl = template.Must(template.ParseFiles(filepath.Join(*assets, "index.html")))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		homeHandler(w, r, homeTempl)
-	})
+	println(assets)
+	println(homeTempl)
+
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		srv.wsHandler(w, r)
 	})
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		homeHandler(w, r, homeTempl)
+	})
+
+	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./static"))))
+
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}

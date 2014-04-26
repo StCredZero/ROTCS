@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"strconv"
 )
 
 const subgrid_width = 79
@@ -51,4 +52,8 @@ func (self *Coord) VisibleGrids(xdist int64, ydist int64) []Coord {
 		i++
 	}
 	return grids[:len(set)]
+}
+
+func (self *Coord) IndexString() string {
+	return `"` + strconv.FormatInt(self.x, 10) + "," + strconv.FormatInt(self.y, 10) + `"`
 }
