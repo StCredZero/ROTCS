@@ -13,6 +13,11 @@ type Coord struct {
 	y int64
 }
 
+type GridCoord struct {
+	x int64
+	y int64
+}
+
 func loc2grid(d int64, dimSize int64) int64 {
 	if d >= 0 {
 		return (d / dimSize)
@@ -21,8 +26,8 @@ func loc2grid(d int64, dimSize int64) int64 {
 	}
 }
 
-func (self *Coord) Grid() Coord {
-	return Coord{
+func (self *Coord) Grid() GridCoord {
+	return GridCoord{
 		x: loc2grid(self.x, subgrid_width),
 		y: loc2grid(self.y, subgrid_height),
 	}
@@ -35,8 +40,8 @@ func randomSubgridCoord() Coord {
 	}
 }
 
-func (self *Coord) VisibleGrids(xdist int64, ydist int64) []Coord {
-	set := make(map[Coord]bool)
+func (self *Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
+	set := make(map[GridCoord]bool)
 	var c1 = Coord{self.x - xdist, self.y - ydist}
 	var c2 = Coord{self.x - xdist, self.y + ydist}
 	var c3 = Coord{self.x + xdist, self.y - ydist}
@@ -45,7 +50,7 @@ func (self *Coord) VisibleGrids(xdist int64, ydist int64) []Coord {
 	set[c2.Grid()] = true
 	set[c3.Grid()] = true
 	set[c4.Grid()] = true
-	grids := make([]Coord, 4, 4)
+	grids := make([]GridCoord, 4, 4)
 	var i int = 0
 	for coord, _ := range set {
 		grids[i] = coord

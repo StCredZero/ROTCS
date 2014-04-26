@@ -18,7 +18,7 @@ type GridKeeper interface {
 type UpdateFunc func(*GridKeeper, Entity)
 
 type SubGrid struct {
-	GridCoord   Coord
+	GridCoord   GridCoord
 	Grid        map[Coord]uint32
 	Entities    map[uint32]Entity
 	ParentQueue chan uint32
@@ -100,12 +100,12 @@ func (self *SubGrid) UpdateEntities(updateFn func(GridKeeper, Entity), server *C
 }
 
 type WorldGrid struct {
-	grid       map[Coord]SubGrid
-	entityGrid map[uint32]Coord
-	spawnGrids []Coord
+	grid       map[GridCoord]SubGrid
+	entityGrid map[uint32]GridCoord
+	spawnGrids []GridCoord
 }
 
-func (self *WorldGrid) SubGridAtGrid(gridCoord Coord) SubGrid {
+func (self *WorldGrid) SubGridAtGrid(gridCoord GridCoord) SubGrid {
 	subgrid, present := self.grid[gridCoord]
 	if !present {
 		subgrid = SubGrid{

@@ -62,9 +62,7 @@ func updateFn(grid GridKeeper, ntt Entity) {
 	}
 
 	var move rune = '0'
-	for _, v := range ntt.Moves {
-		move = v
-		println(v)
+	for _, move = range ntt.Moves {
 		ntt.Moves = ntt.Moves[1:]
 		break
 	}
@@ -187,7 +185,7 @@ func main() {
 
 	srv.entityIdGen = IdGenerator(0)
 	srv.world = SubGrid{
-		GridCoord:   Coord{0, 0},
+		GridCoord:   GridCoord{0, 0},
 		Grid:        make(map[Coord]uint32),
 		Entities:    make(map[uint32]Entity),
 		ParentQueue: make(chan uint32, (subgrid_width * subgrid_height)),
