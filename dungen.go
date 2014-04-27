@@ -3,8 +3,8 @@ package main
 import "math/rand"
 
 const TILE_UNUSED = 0
-const TILE_DIRTWALL = 1
-const TILE_DIRTFLOOR = 2
+const TILE_WALL = 1
+const TILE_FLOOR = 2
 const maxRoomLength = 28
 const maxRoomHeight = 14
 const maxLengthCorridor = 16
@@ -47,7 +47,7 @@ func (self *DunGen) getCell(x int, y int) int {
 }
 
 func (self *DunGen) isWalkable(x int, y int) bool {
-	return (self.getCell(x, y) == TILE_DIRTFLOOR)
+	return (self.getCell(x, y) == TILE_FLOOR)
 }
 
 func (self *DunGen) getRand(min int, max int) int {
@@ -61,7 +61,6 @@ func (self *DunGen) getRand(min int, max int) int {
 
 func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 	c_len := self.getRand(2, length)
-	floor := TILE_DIRTFLOOR
 	var dir int = 0
 
 	if direction > 0 && direction < 4 {
@@ -94,7 +93,7 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 
 			//if we're still here, let's start building
 			for ytemp = y; ytemp > (y - c_len); ytemp-- {
-				self.setCell(xtemp, ytemp, floor)
+				self.setCell(xtemp, ytemp, TILE_FLOOR)
 			}
 		}
 	case 1: //east
@@ -115,7 +114,7 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 			}
 
 			for xtemp = x; xtemp < (x + c_len); xtemp++ {
-				self.setCell(xtemp, ytemp, floor)
+				self.setCell(xtemp, ytemp, TILE_FLOOR)
 			}
 		}
 	case 2: //south
@@ -135,7 +134,7 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 			}
 
 			for ytemp = y; ytemp < (y + c_len); ytemp++ {
-				self.setCell(xtemp, ytemp, floor)
+				self.setCell(xtemp, ytemp, TILE_FLOOR)
 			}
 		}
 	case 3: //west
@@ -156,7 +155,7 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 			}
 
 			for xtemp = x; xtemp > (x - c_len); xtemp-- {
-				self.setCell(xtemp, ytemp, floor)
+				self.setCell(xtemp, ytemp, TILE_FLOOR)
 			}
 		}
 	}
@@ -174,9 +173,8 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 	}
 
 	switch dir {
-	case 0:
+	case 0: //north
 		{
-			//north
 			//Check if there's enough space left for it
 			for ytemp := y; ytemp > (y - ylen); ytemp-- {
 				if ytemp < 0 || ytemp >= self.ysize {
@@ -194,24 +192,23 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 					for xtemp := (x - xlen/2); xtemp < (x + (xlen+1)/2); xtemp++ {
 						//start with the walls
 						if xtemp == (x - xlen/2) {
-							self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+							self.setCell(xtemp, ytemp, TILE_WALL)
 						} else if xtemp == (x + (xlen-1)/2) {
-							self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+							self.setCell(xtemp, ytemp, TILE_WALL)
 						} else if ytemp == y {
-							self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+							self.setCell(xtemp, ytemp, TILE_WALL)
 						} else if ytemp == (y - ylen + 1) {
-							self.setCell(xtemp, ytemp, TILE_DIRTWALL)
-							//and then fill with the floor
+							self.setCell(xtemp, ytemp, TILE_WALL)
+							//and then fill with the TILE_FLOOR
 						} else {
-							self.setCell(xtemp, ytemp, TILE_DIRTFLOOR)
+							self.setCell(xtemp, ytemp, TILE_FLOOR)
 						}
 					}
 				}
 			}
 		}
-	case 1:
+	case 1: //east
 		{
-			//east
 			for ytemp := (y - ylen/2); ytemp < (y + (ylen+1)/2); ytemp++ {
 				if ytemp < 0 || ytemp >= self.ysize {
 					return false
@@ -228,22 +225,21 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 			for ytemp := (y - ylen/2); ytemp < (y + (ylen+1)/2); ytemp++ {
 				for xtemp := x; xtemp < (x + xlen); xtemp++ {
 					if xtemp == x {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if xtemp == (x + xlen - 1) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if ytemp == (y - ylen/2) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if ytemp == (y + (ylen-1)/2) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else {
-						self.setCell(xtemp, ytemp, TILE_DIRTFLOOR)
+						self.setCell(xtemp, ytemp, TILE_FLOOR)
 					}
 				}
 			}
 		}
-	case 2:
+	case 2: //south
 		{
-			//south
 			for ytemp := y; ytemp < (y + ylen); ytemp++ {
 				if ytemp < 0 || ytemp >= self.ysize {
 					return false
@@ -260,22 +256,21 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 			for ytemp := y; ytemp < (y + ylen); ytemp++ {
 				for xtemp := (x - xlen/2); xtemp < (x + (xlen+1)/2); xtemp++ {
 					if xtemp == (x - xlen/2) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if xtemp == (x + (xlen-1)/2) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if ytemp == y {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if ytemp == (y + ylen - 1) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else {
-						self.setCell(xtemp, ytemp, TILE_DIRTFLOOR)
+						self.setCell(xtemp, ytemp, TILE_FLOOR)
 					}
 				}
 			}
 		}
-	case 3:
+	case 3: //west
 		{
-			//west
 			for ytemp := (y - ylen/2); ytemp < (y + (ylen+1)/2); ytemp++ {
 				if ytemp < 0 || ytemp >= self.ysize {
 					return false
@@ -292,15 +287,15 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 			for ytemp := (y - ylen/2); ytemp < (y + (ylen+1)/2); ytemp++ {
 				for xtemp := x; xtemp > (x - xlen); xtemp-- {
 					if xtemp == x {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if xtemp == (x - xlen + 1) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if ytemp == (y - ylen/2) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else if ytemp == (y + (ylen-1)/2) {
-						self.setCell(xtemp, ytemp, TILE_DIRTWALL)
+						self.setCell(xtemp, ytemp, TILE_WALL)
 					} else {
-						self.setCell(xtemp, ytemp, TILE_DIRTFLOOR)
+						self.setCell(xtemp, ytemp, TILE_FLOOR)
 					}
 				}
 			}
@@ -338,21 +333,21 @@ func (self *DunGen) createDungeon() bool {
 			newx = self.getRand(1, self.xsize-2)
 			newy = self.getRand(1, self.ysize-2)
 			validTile = -1
-			if self.getCell(newx, newy) == TILE_DIRTWALL || self.getCell(newx, newy) == TILE_DIRTFLOOR {
+			if self.getCell(newx, newy) == TILE_WALL || self.getCell(newx, newy) == TILE_FLOOR {
 				//check if we can reach the place
-				if self.getCell(newx, newy+1) == TILE_DIRTFLOOR {
+				if self.getCell(newx, newy+1) == TILE_FLOOR {
 					validTile = 0
 					xmod = 0
 					ymod = -1
-				} else if self.getCell(newx-1, newy) == TILE_DIRTFLOOR {
+				} else if self.getCell(newx-1, newy) == TILE_FLOOR {
 					validTile = 1
 					xmod = +1
 					ymod = 0
-				} else if self.getCell(newx, newy-1) == TILE_DIRTFLOOR {
+				} else if self.getCell(newx, newy-1) == TILE_FLOOR {
 					validTile = 2
 					xmod = 0
 					ymod = +1
-				} else if self.getCell(newx+1, newy) == TILE_DIRTFLOOR {
+				} else if self.getCell(newx+1, newy) == TILE_FLOOR {
 					validTile = 3
 					xmod = -1
 					ymod = 0
@@ -370,15 +365,15 @@ func (self *DunGen) createDungeon() bool {
 				if self.makeRoom((newx + xmod), (newy + ymod), maxRoomLength, maxRoomHeight, validTile) {
 					currentFeatures++ //add to our quota
 					//then we mark the wall opening with a door
-					self.setCell(newx, newy, TILE_DIRTFLOOR)
+					self.setCell(newx, newy, TILE_FLOOR)
 					//clean up infront of the door so we can reach it
-					self.setCell((newx + xmod), (newy + ymod), TILE_DIRTFLOOR)
+					self.setCell((newx + xmod), (newy + ymod), TILE_FLOOR)
 				}
 			} else if feature >= self.chanceRoom { //new corridor
 				if self.makeCorridor((newx + xmod), (newy + ymod), maxLengthCorridor, validTile) {
 					//same thing here, add to the quota and a door
 					currentFeatures++
-					self.setCell(newx, newy, TILE_DIRTFLOOR)
+					self.setCell(newx, newy, TILE_FLOOR)
 				}
 			}
 		}
