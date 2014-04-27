@@ -135,17 +135,14 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 
 func main() {
 
-	s1 := rand.NewSource(42)
+	s1 := rand.NewSource(145)
 	r1 := rand.New(s1)
 	d := DunGen{
-		xsize:          subgrid_width,
-		ysize:          subgrid_height,
-		objects:        30,
-		chanceRoom:     75,
-		chanceCorridor: 25,
-		randomizer:     r1,
+		rng: r1,
 	}
+	d.initialize()
 	d.createDungeon()
+	println(d.debugPrint())
 
 	flag.Parse()
 

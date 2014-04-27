@@ -18,6 +18,21 @@ type GridCoord struct {
 	y int64
 }
 
+type LCoord struct {
+	x int
+	y int
+}
+
+func (self LCoord) inBounds() bool {
+	return self.x >= 0 && self.y >= 0 &&
+		self.x < subgrid_width && self.y < subgrid_height
+}
+
+func (self LCoord) inShyBounds() bool {
+	return self.x >= 1 && self.y >= 1 &&
+		self.x < subgrid_width-1 && self.y < subgrid_height-1
+}
+
 func loc2grid(d int64, dimSize int64) int64 {
 	if d >= 0 {
 		return (d / dimSize)
