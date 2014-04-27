@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go/build"
 	"log"
+	"math/rand"
 	"net/http"
 	"path/filepath"
 	"runtime"
@@ -133,6 +134,18 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 }
 
 func main() {
+
+	s1 := rand.NewSource(42)
+	r1 := rand.New(s1)
+	d := DunGen{
+		xsize:          subgrid_width,
+		ysize:          subgrid_height,
+		objects:        30,
+		chanceRoom:     75,
+		chanceCorridor: 25,
+		randomizer:     r1,
+	}
+	d.createDungeon()
 
 	flag.Parse()
 

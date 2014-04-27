@@ -5,12 +5,6 @@ import "math/rand"
 const TILE_UNUSED = 0
 const TILE_DIRTWALL = 1
 const TILE_DIRTFLOOR = 2
-const TILE_STONEWALL = 3
-const TILE_CORRIDOR = 4
-const TILE_DOOR = 5
-const TILE_UPSTAIRS = 6
-const TILE_DOWNSTAIRS = 7
-const TILE_CHEST = 8
 const maxRoomLength = 28
 const maxRoomHeight = 14
 const maxLengthCorridor = 16
@@ -23,23 +17,37 @@ type DunGen struct {
 	chanceRoom     int
 	chanceCorridor int
 
-	dungeon_map []int
+	dungeon_map [subgrid_width * subgrid_height]int
 
-	randomizer rand.Rand
+	randomizer *rand.Rand
+}
+
+func (self *DunGen) initialize() *DunGen {
+	self.xsize = subgrid_width
+	self.ysize = subgrid_height
+	self.objects = 30
+	self.chanceRoom = 75
+	self.chanceCorridor = 25
+	//self.dungeon_map = make([]int, subgrid_width*subgrid_height)
+	return self
 }
 
 func (self *DunGen) setCell(x int, y int, celltype int) {
-	self.dungeon_map[x+self.xsize*y] = celltype
+	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
+		self.dungeon_map[x+self.xsize*y] = celltype
+	}
 }
 
 func (self *DunGen) getCell(x int, y int) int {
-	return self.dungeon_map[x+self.xsize*y]
+	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
+		return self.dungeon_map[x+(self.xsize*y)]
+	} else {
+		return TILE_UNUSED
+	}
 }
 
 func (self *DunGen) isWalkable(x int, y int) bool {
-	return (self.getCell(x, y) == TILE_DIRTFLOOR) ||
-		(self.getCell(x, y) == TILE_CORRIDOR) ||
-		(self.getCell(x, y) == TILE_DOOR)
+	return (self.getCell(x, y) == TILE_DIRTFLOOR)
 }
 
 func (self *DunGen) getRand(min int, max int) int {
@@ -53,7 +61,7 @@ func (self *DunGen) getRand(min int, max int) int {
 
 func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 	c_len := self.getRand(2, length)
-	floor := TILE_CORRIDOR
+	floor := TILE_DIRTFLOOR
 	var dir int = 0
 
 	if direction > 0 && direction < 4 {
@@ -64,9 +72,8 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 	var ytemp int = 0
 
 	switch dir {
-	case 0:
+	case 0: //north
 		{
-			//north
 			//check if there's enough space for the corridor
 			//start with checking it's not out of the boundaries
 			if x < 0 || x > self.xsize {
@@ -90,9 +97,8 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 				self.setCell(xtemp, ytemp, floor)
 			}
 		}
-	case 1:
+	case 1: //east
 		{
-			//east
 			if y < 0 || y > self.ysize {
 				return false
 			} else {
@@ -112,9 +118,8 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 				self.setCell(xtemp, ytemp, floor)
 			}
 		}
-	case 2:
+	case 2: //south
 		{
-			//south
 			if x < 0 || x > self.xsize {
 				return false
 			} else {
@@ -133,9 +138,8 @@ func (self *DunGen) makeCorridor(x int, y int, length int, direction int) bool {
 				self.setCell(xtemp, ytemp, floor)
 			}
 		}
-	case 3:
+	case 3: //west
 		{
-			//west
 			if ytemp < 0 || ytemp > self.ysize {
 				return false
 			} else {
@@ -175,11 +179,11 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 			//north
 			//Check if there's enough space left for it
 			for ytemp := y; ytemp > (y - ylen); ytemp-- {
-				if ytemp < 0 || ytemp > self.ysize {
+				if ytemp < 0 || ytemp >= self.ysize {
 					return false
 				}
 				for xtemp := (x - xlen/2); xtemp < (x + (xlen+1)/2); xtemp++ {
-					if xtemp < 0 || xtemp > self.xsize {
+					if xtemp < 0 || xtemp >= self.xsize {
 						return false
 					}
 					if self.getCell(xtemp, ytemp) != TILE_UNUSED {
@@ -209,11 +213,11 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 		{
 			//east
 			for ytemp := (y - ylen/2); ytemp < (y + (ylen+1)/2); ytemp++ {
-				if ytemp < 0 || ytemp > self.ysize {
+				if ytemp < 0 || ytemp >= self.ysize {
 					return false
 				}
 				for xtemp := x; xtemp < (x + xlen); xtemp++ {
-					if xtemp < 0 || xtemp > self.xsize {
+					if xtemp < 0 || xtemp >= self.xsize {
 						return false
 					}
 					if self.getCell(xtemp, ytemp) != TILE_UNUSED {
@@ -241,11 +245,11 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 		{
 			//south
 			for ytemp := y; ytemp < (y + ylen); ytemp++ {
-				if ytemp < 0 || ytemp > self.ysize {
+				if ytemp < 0 || ytemp >= self.ysize {
 					return false
 				}
 				for xtemp := (x - xlen/2); xtemp < (x + (xlen+1)/2); xtemp++ {
-					if xtemp < 0 || xtemp > self.xsize {
+					if xtemp < 0 || xtemp >= self.xsize {
 						return false
 					}
 					if self.getCell(xtemp, ytemp) != TILE_UNUSED {
@@ -273,10 +277,10 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 		{
 			//west
 			for ytemp := (y - ylen/2); ytemp < (y + (ylen+1)/2); ytemp++ {
-				if ytemp < 0 || ytemp > self.ysize {
+				if ytemp < 0 || ytemp >= self.ysize {
 					return false
 				}
-				for xtemp := x; xtemp > (x - xlen); xtemp-- {
+				for xtemp := x; xtemp >= (x - xlen); xtemp-- {
 					if xtemp < 0 || xtemp > self.xsize {
 						return false
 					}
@@ -306,12 +310,8 @@ func (self *DunGen) makeRoom(x int, y int, xlength int, ylength int, direction i
 	return true
 }
 
-func (self *DunGen) createDungeon(inx int, iny int, inobj int) bool {
-	if inobj < 1 {
-		self.objects = 10
-	} else {
-		self.objects = inobj
-	}
+//func (self *DunGen) createDungeon(inx int, iny int, inobj int) bool {
+func (self *DunGen) createDungeon() bool {
 	//start with making the "standard stuff" on the map
 	for y := 0; y < self.ysize; y++ {
 		for x := 0; x < self.xsize; x++ {
@@ -335,24 +335,24 @@ func (self *DunGen) createDungeon(inx int, iny int, inobj int) bool {
 		var validTile int = -1
 		//1000 chances to find a suitable object (room or corridor)..
 		for testing := 0; testing < 1000; testing++ {
-			newx = self.getRand(1, self.xsize-1)
-			newy = self.getRand(1, self.ysize-1)
+			newx = self.getRand(1, self.xsize-2)
+			newy = self.getRand(1, self.ysize-2)
 			validTile = -1
-			if self.getCell(newx, newy) == TILE_DIRTWALL || self.getCell(newx, newy) == TILE_CORRIDOR {
+			if self.getCell(newx, newy) == TILE_DIRTWALL || self.getCell(newx, newy) == TILE_DIRTFLOOR {
 				//check if we can reach the place
-				if self.getCell(newx, newy+1) == TILE_DIRTFLOOR || self.getCell(newx, newy+1) == TILE_CORRIDOR {
+				if self.getCell(newx, newy+1) == TILE_DIRTFLOOR {
 					validTile = 0
 					xmod = 0
 					ymod = -1
-				} else if self.getCell(newx-1, newy) == TILE_DIRTFLOOR || self.getCell(newx-1, newy) == TILE_CORRIDOR {
+				} else if self.getCell(newx-1, newy) == TILE_DIRTFLOOR {
 					validTile = 1
 					xmod = +1
 					ymod = 0
-				} else if self.getCell(newx, newy-1) == TILE_DIRTFLOOR || self.getCell(newx, newy-1) == TILE_CORRIDOR {
+				} else if self.getCell(newx, newy-1) == TILE_DIRTFLOOR {
 					validTile = 2
 					xmod = 0
 					ymod = +1
-				} else if self.getCell(newx+1, newy) == TILE_DIRTFLOOR || self.getCell(newx+1, newy) == TILE_CORRIDOR {
+				} else if self.getCell(newx+1, newy) == TILE_DIRTFLOOR {
 					validTile = 3
 					xmod = -1
 					ymod = 0
@@ -370,7 +370,7 @@ func (self *DunGen) createDungeon(inx int, iny int, inobj int) bool {
 				if self.makeRoom((newx + xmod), (newy + ymod), maxRoomLength, maxRoomHeight, validTile) {
 					currentFeatures++ //add to our quota
 					//then we mark the wall opening with a door
-					self.setCell(newx, newy, TILE_DOOR)
+					self.setCell(newx, newy, TILE_DIRTFLOOR)
 					//clean up infront of the door so we can reach it
 					self.setCell((newx + xmod), (newy + ymod), TILE_DIRTFLOOR)
 				}
@@ -378,7 +378,7 @@ func (self *DunGen) createDungeon(inx int, iny int, inobj int) bool {
 				if self.makeCorridor((newx + xmod), (newy + ymod), maxLengthCorridor, validTile) {
 					//same thing here, add to the quota and a door
 					currentFeatures++
-					self.setCell(newx, newy, TILE_DOOR)
+					self.setCell(newx, newy, TILE_DIRTFLOOR)
 				}
 			}
 		}
