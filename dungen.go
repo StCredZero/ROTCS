@@ -244,22 +244,22 @@ func (self *DunGen) pickStart() (LCoord, int) {
 
 func (self *DunGen) newShyRect(x int, y int, w int, h int) DRect {
 	x1, y1, w1, h1 := x, y, w, h
-	if x == 0 {
+	if x <= 0 {
 		x1 = 1
 		w1 = w - 1
 	}
-	if y == 0 {
+	if y <= 0 {
 		y1 = 1
 		h1 = h - 1
 	}
-	if x1+w1 > self.xsize-2 {
-		if self.xsize-2-x1 > 0 {
-			w1 = self.xsize - 2 - x1
+	if x1+w1 > self.xsize-1 {
+		if self.xsize-1-x1 > 0 {
+			w1 = self.xsize - 1 - x1
 		}
 	}
-	if y1+h1 > self.ysize-2 {
-		if self.ysize-2-y1 > 0 {
-			h1 = self.ysize - 2 - y1
+	if y1+h1 > self.ysize-1 {
+		if self.ysize-1-y1 > 0 {
+			h1 = self.ysize - 1 - y1
 		}
 	}
 	return DRect{x1, y1, w1, h1}
@@ -316,9 +316,10 @@ func (self *DunGen) tryRoom(coord LCoord, dir int) bool {
 		yoff := self.rng.Intn(h)
 		rect = self.newShyRect(coord.x-w, coord.y-yoff, w, h)
 	}
-	fmt.Println("rect:", rect, " dir: ", dir)
+
 	result := self.setRect(rect)
 	if result {
+		fmt.Println("rect:", rect, " dir: ", dir)
 		self.setCell(coord.x, coord.y, TILE_FLOOR)
 		switch dir {
 		case DIR_NORTH, DIR_SOUTH:
@@ -340,11 +341,9 @@ func (self *DunGen) tryRoom(coord LCoord, dir int) bool {
 func (self *DunGen) createDungeon() bool {
 	self.setRoom(self.firstRoom())
 	println(self.debugPrint())
-	coord, dir := self.pickStart()
-	self.tryCorridor(coord, dir)
-	println(self.debugPrint())
+
 	for self.objects < self.targetObj {
-		coord, dir = self.pickStart()
+		coord, dir := self.pickStart()
 		var added bool
 		if self.rng.Intn(100) <= self.chanceRoom {
 			added = self.tryRoom(coord, dir)
