@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"math/big"
 	"math/rand"
 	"strconv"
 )
@@ -76,4 +78,13 @@ func (self *Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
 
 func (self *Coord) IndexString() string {
 	return `"` + strconv.FormatInt(self.x, 10) + "," + strconv.FormatInt(self.y, 10) + `"`
+}
+
+func (gridCoord *GridCoord) WriteTo(b *bytes.Buffer) (int, error) {
+	xn, xerr := b.Write(big.NewInt(gridCoord.x).Bytes())
+	if xerr != nil {
+		return xn, xerr
+	}
+	yn, yerr := b.Write(big.NewInt(gridCoord.y).Bytes())
+	return xn + yn, yerr
 }
