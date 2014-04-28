@@ -133,13 +133,18 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 }
 
 func main() {
-
-	d := DunGen{
-		targetObj: 20,
+	entropy := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	dgproto := DunGen{
+		xsize:      subgrid_width,
+		ysize:      subgrid_height,
+		targetObj:  20,
+		chanceRoom: 50,
 	}
-	d.initialize()
-	d.createDungeon(GridCoord{0, 1}, []byte{1, 2, 3, 4, 5, 6, 7, 8})
-	println(d.debugPrint())
+	dgcache := NewDunGenCache(1024, entropy, dgproto)
+	d1 := dgcache.DungeonAt(GridCoord{0, 0})
+	println(d1.debugPrint())
+	d2 := dgcache.DungeonAt(GridCoord{0, 1})
+	println(d2.debugPrint())
 
 	flag.Parse()
 

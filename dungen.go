@@ -63,26 +63,38 @@ type DunGen struct {
 
 	numRooms   int
 	chanceRoom int
+	passaged   bool
 
 	dungeon_map [subgrid_width * subgrid_height]int
 
 	walls [4](map[LCoord]bool)
 	rooms []DRect
 
-	passageSouth LCoord
-	passageEast  LCoord
+	passageSouth    LCoord
+	passageEast     LCoord
+	passageNorthEnd int
+	passageWestEnd  int
 
 	rng *rand.Rand
 }
 
-func (self *DunGen) initialize() *DunGen {
+func NewDunGen(proto *DunGen) *DunGen {
+	return &DunGen{
+		xsize:      proto.xsize,
+		ysize:      proto.ysize,
+		targetObj:  proto.targetObj,
+		chanceRoom: proto.chanceRoom,
+	}
+}
+
+/*func (self *DunGen) initialize() *DunGen {
 	self.xsize = subgrid_width
 	self.ysize = subgrid_height
 	self.targetObj = 20
 	self.chanceRoom = 50
 
 	return self
-}
+}*/
 
 func (self *DunGen) setCell(x int, y int, value int) {
 	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
@@ -380,11 +392,33 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy []byte) {
 
 	self.passageSouth = self.pickStartDir(DIR_SOUTH)
 	self.passageEast = self.pickStartDir(DIR_EAST)
+	self.passageNorthEnd = self.getRand(1, self.ysize-2)
+	self.passageWestEnd = self.getRand(1, self.xsize-2)
 
 	newRooms := make([]DRect, self.numRooms)
 	copy(newRooms, self.rooms[:self.numRooms])
 	self.rooms = newRooms
 	for i := 0; i < 4; i++ {
 		self.walls[i] = nil
+	}
+}
+
+func (self *DunGen) makePassages(northDg *DunGen, westDg *DunGen) {
+	if !self.passaged {
+		nx := northDg.passageSouth.x
+		for y := 0; y <= self.passageNorthEnd; y++ {
+			self.setCell(nx, y, TILE_FLOOR)
+		}
+		for y1 := self.passageSouth.y; y1 < self.ysize; y1++ {
+			self.setCell(self.passageSouth.x, y1, TILE_FLOOR)
+		}
+		wy := westDg.passageEast.y
+		for x := 0; x <= self.passageWestEnd; x++ {
+			self.setCell(x, wy, TILE_FLOOR)
+		}
+		for x1 := self.passageEast.x; x1 < self.xsize; x1++ {
+			self.setCell(x1, self.passageEast.y, TILE_FLOOR)
+		}
+		self.passaged = true
 	}
 }
