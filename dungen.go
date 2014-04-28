@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -349,7 +350,18 @@ func (self *DunGen) tryRoom(coord LCoord, dir int) bool {
 	return result
 }
 
-func (self *DunGen) createDungeon() {
+func (self *DunGen) createDungeon(gridCoord GridCoord, entropy []byte) {
+
+	var buffer bytes.Buffer
+	gridCoord.WriteTo(&buffer)
+	buffer.Write(entropy)
+	h := sha1.New()
+	bs := h.Sum(buffer.Bytes())
+	var newSeed, i uint64
+	for i = 0; i < 8; i++ {
+		newSeed += uint64(bs[i]) << i
+	}
+	self.rng = rand.New(rand.NewSource(int64(newSeed)))
 
 	self.rooms = make([]DRect, self.targetObj, self.targetObj)
 	for i := 0; i < 4; i++ {

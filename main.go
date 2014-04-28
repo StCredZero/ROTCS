@@ -4,10 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
-	//"github.com/nutterts/randgen"
 	"go/build"
 	"log"
-	"math/rand"
 	"net/http"
 	"path/filepath"
 	"runtime"
@@ -136,14 +134,11 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 
 func main() {
 
-	s1 := rand.NewSource(148)
-	s1.Seed(148)
-	r1 := rand.New(s1)
 	d := DunGen{
-		rng: r1,
+		targetObj: 20,
 	}
 	d.initialize()
-	d.createDungeon()
+	d.createDungeon(GridCoord{0, 1}, []byte{1, 2, 3, 4, 5, 6, 7, 8})
 	println(d.debugPrint())
 
 	flag.Parse()
