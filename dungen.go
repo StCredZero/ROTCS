@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"sort"
 )
 
 const TILE_UNUSED = 0
@@ -20,9 +21,17 @@ const minCorridorDim = 2
 const maxLengthCorridor = 16
 const maxRooms = 100
 
-type TileDelta struct {
-	x int
-	y int
+type SortableLCoords []LCoord
+
+func (this SortableLCoords) Len() int {
+	return len(this)
+}
+func (this SortableLCoords) Less(i, j int) bool {
+	return (this[i].x < this[j].x) ||
+		((this[i].x == this[j].x) && (this[i].y < this[j].y))
+}
+func (this SortableLCoords) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
 }
 
 const DIR_NORTH = 0
@@ -59,6 +68,9 @@ type DunGen struct {
 	walls [4](map[LCoord]bool)
 	rooms []DRect
 
+	passageSouth LCoord
+	passageEast  LCoord
+
 	rng *rand.Rand
 }
 
@@ -68,11 +80,6 @@ func (self *DunGen) initialize() *DunGen {
 	self.targetObj = 20
 	self.chanceRoom = 50
 
-	self.rooms = make([]DRect, 100, 100)
-	for i := 0; i < 4; i++ {
-		self.walls[i] = make(map[LCoord]bool)
-	}
-	//self.dungeon_map = make([]int, subgrid_width*subgrid_height)
 	return self
 }
 
@@ -101,7 +108,11 @@ func (self *DunGen) debugPrint() string {
 	var buffer bytes.Buffer
 	for y := 0; y < self.ysize; y++ {
 		for x := 0; x < self.xsize; x++ {
-			if (self.walls[DIR_NORTH])[LCoord{x, y}] {
+			if self.passageSouth.x == x && self.passageSouth.y == y {
+				buffer.WriteString("V")
+			} else if self.passageEast.x == x && self.passageEast.y == y {
+				buffer.WriteString("}")
+			} else if (self.walls[DIR_NORTH])[LCoord{x, y}] {
 				buffer.WriteString("N")
 			} else if (self.walls[DIR_SOUTH])[LCoord{x, y}] {
 				buffer.WriteString("S")
@@ -117,6 +128,11 @@ func (self *DunGen) debugPrint() string {
 		}
 		buffer.WriteString("\n")
 	}
+	for i := 0; i < self.numRooms; i++ {
+		fmt.Print(self.rooms[i])
+		println()
+	}
+
 	return buffer.String()
 }
 
@@ -154,7 +170,7 @@ func (self *DunGen) firstRoom() DRect {
 }
 
 func (self *DunGen) setWall(coord LCoord, direction int) {
-	if coord.inShyBounds() && self.getCell(coord.x, coord.y) == TILE_UNUSED {
+	if coord.inBounds() && self.getCell(coord.x, coord.y) == TILE_UNUSED {
 		for dir := 0; dir < 4; dir++ {
 			if dir == direction {
 				(self.walls[dir])[coord] = true
@@ -209,7 +225,7 @@ func (self *DunGen) setRoom(room DRect) bool {
 		return false
 	}
 	self.rooms[self.numRooms] = room
-	self.numRooms += 1
+	self.numRooms = self.numRooms + 1
 	return true
 }
 
@@ -218,17 +234,24 @@ func (self *DunGen) randomWall(dir int) (LCoord, bool) {
 	if len(wallMap) == 0 {
 		return LCoord{}, false
 	}
-	n := self.rng.Intn(len(wallMap))
+	n := len(wallMap)
+	keys := make(SortableLCoords, n, n)
 	i := 0
-	var result LCoord
-	for k := range wallMap {
-		if i == n {
-			result = k
-			break
-		}
+	for k, _ := range wallMap {
+		keys[i] = k
 		i++
 	}
-	return result, true
+	sort.Sort(keys)
+	return keys[self.rng.Intn(n)], true
+}
+
+func (self *DunGen) pickStartDir(dir int) LCoord {
+	var ok bool = false
+	var coord LCoord
+	for !ok {
+		coord, ok = self.randomWall(dir)
+	}
+	return coord
 }
 
 func (self *DunGen) pickStart() (LCoord, int) {
@@ -245,12 +268,10 @@ func (self *DunGen) pickStart() (LCoord, int) {
 func (self *DunGen) newShyRect(x int, y int, w int, h int) DRect {
 	x1, y1, w1, h1 := x, y, w, h
 	if x <= 0 {
-		x1 = 1
-		w1 = w - 1
+		x1, w1 = 1, w-1
 	}
 	if y <= 0 {
-		y1 = 1
-		h1 = h - 1
+		y1, h1 = 1, h-1
 	}
 	if x1+w1 > self.xsize-1 {
 		if self.xsize-1-x1 > 0 {
@@ -283,15 +304,11 @@ func (self *DunGen) tryCorridor(coord LCoord, dir int) bool {
 		self.setCell(coord.x, coord.y, TILE_FLOOR)
 		switch dir {
 		case DIR_NORTH, DIR_SOUTH:
-			{
-				self.clearWalls(coord.x+1, coord.y)
-				self.clearWalls(coord.x-1, coord.y)
-			}
+			self.clearWalls(coord.x+1, coord.y)
+			self.clearWalls(coord.x-1, coord.y)
 		case DIR_WEST, DIR_EAST:
-			{
-				self.clearWalls(coord.x, coord.y+1)
-				self.clearWalls(coord.x, coord.y-1)
-			}
+			self.clearWalls(coord.x, coord.y+1)
+			self.clearWalls(coord.x, coord.y-1)
 		}
 	}
 	return result
@@ -317,42 +334,45 @@ func (self *DunGen) tryRoom(coord LCoord, dir int) bool {
 		rect = self.newShyRect(coord.x-w, coord.y-yoff, w, h)
 	}
 
-	result := self.setRect(rect)
+	result := self.setRoom(rect)
 	if result {
-		fmt.Println("rect:", rect, " dir: ", dir)
 		self.setCell(coord.x, coord.y, TILE_FLOOR)
 		switch dir {
 		case DIR_NORTH, DIR_SOUTH:
-			{
-				self.clearWalls(coord.x+1, coord.y)
-				self.clearWalls(coord.x-1, coord.y)
-			}
+			self.clearWalls(coord.x+1, coord.y)
+			self.clearWalls(coord.x-1, coord.y)
 		case DIR_WEST, DIR_EAST:
-			{
-				self.clearWalls(coord.x, coord.y+1)
-				self.clearWalls(coord.x, coord.y-1)
-			}
+			self.clearWalls(coord.x, coord.y+1)
+			self.clearWalls(coord.x, coord.y-1)
 		}
 	}
 	return result
 }
 
-//func (self *DunGen) createDungeon(inx int, iny int, inobj int) bool {
-func (self *DunGen) createDungeon() bool {
-	self.setRoom(self.firstRoom())
-	println(self.debugPrint())
+func (self *DunGen) createDungeon() {
 
+	self.rooms = make([]DRect, self.targetObj, self.targetObj)
+	for i := 0; i < 4; i++ {
+		self.walls[i] = make(map[LCoord]bool)
+	}
+
+	self.setRoom(self.firstRoom())
 	for self.objects < self.targetObj {
 		coord, dir := self.pickStart()
-		var added bool
 		if self.rng.Intn(100) <= self.chanceRoom {
-			added = self.tryRoom(coord, dir)
+			self.tryRoom(coord, dir)
 		} else {
-			added = self.tryCorridor(coord, dir)
-		}
-		if added {
-			println(self.debugPrint())
+			self.tryCorridor(coord, dir)
 		}
 	}
-	return true
+
+	self.passageSouth = self.pickStartDir(DIR_SOUTH)
+	self.passageEast = self.pickStartDir(DIR_EAST)
+
+	newRooms := make([]DRect, self.numRooms)
+	copy(newRooms, self.rooms[:self.numRooms])
+	self.rooms = newRooms
+	for i := 0; i < 4; i++ {
+		self.walls[i] = nil
+	}
 }

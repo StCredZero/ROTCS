@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
+	//"github.com/nutterts/randgen"
 	"go/build"
 	"log"
 	"math/rand"
@@ -135,7 +136,8 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 
 func main() {
 
-	s1 := rand.NewSource(145)
+	s1 := rand.NewSource(148)
+	s1.Seed(148)
 	r1 := rand.New(s1)
 	d := DunGen{
 		rng: r1,
