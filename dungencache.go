@@ -33,8 +33,10 @@ func (self *DunGenCache) basicDungeonAt(gcoord GridCoord) *DunGen {
 
 func (self *DunGenCache) DungeonAt(gcoord GridCoord) *DunGen {
 	dg := self.basicDungeonAt(gcoord)
-	dgn := self.basicDungeonAt(GridCoord{gcoord.x, gcoord.y - 1})
-	dgw := self.basicDungeonAt(GridCoord{gcoord.x - 1, gcoord.y})
-	dg.makePassages(dgn, dgw)
+	if !dg.passaged {
+		dgn := self.basicDungeonAt(GridCoord{gcoord.x, gcoord.y - 1})
+		dgw := self.basicDungeonAt(GridCoord{gcoord.x - 1, gcoord.y})
+		dg.makePassages(dgn, dgw)
+	}
 	return dg
 }
