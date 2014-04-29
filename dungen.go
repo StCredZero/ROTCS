@@ -362,11 +362,17 @@ func (self *DunGen) tryRoom(coord LCoord, dir int) bool {
 	return result
 }
 
-func (self *DunGen) createDungeon(gridCoord GridCoord, entropy []byte) {
+type DunGenEntropy []byte
+
+func (bytes DunGenEntropy) WriteTo(b *bytes.Buffer) {
+	b.Write(bytes)
+}
+
+func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 
 	var buffer bytes.Buffer
 	gridCoord.WriteTo(&buffer)
-	buffer.Write(entropy)
+	entropy.WriteTo(&buffer)
 	h := sha1.New()
 	bs := h.Sum(buffer.Bytes())
 	var newSeed, i uint64

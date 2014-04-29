@@ -140,7 +140,7 @@ func main() {
 		targetObj:  20,
 		chanceRoom: 50,
 	}
-	dgcache := NewDunGenCache(1024, entropy, dgproto)
+	dgcache := NewDunGenCache(1024, DunGenEntropy(entropy), dgproto)
 	d1 := dgcache.DungeonAt(GridCoord{0, 0})
 	println(d1.debugPrint())
 	d2 := dgcache.DungeonAt(GridCoord{0, 1})
