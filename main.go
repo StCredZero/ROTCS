@@ -43,7 +43,7 @@ func main() {
 		register:    make(chan *connection, 1000),
 		unregister:  make(chan *connection, 1000),
 		connections: make(map[*connection]EntityId),
-		entityIdGen: IdGenerator(0),
+		entityIdGen: EntityIdGenerator(0),
 	}
 
 	srv.world = SubGrid{

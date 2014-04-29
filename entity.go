@@ -12,3 +12,15 @@ type Entity struct {
 func (self *Entity) DisplayString() string {
 	return self.Location.IndexString() + `:{"symbol":"@"}`
 }
+
+func EntityIdGenerator(lastId EntityId) chan (EntityId) {
+	next := make(chan EntityId)
+	id := lastId + 1
+	go func() {
+		for {
+			next <- id
+			id++
+		}
+	}()
+	return next
+}

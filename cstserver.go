@@ -8,18 +8,6 @@ import (
 	"time"
 )
 
-func IdGenerator(lastId EntityId) chan (EntityId) {
-	next := make(chan EntityId)
-	id := lastId + 1
-	go func() {
-		for {
-			next <- id
-			id++
-		}
-	}()
-	return next
-}
-
 type CstServer struct {
 	// Registered connections.
 	connections map[*connection]EntityId

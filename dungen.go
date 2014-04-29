@@ -378,8 +378,8 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 	h := sha1.New()
 	bs := h.Sum(buffer.Bytes())
 	var newSeed, i uint64
-	for i = 0; i < 8; i++ {
-		newSeed += uint64(bs[i]) << i
+	for i = 0; i < 20; i++ {
+		newSeed ^= uint64(bs[i]) << (i % 8)
 	}
 	self.rng = rand.New(rand.NewSource(int64(newSeed)))
 
