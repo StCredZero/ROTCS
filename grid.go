@@ -17,15 +17,16 @@ type GridKeeper interface {
 	MoveEntity(Entity, Coord)
 	NewEntity(Entity) (Entity, bool)
 	PutEntityAt(Entity, Coord)
+	RemoveEntityId(EntityId)
 	RewriteEntity(Entity)
 	UpdateEntities(GridUpdateFn, GridProcessor)
 }
 
 type SubGrid struct {
 	GridCoord   GridCoord
-	Grid        map[Coord]uint32
-	Entities    map[uint32]Entity
-	ParentQueue chan uint32
+	Grid        map[Coord]EntityId
+	Entities    map[EntityId]Entity
+	ParentQueue chan EntityId
 }
 
 func (self *SubGrid) EmptyAt(loc Coord) bool {
@@ -60,6 +61,15 @@ func (self *SubGrid) NewEntity(ntt Entity) (Entity, bool) {
 	self.Entities[ntt.Id] = ntt
 	self.Grid[loc] = ntt.Id
 	return ntt, true
+}
+
+func (self *SubGrid) RemoveEntityId(id EntityId) {
+	ntt, present := self.Entities[id]
+	if !present {
+		panic("Removing nonexistent Entity")
+	}
+	delete(self.Grid, ntt.Location)
+	delete(self.Entities, id)
 }
 
 func (self *SubGrid) PutEntityAt(ntt Entity, loc Coord) {
@@ -105,7 +115,7 @@ func (self *SubGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) 
 
 type WorldGrid struct {
 	grid       map[GridCoord]SubGrid
-	entityGrid map[uint32]GridCoord
+	entityGrid map[EntityId]GridCoord
 	spawnGrids []GridCoord
 }
 
@@ -114,9 +124,9 @@ func (self *WorldGrid) SubGridAtGrid(gridCoord GridCoord) SubGrid {
 	if !present {
 		subgrid = SubGrid{
 			GridCoord:   gridCoord,
-			Grid:        make(map[Coord]uint32),
-			Entities:    make(map[uint32]Entity),
-			ParentQueue: make(chan uint32, (subgrid_width * subgrid_height)),
+			Grid:        make(map[Coord]EntityId),
+			Entities:    make(map[EntityId]Entity),
+			ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
 		}
 		self.grid[gridCoord] = subgrid
 	}
@@ -149,6 +159,16 @@ func (self *WorldGrid) PutEntityAt(ntt Entity, loc Coord) {
 	self.entityGrid[ntt.Id] = gridCoord
 	subgrid := self.SubGridAtGrid(gridCoord)
 	subgrid.PutEntityAt(ntt, loc)
+}
+
+func (self *WorldGrid) RemoveEntityId(id EntityId) {
+	gridCoord, present := self.entityGrid[id]
+	if !present {
+		panic("Removing nonexistent Entity")
+	}
+	delete(self.entityGrid, id)
+	subgrid := self.SubGridAtGrid(gridCoord)
+	subgrid.RemoveEntityId(id)
 }
 
 func (self *WorldGrid) RewriteEntity(ntt Entity) {

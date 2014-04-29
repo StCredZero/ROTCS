@@ -15,8 +15,8 @@ import (
 
 var debugFlag = true
 
-func IdGenerator(lastId uint32) chan (uint32) {
-	next := make(chan uint32)
+func IdGenerator(lastId EntityId) chan (EntityId) {
+	next := make(chan EntityId)
 	id := lastId + 1
 	go func() {
 		for {
@@ -29,7 +29,7 @@ func IdGenerator(lastId uint32) chan (uint32) {
 
 type CstServer struct {
 	// Registered connections.
-	connections map[*connection]uint32
+	connections map[*connection]EntityId
 
 	// Register requests from the connections.
 	register chan *connection
@@ -37,7 +37,7 @@ type CstServer struct {
 	// Unregister requests from connections.
 	unregister chan *connection
 
-	entityIdGen chan uint32
+	entityIdGen chan EntityId
 
 	world SubGrid
 }
@@ -87,32 +87,42 @@ func (srv *CstServer) run() {
 	for {
 		runtime.Gosched()
 		select {
-		case c := <-srv.register:
-			if debugFlag {
-				println("starting register")
-			}
-			var newId = <-srv.entityIdGen
-			srv.connections[c] = newId
 
-			newEntity := Entity{
-				Id:         newId,
-				Moves:      "",
-				Connection: c,
-			}
-			newEntity, _ = srv.world.NewEntity(newEntity)
-			if debugFlag {
-				fmt.Println("Initialized entity: ", newEntity)
-			}
-		case c := <-srv.unregister:
-			delete(srv.connections, c)
-			if debugFlag {
-				println("closing-final")
-			}
-			close(c.send)
 		case now := <-timer:
 			if false {
 				fmt.Println(now)
 			}
+
+			select {
+			case c := <-srv.register:
+				if debugFlag {
+					println("starting register")
+				}
+				srv.connections[c] = c.id
+
+				newEntity := Entity{
+					Id:         c.id,
+					Moves:      "",
+					Connection: c,
+				}
+				newEntity, _ = srv.world.NewEntity(newEntity)
+				if debugFlag {
+					fmt.Println("Initialized entity: ", newEntity)
+				}
+			default:
+			}
+
+			select {
+			case c := <-srv.unregister:
+				if debugFlag {
+					println("closing-final")
+				}
+				srv.world.RemoveEntityId(c.id)
+				delete(srv.connections, c)
+				close(c.send)
+			default:
+			}
+
 			srv.ProcessEntities(updateFn, srv)
 		}
 	}
@@ -126,7 +136,8 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		return
 	}
-	c := newConnection(ws)
+	var id = <-srv.entityIdGen
+	c := newConnection(ws, id)
 	srv.register <- c
 	defer func() { srv.unregister <- c }()
 	go c.writer()
@@ -164,15 +175,15 @@ func main() {
 	var srv = CstServer{
 		register:    make(chan *connection),
 		unregister:  make(chan *connection),
-		connections: make(map[*connection]uint32),
+		connections: make(map[*connection]EntityId),
 	}
 
 	srv.entityIdGen = IdGenerator(0)
 	srv.world = SubGrid{
 		GridCoord:   GridCoord{0, 0},
-		Grid:        make(map[Coord]uint32),
-		Entities:    make(map[uint32]Entity),
-		ParentQueue: make(chan uint32, (subgrid_width * subgrid_height)),
+		Grid:        make(map[Coord]EntityId),
+		Entities:    make(map[EntityId]Entity),
+		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
 	}
 	go srv.run()
 

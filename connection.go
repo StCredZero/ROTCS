@@ -2,17 +2,20 @@ package main
 
 import "github.com/gorilla/websocket"
 
-func newConnection(ws *websocket.Conn) *connection {
+func newConnection(ws *websocket.Conn, id EntityId) *connection {
 	return &connection{
+		ws:        ws,
+		id:        id,
 		send:      make(chan []byte, 256),
 		moveQueue: make(chan string, 10),
-		ws:        ws,
 	}
 }
 
 type connection struct {
 	// The websocket connection.
 	ws *websocket.Conn
+
+	id EntityId
 
 	moveQueue chan string
 

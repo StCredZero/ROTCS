@@ -1,7 +1,9 @@
 package main
 
+type EntityId uint32
+
 type Entity struct {
-	Id         uint32
+	Id         EntityId
 	Location   Coord
 	Moves      string
 	Connection *connection
