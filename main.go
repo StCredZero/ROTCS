@@ -82,47 +82,59 @@ func (srv *CstServer) ProcessEntities(gridUpdate GridUpdateFn, sref *CstServer) 
 	srv.world.UpdateEntities(gridUpdate, srv)
 }
 
-func (srv *CstServer) run() {
+func (srv *CstServer) registerConnection(c *connection) {
+	if debugFlag {
+		println("starting register")
+	}
+	srv.connections[c] = c.id
+
+	newEntity := Entity{
+		Id:         c.id,
+		Moves:      "",
+		Connection: c,
+	}
+	newEntity, _ = srv.world.NewEntity(newEntity)
+	if debugFlag {
+		fmt.Println("Initialized entity: ", newEntity)
+	}
+}
+
+func (srv *CstServer) unregisterConnection(c *connection) {
+	if debugFlag {
+		println("closing-final")
+	}
+	srv.world.RemoveEntityId(c.id)
+	delete(srv.connections, c)
+	close(c.send)
+}
+
+func (srv *CstServer) runLoop() {
 	timer := time.Tick(125 * time.Millisecond)
 	for {
 		runtime.Gosched()
 		select {
-
 		case now := <-timer:
 			if false {
 				fmt.Println(now)
 			}
-
-			select {
-			case c := <-srv.register:
-				if debugFlag {
-					println("starting register")
+		register:
+			for {
+				select {
+				case c := <-srv.register:
+					srv.registerConnection(c)
+				default:
+					break register
 				}
-				srv.connections[c] = c.id
-
-				newEntity := Entity{
-					Id:         c.id,
-					Moves:      "",
-					Connection: c,
-				}
-				newEntity, _ = srv.world.NewEntity(newEntity)
-				if debugFlag {
-					fmt.Println("Initialized entity: ", newEntity)
-				}
-			default:
 			}
-
-			select {
-			case c := <-srv.unregister:
-				if debugFlag {
-					println("closing-final")
+		unregister:
+			for {
+				select {
+				case c := <-srv.unregister:
+					srv.unregisterConnection(c)
+				default:
+					break unregister
 				}
-				srv.world.RemoveEntityId(c.id)
-				delete(srv.connections, c)
-				close(c.send)
-			default:
 			}
-
 			srv.ProcessEntities(updateFn, srv)
 		}
 	}
@@ -173,19 +185,20 @@ func main() {
 	flag.Parse()
 
 	var srv = CstServer{
-		register:    make(chan *connection),
-		unregister:  make(chan *connection),
+		register:    make(chan *connection, 1000),
+		unregister:  make(chan *connection, 1000),
 		connections: make(map[*connection]EntityId),
+		entityIdGen: IdGenerator(0),
 	}
 
-	srv.entityIdGen = IdGenerator(0)
 	srv.world = SubGrid{
 		GridCoord:   GridCoord{0, 0},
 		Grid:        make(map[Coord]EntityId),
 		Entities:    make(map[EntityId]Entity),
 		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
 	}
-	go srv.run()
+
+	go srv.runLoop()
 
 	var addr = flag.String("addr", ":8080", "http service address")
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
