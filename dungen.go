@@ -141,9 +141,11 @@ func (self *DunGen) debugPrint() string {
 		}
 		buffer.WriteString("\n")
 	}
-	for i := 0; i < self.numRooms; i++ {
-		fmt.Print(self.rooms[i])
-		println()
+	if debugFlag {
+		for i := 0; i < self.numRooms; i++ {
+			fmt.Print(self.rooms[i])
+			println()
+		}
 	}
 
 	return buffer.String()

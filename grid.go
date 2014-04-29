@@ -5,6 +5,12 @@ import (
 	"math/rand"
 )
 
+type GridUpdateFn func(GridKeeper, Entity, GridProcessor)
+
+type GridProcessor interface {
+	ProcessEntities(GridUpdateFn, *CstServer)
+}
+
 type GridKeeper interface {
 	DisplayString() string
 	EmptyAt(Coord) bool
@@ -12,10 +18,8 @@ type GridKeeper interface {
 	NewEntity(Entity) (Entity, bool)
 	PutEntityAt(Entity, Coord)
 	RewriteEntity(Entity)
-	UpdateEntities(func(GridKeeper, Entity), *CstServer)
+	UpdateEntities(GridUpdateFn, GridProcessor)
 }
-
-type UpdateFunc func(*GridKeeper, Entity)
 
 type SubGrid struct {
 	GridCoord   GridCoord
@@ -93,9 +97,9 @@ func (self *SubGrid) DisplayString() string {
 	return buffer.String()
 }
 
-func (self *SubGrid) UpdateEntities(updateFn func(GridKeeper, Entity), server *CstServer) {
+func (self *SubGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) {
 	for _, ntt := range self.Entities {
-		updateFn(self, ntt)
+		updateFn(self, ntt, gproc)
 	}
 }
 
@@ -156,8 +160,8 @@ func (self *WorldGrid) RewriteEntity(ntt Entity) {
 	subgrid.RewriteEntity(ntt)
 }
 
-func (self *WorldGrid) UpdateEntities(updateFn func(GridKeeper, Entity), server *CstServer) {
-	/*for _, subgrid := range self.grid {
-		subgrid.UpdateEntities(updateFn, server)
-	}*/
+func (self *WorldGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) {
+	for _, subgrid := range self.grid {
+		subgrid.UpdateEntities(updateFn, gproc)
+	}
 }

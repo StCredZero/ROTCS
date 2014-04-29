@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var debugFlag = true
+
 func IdGenerator(lastId uint32) chan (uint32) {
 	next := make(chan uint32)
 	id := lastId + 1
@@ -53,7 +55,7 @@ func updateLoc(move rune, loc Coord) Coord {
 	return loc
 }
 
-func updateFn(grid GridKeeper, ntt Entity) {
+func updateFn(grid GridKeeper, ntt Entity, gproc GridProcessor) {
 
 	select {
 	case moves := <-ntt.Connection.moveQueue:
@@ -68,14 +70,16 @@ func updateFn(grid GridKeeper, ntt Entity) {
 	}
 
 	newLoc := updateLoc(move, ntt.Location)
-	fmt.Println(newLoc)
+	if debugFlag {
+		fmt.Println(newLoc)
+	}
 	grid.MoveEntity(ntt, newLoc)
 
 	ntt.Connection.send <- []byte(grid.DisplayString())
 }
 
-func (srv *CstServer) Update(now time.Time) {
-	srv.world.UpdateEntities(updateFn, srv)
+func (srv *CstServer) ProcessEntities(gridUpdate GridUpdateFn, sref *CstServer) {
+	srv.world.UpdateEntities(gridUpdate, srv)
 }
 
 func (srv *CstServer) run() {
@@ -84,7 +88,9 @@ func (srv *CstServer) run() {
 		runtime.Gosched()
 		select {
 		case c := <-srv.register:
-			println("starting register")
+			if debugFlag {
+				println("starting register")
+			}
 			var newId = <-srv.entityIdGen
 			srv.connections[c] = newId
 
@@ -94,13 +100,20 @@ func (srv *CstServer) run() {
 				Connection: c,
 			}
 			newEntity, _ = srv.world.NewEntity(newEntity)
-			fmt.Println("Initialized entity: ", newEntity)
+			if debugFlag {
+				fmt.Println("Initialized entity: ", newEntity)
+			}
 		case c := <-srv.unregister:
 			delete(srv.connections, c)
-			println("closing-final")
+			if debugFlag {
+				println("closing-final")
+			}
 			close(c.send)
 		case now := <-timer:
-			srv.Update(now)
+			if false {
+				fmt.Println(now)
+			}
+			srv.ProcessEntities(updateFn, srv)
 		}
 	}
 }

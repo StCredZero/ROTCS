@@ -25,14 +25,18 @@ func (c *connection) reader(srv *CstServer) {
 		_, message, err := c.ws.ReadMessage()
 		//n := bytes.Index(message, []byte{0})
 		s := string(message[:])
-		print("got: ")
-		println(s)
+		if debugFlag {
+			print("got: ")
+			println(s)
+		}
 		if err != nil {
 			break
 		}
 		c.moveQueue <- s
 	}
-	println("closing reader")
+	if debugFlag {
+		println("closing reader")
+	}
 	c.ws.Close()
 }
 
@@ -43,6 +47,8 @@ func (c *connection) writer() {
 			break
 		}
 	}
-	println("closing writer")
+	if debugFlag {
+		println("closing writer")
+	}
 	c.ws.Close()
 }
