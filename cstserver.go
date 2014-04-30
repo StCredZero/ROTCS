@@ -20,7 +20,7 @@ type CstServer struct {
 
 	entityIdGen chan EntityId
 
-	world SubGrid
+	world *WorldGrid
 
 	dunGenCache *DunGenCache
 }
@@ -33,12 +33,7 @@ func NewCstServer() *CstServer {
 		entityIdGen: EntityIdGenerator(0),
 	}
 
-	srv.world = SubGrid{
-		GridCoord:   GridCoord{0, 0},
-		Grid:        make(map[Coord]EntityId),
-		Entities:    make(map[EntityId]Entity),
-		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
-	}
+	srv.world = NewWorldGrid()
 	return &srv
 }
 
@@ -75,7 +70,11 @@ func updateFn(grid GridKeeper, ntt Entity, gproc GridProcessor) {
 	}
 	grid.MoveEntity(ntt, newLoc)
 
-	ntt.Connection.send <- []byte(grid.DisplayString())
+	ntt.Connection.send <- []byte(grid.DisplayFor(ntt))
+}
+
+func (self *CstServer) DisplayFor(ntt Entity) string {
+	return self.world.DisplayFor(ntt)
 }
 
 func (srv *CstServer) ProcessEntities(gridUpdate GridUpdateFn, sref *CstServer) {

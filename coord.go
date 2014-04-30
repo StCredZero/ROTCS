@@ -22,6 +22,14 @@ func (self *Coord) Grid() GridCoord {
 	}
 }
 
+func (self *Coord) LCoord() LCoord {
+	mygrid := self.Grid()
+	return LCoord{
+		x: int(self.x - (mygrid.x * subgrid_width)),
+		y: int(self.y - (mygrid.y * subgrid_height)),
+	}
+}
+
 func randomSubgridCoord() Coord {
 	return Coord{
 		x: int64(rand.Intn(subgrid_width)),

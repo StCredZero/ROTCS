@@ -9,10 +9,11 @@ type GridUpdateFn func(GridKeeper, Entity, GridProcessor)
 
 type GridProcessor interface {
 	ProcessEntities(GridUpdateFn, *CstServer)
+	DisplayFor(Entity) string
 }
 
 type GridKeeper interface {
-	DisplayString() string
+	DisplayFor(Entity) string
 	EmptyAt(Coord) bool
 	MoveEntity(Entity, Coord)
 	NewEntity(Entity) (Entity, bool)
@@ -27,6 +28,15 @@ type SubGrid struct {
 	Grid        map[Coord]EntityId
 	Entities    map[EntityId]Entity
 	ParentQueue chan EntityId
+}
+
+func NewSubGrid(gcoord GridCoord) *SubGrid {
+	return &SubGrid{
+		GridCoord:   gcoord,
+		Grid:        make(map[Coord]EntityId),
+		Entities:    make(map[EntityId]Entity),
+		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
+	}
 }
 
 func (self *SubGrid) EmptyAt(loc Coord) bool {
@@ -91,7 +101,7 @@ func (self *SubGrid) Corner() Coord {
 	}
 }
 
-func (self *SubGrid) DisplayString() string {
+func (self *SubGrid) DisplayFor(player Entity) string {
 	var first bool = true
 	var buffer bytes.Buffer
 	buffer.WriteString(`{"type":"update","data":{"maptype":"entity","entities":{`)
@@ -114,28 +124,57 @@ func (self *SubGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) 
 }
 
 type WorldGrid struct {
-	grid       map[GridCoord]SubGrid
+	grid       map[GridCoord]*SubGrid
 	entityGrid map[EntityId]GridCoord
 	spawnGrids []GridCoord
 }
 
-func (self *WorldGrid) SubGridAtGrid(gridCoord GridCoord) SubGrid {
+func NewWorldGrid() *WorldGrid {
+	spawnGrids := make([]GridCoord, 1)
+	spawnGrids[0] = GridCoord{0, 0}
+	return &WorldGrid{
+		grid:       make(map[GridCoord]*SubGrid),
+		entityGrid: make(map[EntityId]GridCoord),
+		spawnGrids: spawnGrids,
+	}
+}
+
+func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	subgrid, present := self.grid[gridCoord]
 	if !present {
-		subgrid = SubGrid{
-			GridCoord:   gridCoord,
-			Grid:        make(map[Coord]EntityId),
-			Entities:    make(map[EntityId]Entity),
-			ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
-		}
+		subgrid = NewSubGrid(gridCoord)
 		self.grid[gridCoord] = subgrid
 	}
 	return subgrid
 }
 
-func (self *WorldGrid) SubGridAt(coord Coord) SubGrid {
-	gridCoord := coord.Grid()
-	return self.SubGridAtGrid(gridCoord)
+func (self *WorldGrid) DisplayFor(ntt Entity) string {
+	subgrid := self.subgridAtGrid(ntt.Location.Grid())
+	return subgrid.DisplayFor(ntt)
+}
+
+func (self *WorldGrid) EmptyAt(loc Coord) bool {
+	subgrid, present := self.grid[loc.Grid()]
+	if !present {
+		return true
+	}
+	return subgrid.EmptyAt(loc)
+}
+
+func (self *WorldGrid) MoveEntity(ntt Entity, loc Coord) {
+	gc1, present := self.entityGrid[ntt.Id]
+	if !present {
+		panic("Moving nonexistent Entity")
+	}
+	sg1 := self.subgridAtGrid(gc1)
+	gc2 := loc.Grid()
+	if gc1 == gc2 {
+		sg1.MoveEntity(ntt, loc)
+	} else {
+		sg2 := self.subgridAtGrid(gc2)
+		sg1.RemoveEntityId(ntt.Id)
+		sg2.PutEntityAt(ntt, loc)
+	}
 }
 
 func (self *WorldGrid) NewEntity(ntt Entity) (Entity, bool) {
@@ -144,7 +183,7 @@ func (self *WorldGrid) NewEntity(ntt Entity) (Entity, bool) {
 	for !ok {
 		i := rand.Intn(len(self.spawnGrids))
 		gridCoord := self.spawnGrids[i]
-		subgrid := self.SubGridAtGrid(gridCoord)
+		subgrid := self.subgridAtGrid(gridCoord)
 		newEntity, ok = subgrid.NewEntity(ntt)
 	}
 	return newEntity, ok
@@ -157,7 +196,7 @@ func (self *WorldGrid) PutEntityAt(ntt Entity, loc Coord) {
 	}
 	gridCoord := loc.Grid()
 	self.entityGrid[ntt.Id] = gridCoord
-	subgrid := self.SubGridAtGrid(gridCoord)
+	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.PutEntityAt(ntt, loc)
 }
 
@@ -167,7 +206,7 @@ func (self *WorldGrid) RemoveEntityId(id EntityId) {
 		panic("Removing nonexistent Entity")
 	}
 	delete(self.entityGrid, id)
-	subgrid := self.SubGridAtGrid(gridCoord)
+	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.RemoveEntityId(id)
 }
 
@@ -176,7 +215,7 @@ func (self *WorldGrid) RewriteEntity(ntt Entity) {
 	if !present {
 		panic("Updating nonexistent Entity")
 	}
-	subgrid := self.SubGridAtGrid(gridCoord)
+	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.RewriteEntity(ntt)
 }
 

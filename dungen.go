@@ -409,6 +409,7 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 	for i := 0; i < 4; i++ {
 		self.walls[i] = nil
 	}
+	self.rng = nil
 }
 
 func (self *DunGen) makePassages(northDg *DunGen, westDg *DunGen) {
@@ -429,4 +430,8 @@ func (self *DunGen) makePassages(northDg *DunGen, westDg *DunGen) {
 		}
 		self.passaged = true
 	}
+}
+
+func (self *DunGen) TileAt(lcoord LCoord) int {
+	return self.dungeon_map[lcoord.x+(lcoord.y*self.xsize)]
 }

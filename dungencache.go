@@ -3,12 +3,12 @@ package main
 import "github.com/golang/groupcache/lru"
 
 type DunGenCache struct {
-	entropy []byte
+	entropy DunGenEntropy
 	cache   *lru.Cache
 	proto   DunGen
 }
 
-func NewDunGenCache(maxEntries int, entropy []byte, proto DunGen) *DunGenCache {
+func NewDunGenCache(maxEntries int, entropy DunGenEntropy, proto DunGen) *DunGenCache {
 	return &DunGenCache{
 		entropy: entropy,
 		cache:   lru.New(maxEntries),
@@ -31,7 +31,7 @@ func (self *DunGenCache) basicDungeonAt(gcoord GridCoord) *DunGen {
 	}
 }
 
-func (self *DunGenCache) DungeonAt(gcoord GridCoord) *DunGen {
+func (self *DunGenCache) DungeonAtGrid(gcoord GridCoord) *DunGen {
 	dg := self.basicDungeonAt(gcoord)
 	if !dg.passaged {
 		dgn := self.basicDungeonAt(GridCoord{gcoord.x, gcoord.y - 1})
@@ -39,4 +39,10 @@ func (self *DunGenCache) DungeonAt(gcoord GridCoord) *DunGen {
 		dg.makePassages(dgn, dgw)
 	}
 	return dg
+}
+
+func (self *DunGenCache) DungeonAt(coord Coord) int {
+	dgrid := self.DungeonAtGrid(coord.Grid())
+	lcoord := coord.LCoord()
+	return dgrid.TileAt(lcoord)
 }
