@@ -21,6 +21,25 @@ type CstServer struct {
 	entityIdGen chan EntityId
 
 	world SubGrid
+
+	dunGenCache *DunGenCache
+}
+
+func NewCstServer() *CstServer {
+	var srv = CstServer{
+		register:    make(chan *connection, 1000),
+		unregister:  make(chan *connection, 1000),
+		connections: make(map[*connection]EntityId),
+		entityIdGen: EntityIdGenerator(0),
+	}
+
+	srv.world = SubGrid{
+		GridCoord:   GridCoord{0, 0},
+		Grid:        make(map[Coord]EntityId),
+		Entities:    make(map[EntityId]Entity),
+		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
+	}
+	return &srv
 }
 
 func updateLoc(move rune, loc Coord) Coord {
@@ -90,34 +109,36 @@ func (srv *CstServer) unregisterConnection(c *connection) {
 }
 
 func (srv *CstServer) runLoop() {
-	timer := time.Tick(125 * time.Millisecond)
 	for {
-		runtime.Gosched()
-		select {
-		case now := <-timer:
-			if false {
-				fmt.Println(now)
+		startTime := time.Now()
+
+	register:
+		for {
+			select {
+			case c := <-srv.register:
+				srv.registerConnection(c)
+			default:
+				break register
 			}
-		register:
-			for {
-				select {
-				case c := <-srv.register:
-					srv.registerConnection(c)
-				default:
-					break register
-				}
-			}
-		unregister:
-			for {
-				select {
-				case c := <-srv.unregister:
-					srv.unregisterConnection(c)
-				default:
-					break unregister
-				}
-			}
-			srv.ProcessEntities(updateFn, srv)
 		}
+	unregister:
+		for {
+			select {
+			case c := <-srv.unregister:
+				srv.unregisterConnection(c)
+			default:
+				break unregister
+			}
+		}
+		srv.ProcessEntities(updateFn, srv)
+
+		tickDuration := time.Since(startTime).Seconds()
+		if tickDuration < 0.125 {
+			load := tickDuration / 0.125
+			fmt.Println("load: ", load)
+			time.Sleep(time.Duration((0.125-tickDuration)*1000) * time.Millisecond)
+		}
+		runtime.Gosched()
 	}
 }
 

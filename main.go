@@ -6,10 +6,11 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"runtime"
 	"text/template"
 )
 
-var debugFlag = true
+var debugFlag = false
 
 func defaultAssetPath() string {
 	p, err := build.Default.Import("github.com/StCredZero/casterly", "", build.FindOnly)
@@ -24,7 +25,9 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 }
 
 func main() {
-	entropy := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	entropy := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16}
 	dgproto := DunGen{
 		xsize:      subgrid_width,
 		ysize:      subgrid_height,
@@ -39,20 +42,8 @@ func main() {
 
 	flag.Parse()
 
-	var srv = CstServer{
-		register:    make(chan *connection, 1000),
-		unregister:  make(chan *connection, 1000),
-		connections: make(map[*connection]EntityId),
-		entityIdGen: EntityIdGenerator(0),
-	}
-
-	srv.world = SubGrid{
-		GridCoord:   GridCoord{0, 0},
-		Grid:        make(map[Coord]EntityId),
-		Entities:    make(map[EntityId]Entity),
-		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
-	}
-
+	// Instantiate Server and start runLoop
+	var srv = NewCstServer()
 	go srv.runLoop()
 
 	var addr = flag.String("addr", ":8080", "http service address")
