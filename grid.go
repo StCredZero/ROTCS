@@ -5,28 +5,29 @@ import (
 	"math/rand"
 )
 
-type GridUpdateFn func(GridKeeper, Entity, GridProcessor)
+type GridUpdateFn func(GridKeeper, *Entity, GridProcessor)
 
 type GridProcessor interface {
+	DungeonAt(Coord) int
 	ProcessEntities(GridUpdateFn, *CstServer)
-	DisplayFor(Entity) string
+	WalkableAt(Coord) bool
+	WriteDisplay(*Entity, *bytes.Buffer)
 }
 
 type GridKeeper interface {
-	DisplayFor(Entity) string
 	EmptyAt(Coord) bool
-	MoveEntity(Entity, Coord)
-	NewEntity(Entity) (Entity, bool)
-	PutEntityAt(Entity, Coord)
+	MoveEntity(*Entity, Coord)
+	NewEntity(*Entity) (*Entity, bool)
+	PutEntityAt(*Entity, Coord)
 	RemoveEntityId(EntityId)
-	RewriteEntity(Entity)
 	UpdateEntities(GridUpdateFn, GridProcessor)
+	WriteEntities(*Entity, *bytes.Buffer)
 }
 
 type SubGrid struct {
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityId
-	Entities    map[EntityId]Entity
+	Entities    map[EntityId]*Entity
 	ParentQueue chan EntityId
 }
 
@@ -34,7 +35,7 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 	return &SubGrid{
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityId),
-		Entities:    make(map[EntityId]Entity),
+		Entities:    make(map[EntityId]*Entity),
 		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
 	}
 }
@@ -46,7 +47,7 @@ func (self *SubGrid) EmptyAt(loc Coord) bool {
 
 const subgrid_placement_trys = 100
 
-func (self *SubGrid) MoveEntity(ntt Entity, loc Coord) {
+func (self *SubGrid) MoveEntity(ntt *Entity, loc Coord) {
 	if ntt.Location != loc {
 		if loc.Grid() != self.GridCoord {
 			self.ParentQueue <- ntt.Id
@@ -54,18 +55,17 @@ func (self *SubGrid) MoveEntity(ntt Entity, loc Coord) {
 			delete(self.Grid, ntt.Location)
 			self.Grid[loc] = ntt.Id
 			ntt.Location = loc
-			self.Entities[ntt.Id] = ntt
 		}
 	}
 }
 
-func (self *SubGrid) NewEntity(ntt Entity) (Entity, bool) {
+func (self *SubGrid) NewEntity(ntt *Entity) (*Entity, bool) {
 	var loc = randomSubgridCoord()
 	for n := 0; (!self.EmptyAt(loc)) && (n < subgrid_placement_trys); n++ {
 		loc = randomSubgridCoord()
 	}
 	if !self.EmptyAt(loc) {
-		return Entity{}, false
+		return &Entity{}, false
 	}
 	ntt.Location = loc
 	self.Entities[ntt.Id] = ntt
@@ -82,39 +82,20 @@ func (self *SubGrid) RemoveEntityId(id EntityId) {
 	delete(self.Entities, id)
 }
 
-func (self *SubGrid) PutEntityAt(ntt Entity, loc Coord) {
+func (self *SubGrid) PutEntityAt(ntt *Entity, loc Coord) {
 	ntt.Location = loc
 	self.Grid[loc] = ntt.Id
 	self.Entities[ntt.Id] = ntt
 }
 
-func (self *SubGrid) RewriteEntity(ntt Entity) {
-	oldEntity := self.Entities[ntt.Id]
-	ntt.Location = oldEntity.Location
-	self.Entities[ntt.Id] = ntt
-}
-
-func (self *SubGrid) Corner() Coord {
-	return Coord{
-		x: int64(self.GridCoord.x * subgrid_width),
-		y: int64(self.GridCoord.y * subgrid_height),
-	}
-}
-
-func (self *SubGrid) DisplayFor(player Entity) string {
-	var first bool = true
-	var buffer bytes.Buffer
-	buffer.WriteString(`{"type":"update","data":{"maptype":"entity","entities":{`)
+func (self *SubGrid) WriteEntities(player *Entity, buffer *bytes.Buffer) {
 	for _, id := range self.Grid {
-		if !first {
-			buffer.WriteString(",")
+		if id != player.Id {
+			ntt := self.Entities[id]
+			ntt.WriteEntities(player, buffer)
+			buffer.WriteString(`,`)
 		}
-		ntt := self.Entities[id]
-		buffer.WriteString(ntt.DisplayString())
-		first = false
 	}
-	buffer.WriteString(`}}}`)
-	return buffer.String()
 }
 
 func (self *SubGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) {
@@ -148,9 +129,15 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	return subgrid
 }
 
-func (self *WorldGrid) DisplayFor(ntt Entity) string {
-	subgrid := self.subgridAtGrid(ntt.Location.Grid())
-	return subgrid.DisplayFor(ntt)
+func (self *WorldGrid) WriteEntities(player *Entity, buffer *bytes.Buffer) {
+	visibleGrids := player.Location.VisibleGrids(39, 12)
+	for _, gcoord := range visibleGrids {
+		subgrid, present := self.grid[gcoord]
+		if present {
+			subgrid.WriteEntities(player, buffer)
+		}
+	}
+	buffer.WriteString(`"e":""`)
 }
 
 func (self *WorldGrid) EmptyAt(loc Coord) bool {
@@ -161,7 +148,7 @@ func (self *WorldGrid) EmptyAt(loc Coord) bool {
 	return subgrid.EmptyAt(loc)
 }
 
-func (self *WorldGrid) MoveEntity(ntt Entity, loc Coord) {
+func (self *WorldGrid) MoveEntity(ntt *Entity, loc Coord) {
 	gc1, present := self.entityGrid[ntt.Id]
 	if !present {
 		panic("Moving nonexistent Entity")
@@ -177,8 +164,8 @@ func (self *WorldGrid) MoveEntity(ntt Entity, loc Coord) {
 	}
 }
 
-func (self *WorldGrid) NewEntity(ntt Entity) (Entity, bool) {
-	var newEntity Entity
+func (self *WorldGrid) NewEntity(ntt *Entity) (*Entity, bool) {
+	var newEntity *Entity
 	ok := false
 	for !ok {
 		i := rand.Intn(len(self.spawnGrids))
@@ -189,7 +176,7 @@ func (self *WorldGrid) NewEntity(ntt Entity) (Entity, bool) {
 	return newEntity, ok
 }
 
-func (self *WorldGrid) PutEntityAt(ntt Entity, loc Coord) {
+func (self *WorldGrid) PutEntityAt(ntt *Entity, loc Coord) {
 	_, present := self.entityGrid[ntt.Id]
 	if present {
 		panic("Placing already existing Entity")
@@ -208,15 +195,6 @@ func (self *WorldGrid) RemoveEntityId(id EntityId) {
 	delete(self.entityGrid, id)
 	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.RemoveEntityId(id)
-}
-
-func (self *WorldGrid) RewriteEntity(ntt Entity) {
-	gridCoord, present := self.entityGrid[ntt.Id]
-	if !present {
-		panic("Updating nonexistent Entity")
-	}
-	subgrid := self.subgridAtGrid(gridCoord)
-	subgrid.RewriteEntity(ntt)
 }
 
 func (self *WorldGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) {

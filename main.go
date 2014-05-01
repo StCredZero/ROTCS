@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-var debugFlag = false
+var debugFlag = true
 
 func defaultAssetPath() string {
 	p, err := build.Default.Import("github.com/StCredZero/casterly", "", build.FindOnly)
@@ -26,19 +26,6 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	entropy := DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
-	dgproto := DunGen{
-		xsize:      subgrid_width,
-		ysize:      subgrid_height,
-		targetObj:  20,
-		chanceRoom: 50,
-	}
-	dgcache := NewDunGenCache(1024, entropy, dgproto)
-	d1 := dgcache.DungeonAtGrid(GridCoord{0, 0})
-	println(d1.debugPrint())
-	d2 := dgcache.DungeonAtGrid(GridCoord{0, 1})
-	println(d2.debugPrint())
 
 	flag.Parse()
 

@@ -1,6 +1,9 @@
 package main
 
-import "github.com/golang/groupcache/lru"
+import (
+	"bytes"
+	"github.com/golang/groupcache/lru"
+)
 
 type DunGenCache struct {
 	entropy DunGenEntropy
@@ -45,4 +48,32 @@ func (self *DunGenCache) DungeonAt(coord Coord) int {
 	dgrid := self.DungeonAtGrid(coord.Grid())
 	lcoord := coord.LCoord()
 	return dgrid.TileAt(lcoord)
+}
+
+func (self *DunGenCache) WalkableAt(coord Coord) bool {
+	dgrid := self.DungeonAtGrid(coord.Grid())
+	lcoord := coord.LCoord()
+	return dgrid.isWalkable(lcoord.x, lcoord.y)
+}
+
+func (self *DunGenCache) WriteBasicMap(ntt *Entity, buffer *bytes.Buffer) {
+	var x, y, xstart, ystart, xend, yend int64
+	xstart = ntt.Location.x - (subgrid_width / 2)
+	ystart = ntt.Location.y - (subgrid_height / 2)
+	xend, yend = xstart+subgrid_width, ystart+subgrid_height
+	buffer.WriteRune('[')
+	for y = ystart; y < yend; y++ {
+		buffer.WriteRune('"')
+		for x = xstart; x < xend; x++ {
+			cell := self.DungeonAt(Coord{x, y})
+			switch cell {
+			case TILE_FLOOR, TILE_CORRIDOR:
+				buffer.WriteRune('.')
+			default:
+				buffer.WriteRune(' ')
+			}
+		}
+		buffer.WriteString(`",`)
+	}
+	buffer.WriteString(`"e"]`)
 }

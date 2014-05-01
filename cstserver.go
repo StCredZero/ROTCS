@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -26,11 +27,19 @@ type CstServer struct {
 }
 
 func NewCstServer() *CstServer {
+	entropy := DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
+	dgproto := DunGen{
+		xsize:      subgrid_width,
+		ysize:      subgrid_height,
+		targetObj:  20,
+		chanceRoom: 50,
+	}
 	var srv = CstServer{
 		register:    make(chan *connection, 1000),
 		unregister:  make(chan *connection, 1000),
 		connections: make(map[*connection]EntityId),
 		entityIdGen: EntityIdGenerator(0),
+		dunGenCache: NewDunGenCache(1000, entropy, dgproto),
 	}
 
 	srv.world = NewWorldGrid()
@@ -50,7 +59,7 @@ func updateLoc(move rune, loc Coord) Coord {
 	return loc
 }
 
-func updateFn(grid GridKeeper, ntt Entity, gproc GridProcessor) {
+func updateFn(grid GridKeeper, ntt *Entity, gproc GridProcessor) {
 
 	select {
 	case moves := <-ntt.Connection.moveQueue:
@@ -68,17 +77,37 @@ func updateFn(grid GridKeeper, ntt Entity, gproc GridProcessor) {
 	if debugFlag {
 		fmt.Println(newLoc)
 	}
-	grid.MoveEntity(ntt, newLoc)
+	if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
+		grid.MoveEntity(ntt, newLoc)
+	}
 
-	ntt.Connection.send <- []byte(grid.DisplayFor(ntt))
+	var buffer bytes.Buffer
+	gproc.WriteDisplay(ntt, &buffer)
+	ntt.Connection.send <- buffer.Bytes()
 }
 
-func (self *CstServer) DisplayFor(ntt Entity) string {
-	return self.world.DisplayFor(ntt)
+func (self *CstServer) DungeonAt(coord Coord) int {
+	return self.dunGenCache.DungeonAt(coord)
 }
 
 func (srv *CstServer) ProcessEntities(gridUpdate GridUpdateFn, sref *CstServer) {
 	srv.world.UpdateEntities(gridUpdate, srv)
+}
+
+func (srv *CstServer) WalkableAt(coord Coord) bool {
+	return srv.dunGenCache.WalkableAt(coord)
+}
+
+func (srv *CstServer) WriteDisplay(ntt *Entity, buffer *bytes.Buffer) {
+	buffer.WriteString(`{"type":"update","data":{`)
+	buffer.WriteString(`"maptype":"basic",`)
+	buffer.WriteString(`"map":`)
+	srv.dunGenCache.WriteBasicMap(ntt, buffer)
+	buffer.WriteRune(',')
+	buffer.WriteString(`"entities":{`)
+	srv.world.WriteEntities(ntt, buffer)
+	buffer.WriteString(`}}}`)
+
 }
 
 func (srv *CstServer) registerConnection(c *connection) {
@@ -87,14 +116,10 @@ func (srv *CstServer) registerConnection(c *connection) {
 	}
 	srv.connections[c] = c.id
 
-	newEntity := Entity{
-		Id:         c.id,
-		Moves:      "",
-		Connection: c,
-	}
-	newEntity, _ = srv.world.NewEntity(newEntity)
+	newPlayer := NewPlayer(c)
+	newPlayer, _ = srv.world.NewEntity(newPlayer)
 	if debugFlag {
-		fmt.Println("Initialized entity: ", newEntity)
+		fmt.Println("Initialized entity: ", *newPlayer)
 	}
 }
 

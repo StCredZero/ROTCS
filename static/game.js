@@ -60,7 +60,7 @@ var Game = {
         this.ws.onmessage = function(event) {
             var jsonObj = JSON.parse(event.data);
             //var jsonObj = eval("("+event.data + ")");
-            console.log(event.data);
+            //console.log(event.data);
             if (jsonObj.type === "init") {
                 Game.uuid = jsonObj.uuid; 
                 Game.renderDisplay(jsonObj.data);
@@ -191,7 +191,7 @@ Game.commitCell = function (drawMap,i, j, cellValue) {
             anArray[2] = scheme.disp;
             anArray[3] = scheme.fg;
             anArray[4] = scheme.bg;
-        } else {
+        } else if (cellValue.length > 1) {
             var dispChar = cellValue.substr(0,1);
             var scheme = Game.displayScheme[dispChar]; 
             var colorInfo = cellValue.substr(1);
