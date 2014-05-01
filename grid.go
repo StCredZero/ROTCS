@@ -5,11 +5,10 @@ import (
 	"math/rand"
 )
 
-type GridUpdateFn func(GridKeeper, *Entity, GridProcessor)
+type GridUpdateFn func(*Entity, GridKeeper, GridProcessor)
 
 type GridProcessor interface {
 	DungeonAt(Coord) int
-	ProcessEntities(GridUpdateFn, *CstServer)
 	WalkableAt(Coord) bool
 	WriteDisplay(*Entity, *bytes.Buffer)
 }
@@ -20,7 +19,8 @@ type GridKeeper interface {
 	NewEntity(*Entity) (*Entity, bool)
 	PutEntityAt(*Entity, Coord)
 	RemoveEntityId(EntityId)
-	UpdateEntities(GridUpdateFn, GridProcessor)
+	UpdateMovers(GridProcessor)
+	SendDisplays(GridProcessor)
 	WriteEntities(*Entity, *bytes.Buffer)
 }
 
@@ -55,6 +55,7 @@ func (self *SubGrid) MoveEntity(ntt *Entity, loc Coord) {
 			delete(self.Grid, ntt.Location)
 			self.Grid[loc] = ntt.Id
 			ntt.Location = loc
+			ntt.PopMoveQueue()
 		}
 	}
 }
@@ -98,9 +99,15 @@ func (self *SubGrid) WriteEntities(player *Entity, buffer *bytes.Buffer) {
 	}
 }
 
-func (self *SubGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) {
+func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
-		updateFn(self, ntt, gproc)
+		ntt.Move(self, gproc)
+	}
+}
+
+func (self *SubGrid) SendDisplays(gproc GridProcessor) {
+	for _, ntt := range self.Entities {
+		ntt.SendDisplay(self, gproc)
 	}
 }
 
@@ -156,11 +163,15 @@ func (self *WorldGrid) MoveEntity(ntt *Entity, loc Coord) {
 	sg1 := self.subgridAtGrid(gc1)
 	gc2 := loc.Grid()
 	if gc1 == gc2 {
+		println("non-global move")
 		sg1.MoveEntity(ntt, loc)
 	} else {
+		println("global move")
 		sg2 := self.subgridAtGrid(gc2)
 		sg1.RemoveEntityId(ntt.Id)
 		sg2.PutEntityAt(ntt, loc)
+		ntt.PopMoveQueue()
+		self.entityGrid[ntt.Id] = gc2
 	}
 }
 
@@ -172,6 +183,9 @@ func (self *WorldGrid) NewEntity(ntt *Entity) (*Entity, bool) {
 		gridCoord := self.spawnGrids[i]
 		subgrid := self.subgridAtGrid(gridCoord)
 		newEntity, ok = subgrid.NewEntity(ntt)
+		if ok {
+			self.entityGrid[ntt.Id] = gridCoord
+		}
 	}
 	return newEntity, ok
 }
@@ -197,8 +211,26 @@ func (self *WorldGrid) RemoveEntityId(id EntityId) {
 	subgrid.RemoveEntityId(id)
 }
 
-func (self *WorldGrid) UpdateEntities(updateFn GridUpdateFn, gproc GridProcessor) {
+func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	for _, subgrid := range self.grid {
-		subgrid.UpdateEntities(updateFn, gproc)
+		subgrid.UpdateMovers(gproc)
+	}
+	for _, subgrid := range self.grid {
+		done := false
+		for !done {
+			select {
+			case id := <-subgrid.ParentQueue:
+				ntt := subgrid.Entities[id]
+				ntt.Move(self, gproc)
+			default:
+				done = true
+			}
+		}
+	}
+}
+
+func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
+	for _, subgrid := range self.grid {
+		subgrid.SendDisplays(gproc)
 	}
 }

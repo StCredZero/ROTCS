@@ -1,15 +1,28 @@
 package main
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 type EntityId uint32
 
+type Mover interface {
+	Move(GridKeeper, GridProcessor)
+	PopMoveQueue()
+}
+
+type Displayer interface {
+	SendDisplay(GridKeeper, GridProcessor)
+}
+
 type Entity struct {
-	Id         EntityId
-	Location   Coord
-	Symbol     rune
-	Moves      string
-	Connection *connection
+	Id            EntityId
+	Connection    *connection
+	Location      Coord
+	LastUpdateLoc Coord
+	Symbol        rune
+	Moves         string
 }
 
 func NewPlayer(c *connection) *Entity {
@@ -19,6 +32,40 @@ func NewPlayer(c *connection) *Entity {
 		Connection: c,
 		Symbol:     '@',
 	}
+}
+
+func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
+
+	select {
+	case moves := <-ntt.Connection.moveQueue:
+		ntt.Moves = moves
+	default:
+	}
+
+	var move rune = '0'
+	for _, move = range ntt.Moves {
+		break
+	}
+
+	newLoc := updateLoc(move, ntt.Location)
+	if debugFlag {
+		fmt.Println(newLoc)
+	}
+	if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
+		grid.MoveEntity(ntt, newLoc)
+	}
+}
+
+func (ntt *Entity) PopMoveQueue() {
+	if len(ntt.Moves) > 0 {
+		ntt.Moves = ntt.Moves[1:]
+	}
+}
+
+func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
+	var buffer bytes.Buffer
+	gproc.WriteDisplay(ntt, &buffer)
+	ntt.Connection.send <- buffer.Bytes()
 }
 
 func (self *Entity) WriteEntities(player *Entity, buffer *bytes.Buffer) {

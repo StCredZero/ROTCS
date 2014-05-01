@@ -59,7 +59,7 @@ func updateLoc(move rune, loc Coord) Coord {
 	return loc
 }
 
-func updateFn(grid GridKeeper, ntt *Entity, gproc GridProcessor) {
+func updateFn(ntt *Entity, grid GridKeeper, gproc GridProcessor) {
 
 	select {
 	case moves := <-ntt.Connection.moveQueue:
@@ -88,10 +88,6 @@ func updateFn(grid GridKeeper, ntt *Entity, gproc GridProcessor) {
 
 func (self *CstServer) DungeonAt(coord Coord) int {
 	return self.dunGenCache.DungeonAt(coord)
-}
-
-func (srv *CstServer) ProcessEntities(gridUpdate GridUpdateFn, sref *CstServer) {
-	srv.world.UpdateEntities(gridUpdate, srv)
 }
 
 func (srv *CstServer) WalkableAt(coord Coord) bool {
@@ -154,7 +150,8 @@ func (srv *CstServer) runLoop() {
 				break unregister
 			}
 		}
-		srv.ProcessEntities(updateFn, srv)
+		srv.world.UpdateMovers(srv)
+		srv.world.SendDisplays(srv)
 
 		tickDuration := time.Since(startTime).Seconds()
 		if tickDuration < 0.125 {

@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-var debugFlag = true
+var debugFlag = false
 
 func defaultAssetPath() string {
 	p, err := build.Default.Import("github.com/StCredZero/casterly", "", build.FindOnly)
