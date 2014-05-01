@@ -56,9 +56,9 @@ func (self *Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
 	return grids[:len(set)]
 }
 
-func (self *Coord) WriteDisplay(player *Entity, buffer *bytes.Buffer) {
-	x := (self.x - player.Location.x) + (subgrid_width / 2)
-	y := (self.y - player.Location.y) + (subgrid_height / 2)
+func (self *Coord) WriteDisplay(player Displayer, buffer *bytes.Buffer) {
+	x := (self.x - player.Coord().x) + (subgrid_width / 2)
+	y := (self.y - player.Coord().y) + (subgrid_height / 2)
 	buffer.WriteString(`"`)
 	buffer.WriteString(strconv.FormatInt(x, 10))
 	buffer.WriteString(`,`)

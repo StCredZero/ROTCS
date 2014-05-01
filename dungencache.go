@@ -56,10 +56,10 @@ func (self *DunGenCache) WalkableAt(coord Coord) bool {
 	return dgrid.isWalkable(lcoord.x, lcoord.y)
 }
 
-func (self *DunGenCache) WriteBasicMap(ntt *Entity, buffer *bytes.Buffer) {
+func (self *DunGenCache) WriteBasicMap(ntt Displayer, buffer *bytes.Buffer) {
 	var x, y, xstart, ystart, xend, yend int64
-	xstart = ntt.Location.x - (subgrid_width / 2)
-	ystart = ntt.Location.y - (subgrid_height / 2)
+	xstart = ntt.Coord().x - (subgrid_width / 2)
+	ystart = ntt.Coord().y - (subgrid_height / 2)
 	xend, yend = xstart+subgrid_width, ystart+subgrid_height
 	buffer.WriteRune('[')
 	for y = ystart; y < yend; y++ {

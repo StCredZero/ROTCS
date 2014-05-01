@@ -13,6 +13,8 @@ type Mover interface {
 }
 
 type Displayer interface {
+	ID() EntityId
+	Coord() Coord
 	SendDisplay(GridKeeper, GridProcessor)
 }
 
@@ -32,6 +34,14 @@ func NewPlayer(c *connection) *Entity {
 		Connection: c,
 		Symbol:     '@',
 	}
+}
+
+func (ntt *Entity) Coord() Coord {
+	return ntt.Location
+}
+
+func (ntt *Entity) ID() EntityId {
+	return ntt.Id
 }
 
 func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
@@ -68,7 +78,7 @@ func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	ntt.Connection.send <- buffer.Bytes()
 }
 
-func (self *Entity) WriteEntities(player *Entity, buffer *bytes.Buffer) {
+func (self *Entity) WriteEntities(player Displayer, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
 	buffer.WriteString(`:{"symbol":"`)
 	buffer.WriteRune(self.Symbol)

@@ -59,33 +59,6 @@ func updateLoc(move rune, loc Coord) Coord {
 	return loc
 }
 
-func updateFn(ntt *Entity, grid GridKeeper, gproc GridProcessor) {
-
-	select {
-	case moves := <-ntt.Connection.moveQueue:
-		ntt.Moves = moves
-	default:
-	}
-
-	var move rune = '0'
-	for _, move = range ntt.Moves {
-		ntt.Moves = ntt.Moves[1:]
-		break
-	}
-
-	newLoc := updateLoc(move, ntt.Location)
-	if debugFlag {
-		fmt.Println(newLoc)
-	}
-	if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
-		grid.MoveEntity(ntt, newLoc)
-	}
-
-	var buffer bytes.Buffer
-	gproc.WriteDisplay(ntt, &buffer)
-	ntt.Connection.send <- buffer.Bytes()
-}
-
 func (self *CstServer) DungeonAt(coord Coord) int {
 	return self.dunGenCache.DungeonAt(coord)
 }
@@ -94,7 +67,7 @@ func (srv *CstServer) WalkableAt(coord Coord) bool {
 	return srv.dunGenCache.WalkableAt(coord)
 }
 
-func (srv *CstServer) WriteDisplay(ntt *Entity, buffer *bytes.Buffer) {
+func (srv *CstServer) WriteDisplay(ntt Displayer, buffer *bytes.Buffer) {
 	buffer.WriteString(`{"type":"update","data":{`)
 	buffer.WriteString(`"maptype":"basic",`)
 	buffer.WriteString(`"map":`)

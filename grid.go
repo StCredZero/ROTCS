@@ -5,12 +5,10 @@ import (
 	"math/rand"
 )
 
-type GridUpdateFn func(*Entity, GridKeeper, GridProcessor)
-
 type GridProcessor interface {
 	DungeonAt(Coord) int
 	WalkableAt(Coord) bool
-	WriteDisplay(*Entity, *bytes.Buffer)
+	WriteDisplay(Displayer, *bytes.Buffer)
 }
 
 type GridKeeper interface {
@@ -21,7 +19,7 @@ type GridKeeper interface {
 	RemoveEntityId(EntityId)
 	UpdateMovers(GridProcessor)
 	SendDisplays(GridProcessor)
-	WriteEntities(*Entity, *bytes.Buffer)
+	WriteEntities(Displayer, *bytes.Buffer)
 }
 
 type SubGrid struct {
@@ -89,9 +87,9 @@ func (self *SubGrid) PutEntityAt(ntt *Entity, loc Coord) {
 	self.Entities[ntt.Id] = ntt
 }
 
-func (self *SubGrid) WriteEntities(player *Entity, buffer *bytes.Buffer) {
+func (self *SubGrid) WriteEntities(player Displayer, buffer *bytes.Buffer) {
 	for _, id := range self.Grid {
-		if id != player.Id {
+		if id != player.ID() {
 			ntt := self.Entities[id]
 			ntt.WriteEntities(player, buffer)
 			buffer.WriteString(`,`)
@@ -136,8 +134,9 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	return subgrid
 }
 
-func (self *WorldGrid) WriteEntities(player *Entity, buffer *bytes.Buffer) {
-	visibleGrids := player.Location.VisibleGrids(39, 12)
+func (self *WorldGrid) WriteEntities(player Displayer, buffer *bytes.Buffer) {
+	coord := player.Coord()
+	visibleGrids := coord.VisibleGrids(39, 12)
 	for _, gcoord := range visibleGrids {
 		subgrid, present := self.grid[gcoord]
 		if present {
