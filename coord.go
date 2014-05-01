@@ -15,19 +15,32 @@ type Coord struct {
 	y int64
 }
 
-func (self *Coord) Grid() GridCoord {
+func (self Coord) Grid() GridCoord {
 	return GridCoord{
 		x: loc2grid(self.x, subgrid_width),
 		y: loc2grid(self.y, subgrid_height),
 	}
 }
 
-func (self *Coord) LCoord() LCoord {
+func (self Coord) LCoord() LCoord {
 	mygrid := self.Grid()
 	return LCoord{
 		x: int(self.x - (mygrid.x * subgrid_width)),
 		y: int(self.y - (mygrid.y * subgrid_height)),
 	}
+}
+
+func (loc Coord) MovedBy(move rune) Coord {
+	if move == 'n' {
+		return Coord{loc.x, loc.y - 1}
+	} else if move == 's' {
+		return Coord{loc.x, loc.y + 1}
+	} else if move == 'w' {
+		return Coord{loc.x - 1, loc.y}
+	} else if move == 'e' {
+		return Coord{loc.x + 1, loc.y}
+	}
+	return loc
 }
 
 func randomSubgridCoord() Coord {
@@ -37,7 +50,7 @@ func randomSubgridCoord() Coord {
 	}
 }
 
-func (self *Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
+func (self Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
 	set := make(map[GridCoord]bool)
 	var c1 = Coord{self.x - xdist, self.y - ydist}
 	var c2 = Coord{self.x - xdist, self.y + ydist}
@@ -56,7 +69,7 @@ func (self *Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
 	return grids[:len(set)]
 }
 
-func (self *Coord) WriteDisplay(player Displayer, buffer *bytes.Buffer) {
+func (self Coord) WriteDisplay(player Displayer, buffer *bytes.Buffer) {
 	x := (self.x - player.Coord().x) + (subgrid_width / 2)
 	y := (self.y - player.Coord().y) + (subgrid_height / 2)
 	buffer.WriteString(`"`)
@@ -71,11 +84,11 @@ type GridCoord struct {
 	y int64
 }
 
-func (self *GridCoord) Corner() Coord {
+func (self GridCoord) Corner() Coord {
 	return Coord{self.x * subgrid_width, self.y * subgrid_height}
 }
 
-func (gridCoord *GridCoord) WriteTo(b *bytes.Buffer) (int, error) {
+func (gridCoord GridCoord) WriteTo(b *bytes.Buffer) (int, error) {
 	xn, xerr := b.Write(big.NewInt(gridCoord.x).Bytes())
 	if xerr != nil {
 		return xn, xerr

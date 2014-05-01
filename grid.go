@@ -48,10 +48,10 @@ const subgrid_placement_trys = 100
 func (self *SubGrid) MoveEntity(ntt *Entity, loc Coord) {
 	if ntt.Location != loc {
 		if loc.Grid() != self.GridCoord {
-			self.ParentQueue <- ntt.Id
+			self.ParentQueue <- ntt.ID
 		} else {
 			delete(self.Grid, ntt.Location)
-			self.Grid[loc] = ntt.Id
+			self.Grid[loc] = ntt.ID
 			ntt.Location = loc
 			ntt.PopMoveQueue()
 		}
@@ -67,8 +67,8 @@ func (self *SubGrid) NewEntity(ntt *Entity) (*Entity, bool) {
 		return &Entity{}, false
 	}
 	ntt.Location = loc
-	self.Entities[ntt.Id] = ntt
-	self.Grid[loc] = ntt.Id
+	self.Entities[ntt.ID] = ntt
+	self.Grid[loc] = ntt.ID
 	return ntt, true
 }
 
@@ -83,13 +83,13 @@ func (self *SubGrid) RemoveEntityId(id EntityId) {
 
 func (self *SubGrid) PutEntityAt(ntt *Entity, loc Coord) {
 	ntt.Location = loc
-	self.Grid[loc] = ntt.Id
-	self.Entities[ntt.Id] = ntt
+	self.Grid[loc] = ntt.ID
+	self.Entities[ntt.ID] = ntt
 }
 
 func (self *SubGrid) WriteEntities(player Displayer, buffer *bytes.Buffer) {
 	for _, id := range self.Grid {
-		if id != player.ID() {
+		if id != player.EntityID() {
 			ntt := self.Entities[id]
 			ntt.WriteEntities(player, buffer)
 			buffer.WriteString(`,`)
@@ -155,7 +155,7 @@ func (self *WorldGrid) EmptyAt(loc Coord) bool {
 }
 
 func (self *WorldGrid) MoveEntity(ntt *Entity, loc Coord) {
-	gc1, present := self.entityGrid[ntt.Id]
+	gc1, present := self.entityGrid[ntt.ID]
 	if !present {
 		panic("Moving nonexistent Entity")
 	}
@@ -167,10 +167,10 @@ func (self *WorldGrid) MoveEntity(ntt *Entity, loc Coord) {
 	} else {
 		println("global move")
 		sg2 := self.subgridAtGrid(gc2)
-		sg1.RemoveEntityId(ntt.Id)
+		sg1.RemoveEntityId(ntt.ID)
 		sg2.PutEntityAt(ntt, loc)
 		ntt.PopMoveQueue()
-		self.entityGrid[ntt.Id] = gc2
+		self.entityGrid[ntt.ID] = gc2
 	}
 }
 
@@ -183,19 +183,19 @@ func (self *WorldGrid) NewEntity(ntt *Entity) (*Entity, bool) {
 		subgrid := self.subgridAtGrid(gridCoord)
 		newEntity, ok = subgrid.NewEntity(ntt)
 		if ok {
-			self.entityGrid[ntt.Id] = gridCoord
+			self.entityGrid[ntt.ID] = gridCoord
 		}
 	}
 	return newEntity, ok
 }
 
 func (self *WorldGrid) PutEntityAt(ntt *Entity, loc Coord) {
-	_, present := self.entityGrid[ntt.Id]
+	_, present := self.entityGrid[ntt.ID]
 	if present {
 		panic("Placing already existing Entity")
 	}
 	gridCoord := loc.Grid()
-	self.entityGrid[ntt.Id] = gridCoord
+	self.entityGrid[ntt.ID] = gridCoord
 	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.PutEntityAt(ntt, loc)
 }

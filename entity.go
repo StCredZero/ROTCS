@@ -13,13 +13,13 @@ type Mover interface {
 }
 
 type Displayer interface {
-	ID() EntityId
+	EntityID() EntityId
 	Coord() Coord
 	SendDisplay(GridKeeper, GridProcessor)
 }
 
 type Entity struct {
-	Id            EntityId
+	ID            EntityId
 	Connection    *connection
 	Location      Coord
 	LastUpdateLoc Coord
@@ -29,7 +29,7 @@ type Entity struct {
 
 func NewPlayer(c *connection) *Entity {
 	return &Entity{
-		Id:         c.id,
+		ID:         c.id,
 		Moves:      "",
 		Connection: c,
 		Symbol:     '@',
@@ -40,8 +40,8 @@ func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
 
-func (ntt *Entity) ID() EntityId {
-	return ntt.Id
+func (ntt *Entity) EntityID() EntityId {
+	return ntt.ID
 }
 
 func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
@@ -51,13 +51,13 @@ func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
 		ntt.Moves = moves
 	default:
 	}
-
-	var move rune = '0'
+	loc := ntt.Location
+	move := '0'
 	for _, move = range ntt.Moves {
 		break
 	}
 
-	newLoc := updateLoc(move, ntt.Location)
+	newLoc := loc.MovedBy(move)
 	if debugFlag {
 		fmt.Println(newLoc)
 	}

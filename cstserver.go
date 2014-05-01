@@ -46,19 +46,6 @@ func NewCstServer() *CstServer {
 	return &srv
 }
 
-func updateLoc(move rune, loc Coord) Coord {
-	if move == 'n' {
-		return Coord{loc.x, loc.y - 1}
-	} else if move == 's' {
-		return Coord{loc.x, loc.y + 1}
-	} else if move == 'w' {
-		return Coord{loc.x - 1, loc.y}
-	} else if move == 'e' {
-		return Coord{loc.x + 1, loc.y}
-	}
-	return loc
-}
-
 func (self *CstServer) DungeonAt(coord Coord) int {
 	return self.dunGenCache.DungeonAt(coord)
 }
