@@ -11,7 +11,7 @@ type Creature interface {
 	EntityID() EntityId
 	Coord() Coord
 	Move(GridKeeper, GridProcessor)
-	PopMoveQueue()
+	MoveCommit()
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
 	WriteFor(Creature, *bytes.Buffer)
@@ -38,7 +38,7 @@ func (ntt *Entity) EntityID() EntityId {
 func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
 }
 
-func (ntt *Entity) PopMoveQueue() {
+func (ntt *Entity) MoveCommit() {
 }
 
 func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
@@ -104,7 +104,7 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 	}
 }
 
-func (ntt *Player) PopMoveQueue() {
+func (ntt *Player) MoveCommit() {
 	if len(ntt.Moves) > 0 {
 		ntt.Moves = ntt.Moves[1:]
 	}

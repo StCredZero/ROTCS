@@ -53,7 +53,7 @@ func (self *SubGrid) MoveEntity(ntt Creature, loc Coord) {
 			delete(self.Grid, ntt.Coord())
 			self.Grid[loc] = ntt.EntityID()
 			ntt.SetCoord(loc)
-			ntt.PopMoveQueue()
+			ntt.MoveCommit()
 		}
 	}
 }
@@ -169,7 +169,7 @@ func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 		sg2 := self.subgridAtGrid(gc2)
 		sg1.RemoveEntityId(ntt.EntityID())
 		sg2.PutEntityAt(ntt, loc)
-		ntt.PopMoveQueue()
+		ntt.MoveCommit()
 		self.entityGrid[ntt.EntityID()] = gc2
 	}
 }
