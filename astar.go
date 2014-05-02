@@ -95,13 +95,13 @@ func astarSearch(
 
 	closedSet := make(map[Coord]bool)
 	openSet := make(map[Coord]bool)
-	openSet[start] = true
 	cameFrom := make(map[Coord]Coord)
 	gScore := make(map[Coord]int64)
-	gScore[start] = 0
-
 	fScore := make(NodeFPQ, 0, 1)
 	fIndex := make(map[Coord]*NodeF)
+
+	openSet[start] = true
+	gScore[start] = 0
 	setFScore(&fScore, &fIndex, start, heuristic(start, goal))
 
 	for n := 0; len(openSet) > 0 && n < limit; n++ {
