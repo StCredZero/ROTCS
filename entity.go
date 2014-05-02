@@ -118,6 +118,10 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 	if debugFlag {
 		fmt.Println(newLoc)
 	}
+	if grid.OutOfBounds(newLoc) {
+		grid.DeferMove(ntt)
+		return
+	}
 	if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
 		grid.MoveEntity(ntt, newLoc)
 	}

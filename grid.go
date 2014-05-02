@@ -12,9 +12,11 @@ type GridProcessor interface {
 }
 
 type GridKeeper interface {
+	DeferMove(Creature)
 	EmptyAt(Coord) bool
 	MoveEntity(Creature, Coord)
 	NewEntity(Creature) (Creature, bool)
+	OutOfBounds(Coord) bool
 	PutEntityAt(Creature, Coord)
 	RemoveEntityID(EntityID)
 	UpdateMovers(GridProcessor)
@@ -38,6 +40,10 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 	}
 }
 
+func (self *SubGrid) DeferMove(ntt Creature) {
+	self.ParentQueue <- ntt.EntityID()
+}
+
 func (self *SubGrid) EmptyAt(loc Coord) bool {
 	_, present := self.Grid[loc]
 	return !present
@@ -48,7 +54,7 @@ const subgrid_placement_trys = 100
 func (self *SubGrid) MoveEntity(ntt Creature, loc Coord) {
 	if ntt.Coord() != loc {
 		if loc.Grid() != self.GridCoord {
-			self.ParentQueue <- ntt.EntityID()
+			self.DeferMove(ntt)
 		} else {
 			delete(self.Grid, ntt.Coord())
 			self.Grid[loc] = ntt.EntityID()
@@ -72,6 +78,16 @@ func (self *SubGrid) NewEntity(ntt Creature) (Creature, bool) {
 	return ntt, true
 }
 
+func (self *SubGrid) OutOfBounds(coord Coord) bool {
+	return (coord.Grid() != self.GridCoord)
+}
+
+func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
+	ntt.SetCoord(loc)
+	self.Grid[loc] = ntt.EntityID()
+	self.Entities[ntt.EntityID()] = ntt
+}
+
 func (self *SubGrid) RemoveEntityID(id EntityID) {
 	ntt, present := self.Entities[id]
 	if !present {
@@ -79,12 +95,6 @@ func (self *SubGrid) RemoveEntityID(id EntityID) {
 	}
 	delete(self.Grid, ntt.Coord())
 	delete(self.Entities, id)
-}
-
-func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
-	ntt.SetCoord(loc)
-	self.Grid[loc] = ntt.EntityID()
-	self.Entities[ntt.EntityID()] = ntt
 }
 
 func (self *SubGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
@@ -146,6 +156,9 @@ func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`"e":""`)
 }
 
+func (self *WorldGrid) DeferMove(ntt Creature) {
+}
+
 func (self *WorldGrid) EmptyAt(loc Coord) bool {
 	subgrid, present := self.grid[loc.Grid()]
 	if !present {
@@ -187,6 +200,10 @@ func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 		}
 	}
 	return newEntity, ok
+}
+
+func (self *WorldGrid) OutOfBounds(coord Coord) bool {
+	return false
 }
 
 func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
