@@ -43,6 +43,15 @@ func (loc Coord) MovedBy(move rune) Coord {
 	return loc
 }
 
+func neighbors4(coord Coord) []Coord {
+	return []Coord{
+		{coord.x, coord.y - 1},
+		{coord.x, coord.y + 1},
+		{coord.x - 1, coord.y},
+		{coord.x + 1, coord.y},
+	}
+}
+
 func randomSubgridCoord() Coord {
 	return Coord{
 		x: int64(rand.Intn(subgrid_width)),

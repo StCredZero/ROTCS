@@ -47,20 +47,15 @@ func testOpen(coord Coord) bool {
 	return false
 }
 
-func testNeighbors(coord Coord) []Coord {
-	return []Coord{
-		{coord.x, coord.y - 1},
-		{coord.x, coord.y + 1},
-		{coord.x - 1, coord.y},
-		{coord.x + 1, coord.y},
-	}
-}
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	result, _ := astarSearch(manhattanDist, testOpen, testNeighbors, Coord{1, 1}, Coord{1, 8}, 100)
-	fmt.Println(result)
+	result, ok := astarSearch(manhattanDist, testOpen, neighbors4, Coord{1, 1}, Coord{1, 8}, 100)
+	if ok {
+		fmt.Println(result)
+	} else {
+		println("not found")
+	}
 
 	flag.Parse()
 

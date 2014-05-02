@@ -91,7 +91,7 @@ func astarSearch(
 	neighbors func(Coord) []Coord,
 	start Coord,
 	goal Coord,
-	n int) ([]Coord, bool) {
+	limit int) ([]Coord, bool) {
 
 	closedSet := make(map[Coord]bool)
 	openSet := make(map[Coord]bool)
@@ -104,7 +104,7 @@ func astarSearch(
 	fIndex := make(map[Coord]*NodeF)
 	setFScore(&fScore, &fIndex, start, heuristic(start, goal))
 
-	for len(openSet) > 0 {
+	for n := 0; len(openSet) > 0 && n < limit; n++ {
 		// current := the node in openset having the lowest f_score[]
 		current, ok := lowestOpenFScore(&openSet, &fScore)
 		if !ok {
@@ -132,5 +132,4 @@ func astarSearch(
 		}
 	}
 	return []Coord{}, false
-
 }
