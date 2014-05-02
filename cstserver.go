@@ -54,7 +54,7 @@ func (srv *CstServer) WalkableAt(coord Coord) bool {
 	return srv.dunGenCache.WalkableAt(coord)
 }
 
-func (srv *CstServer) WriteDisplay(ntt Displayer, buffer *bytes.Buffer) {
+func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`{"type":"update","data":{`)
 	buffer.WriteString(`"maptype":"basic",`)
 	buffer.WriteString(`"map":`)
@@ -75,7 +75,7 @@ func (srv *CstServer) registerConnection(c *connection) {
 	newPlayer := NewPlayer(c)
 	newPlayer, _ = srv.world.NewEntity(newPlayer)
 	if debugFlag {
-		fmt.Println("Initialized entity: ", *newPlayer)
+		fmt.Println("Initialized entity: ", newPlayer)
 	}
 }
 

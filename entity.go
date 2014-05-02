@@ -7,15 +7,14 @@ import (
 
 type EntityId uint32
 
-type Mover interface {
-	Move(GridKeeper, GridProcessor)
-	PopMoveQueue()
-}
-
-type Displayer interface {
+type Creature interface {
 	EntityID() EntityId
 	Coord() Coord
+	Move(GridKeeper, GridProcessor)
+	PopMoveQueue()
 	SendDisplay(GridKeeper, GridProcessor)
+	SetCoord(Coord)
+	WriteFor(Creature, *bytes.Buffer)
 }
 
 type Entity struct {
@@ -27,7 +26,7 @@ type Entity struct {
 	Moves         string
 }
 
-func NewPlayer(c *connection) *Entity {
+func NewPlayer(c *connection) Creature {
 	return &Entity{
 		ID:         c.id,
 		Moves:      "",
@@ -38,6 +37,10 @@ func NewPlayer(c *connection) *Entity {
 
 func (ntt *Entity) Coord() Coord {
 	return ntt.Location
+}
+
+func (ntt *Entity) SetCoord(coord Coord) {
+	ntt.Location = coord
 }
 
 func (ntt *Entity) EntityID() EntityId {
@@ -78,7 +81,7 @@ func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	ntt.Connection.send <- buffer.Bytes()
 }
 
-func (self *Entity) WriteEntities(player Displayer, buffer *bytes.Buffer) {
+func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
 	buffer.WriteString(`:{"symbol":"`)
 	buffer.WriteRune(self.Symbol)

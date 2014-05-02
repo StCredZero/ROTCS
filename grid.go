@@ -8,24 +8,24 @@ import (
 type GridProcessor interface {
 	DungeonAt(Coord) int
 	WalkableAt(Coord) bool
-	WriteDisplay(Displayer, *bytes.Buffer)
+	WriteDisplay(Creature, *bytes.Buffer)
 }
 
 type GridKeeper interface {
 	EmptyAt(Coord) bool
-	MoveEntity(*Entity, Coord)
-	NewEntity(*Entity) (*Entity, bool)
-	PutEntityAt(*Entity, Coord)
+	MoveEntity(Creature, Coord)
+	NewEntity(Creature) (Creature, bool)
+	PutEntityAt(Creature, Coord)
 	RemoveEntityId(EntityId)
 	UpdateMovers(GridProcessor)
 	SendDisplays(GridProcessor)
-	WriteEntities(Displayer, *bytes.Buffer)
+	WriteEntities(Creature, *bytes.Buffer)
 }
 
 type SubGrid struct {
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityId
-	Entities    map[EntityId]*Entity
+	Entities    map[EntityId]Creature
 	ParentQueue chan EntityId
 }
 
@@ -33,7 +33,7 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 	return &SubGrid{
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityId),
-		Entities:    make(map[EntityId]*Entity),
+		Entities:    make(map[EntityId]Creature),
 		ParentQueue: make(chan EntityId, (subgrid_width * subgrid_height)),
 	}
 }
@@ -45,20 +45,20 @@ func (self *SubGrid) EmptyAt(loc Coord) bool {
 
 const subgrid_placement_trys = 100
 
-func (self *SubGrid) MoveEntity(ntt *Entity, loc Coord) {
-	if ntt.Location != loc {
+func (self *SubGrid) MoveEntity(ntt Creature, loc Coord) {
+	if ntt.Coord() != loc {
 		if loc.Grid() != self.GridCoord {
-			self.ParentQueue <- ntt.ID
+			self.ParentQueue <- ntt.EntityID()
 		} else {
-			delete(self.Grid, ntt.Location)
-			self.Grid[loc] = ntt.ID
-			ntt.Location = loc
+			delete(self.Grid, ntt.Coord())
+			self.Grid[loc] = ntt.EntityID()
+			ntt.SetCoord(loc)
 			ntt.PopMoveQueue()
 		}
 	}
 }
 
-func (self *SubGrid) NewEntity(ntt *Entity) (*Entity, bool) {
+func (self *SubGrid) NewEntity(ntt Creature) (Creature, bool) {
 	var loc = randomSubgridCoord()
 	for n := 0; (!self.EmptyAt(loc)) && (n < subgrid_placement_trys); n++ {
 		loc = randomSubgridCoord()
@@ -66,9 +66,9 @@ func (self *SubGrid) NewEntity(ntt *Entity) (*Entity, bool) {
 	if !self.EmptyAt(loc) {
 		return &Entity{}, false
 	}
-	ntt.Location = loc
-	self.Entities[ntt.ID] = ntt
-	self.Grid[loc] = ntt.ID
+	ntt.SetCoord(loc)
+	self.Entities[ntt.EntityID()] = ntt
+	self.Grid[loc] = ntt.EntityID()
 	return ntt, true
 }
 
@@ -77,21 +77,21 @@ func (self *SubGrid) RemoveEntityId(id EntityId) {
 	if !present {
 		panic("Removing nonexistent Entity")
 	}
-	delete(self.Grid, ntt.Location)
+	delete(self.Grid, ntt.Coord())
 	delete(self.Entities, id)
 }
 
-func (self *SubGrid) PutEntityAt(ntt *Entity, loc Coord) {
-	ntt.Location = loc
-	self.Grid[loc] = ntt.ID
-	self.Entities[ntt.ID] = ntt
+func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
+	ntt.SetCoord(loc)
+	self.Grid[loc] = ntt.EntityID()
+	self.Entities[ntt.EntityID()] = ntt
 }
 
-func (self *SubGrid) WriteEntities(player Displayer, buffer *bytes.Buffer) {
+func (self *SubGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	for _, id := range self.Grid {
 		if id != player.EntityID() {
-			ntt := self.Entities[id]
-			ntt.WriteEntities(player, buffer)
+			ntt := Creature(self.Entities[id])
+			ntt.WriteFor(player, buffer)
 			buffer.WriteString(`,`)
 		}
 	}
@@ -134,7 +134,7 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	return subgrid
 }
 
-func (self *WorldGrid) WriteEntities(player Displayer, buffer *bytes.Buffer) {
+func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	coord := player.Coord()
 	visibleGrids := coord.VisibleGrids(39, 12)
 	for _, gcoord := range visibleGrids {
@@ -154,8 +154,8 @@ func (self *WorldGrid) EmptyAt(loc Coord) bool {
 	return subgrid.EmptyAt(loc)
 }
 
-func (self *WorldGrid) MoveEntity(ntt *Entity, loc Coord) {
-	gc1, present := self.entityGrid[ntt.ID]
+func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
+	gc1, present := self.entityGrid[ntt.EntityID()]
 	if !present {
 		panic("Moving nonexistent Entity")
 	}
@@ -167,15 +167,15 @@ func (self *WorldGrid) MoveEntity(ntt *Entity, loc Coord) {
 	} else {
 		println("global move")
 		sg2 := self.subgridAtGrid(gc2)
-		sg1.RemoveEntityId(ntt.ID)
+		sg1.RemoveEntityId(ntt.EntityID())
 		sg2.PutEntityAt(ntt, loc)
 		ntt.PopMoveQueue()
-		self.entityGrid[ntt.ID] = gc2
+		self.entityGrid[ntt.EntityID()] = gc2
 	}
 }
 
-func (self *WorldGrid) NewEntity(ntt *Entity) (*Entity, bool) {
-	var newEntity *Entity
+func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
+	var newEntity Creature
 	ok := false
 	for !ok {
 		i := rand.Intn(len(self.spawnGrids))
@@ -183,19 +183,19 @@ func (self *WorldGrid) NewEntity(ntt *Entity) (*Entity, bool) {
 		subgrid := self.subgridAtGrid(gridCoord)
 		newEntity, ok = subgrid.NewEntity(ntt)
 		if ok {
-			self.entityGrid[ntt.ID] = gridCoord
+			self.entityGrid[ntt.EntityID()] = gridCoord
 		}
 	}
 	return newEntity, ok
 }
 
-func (self *WorldGrid) PutEntityAt(ntt *Entity, loc Coord) {
-	_, present := self.entityGrid[ntt.ID]
+func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
+	_, present := self.entityGrid[ntt.EntityID()]
 	if present {
 		panic("Placing already existing Entity")
 	}
 	gridCoord := loc.Grid()
-	self.entityGrid[ntt.ID] = gridCoord
+	self.entityGrid[ntt.EntityID()] = gridCoord
 	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.PutEntityAt(ntt, loc)
 }
