@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"text/template"
+
+	//"container/heap"
+	"fmt"
 )
 
 var debugFlag = false
@@ -24,8 +27,40 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 	homeTempl.Execute(c, req.Host)
 }
 
+var myarray = [][]int{
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+	{0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+	{0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+	{0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+}
+
+func testOpen(coord Coord) bool {
+	if coord.x >= 0 && coord.y >= 0 && coord.x < 10 && coord.y < 10 {
+		return myarray[coord.y][coord.x] != 0
+	}
+	return false
+}
+
+func testNeighbors(coord Coord) []Coord {
+	return []Coord{
+		{coord.x, coord.y - 1},
+		{coord.x, coord.y + 1},
+		{coord.x - 1, coord.y},
+		{coord.x + 1, coord.y},
+	}
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	result, _ := astarSearch(manhattanDist, testOpen, testNeighbors, Coord{1, 1}, Coord{1, 8}, 100)
+	fmt.Println(result)
 
 	flag.Parse()
 
