@@ -18,21 +18,9 @@ type Creature interface {
 }
 
 type Entity struct {
-	ID            EntityId
-	Connection    *connection
-	Location      Coord
-	LastUpdateLoc Coord
-	Symbol        rune
-	Moves         string
-}
-
-func NewPlayer(c *connection) Creature {
-	return &Entity{
-		ID:         c.id,
-		Moves:      "",
-		Connection: c,
-		Symbol:     '@',
-	}
+	ID       EntityId
+	Location Coord
+	Symbol   rune
 }
 
 func (ntt *Entity) Coord() Coord {
@@ -48,6 +36,53 @@ func (ntt *Entity) EntityID() EntityId {
 }
 
 func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
+}
+
+func (ntt *Entity) PopMoveQueue() {
+}
+
+func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
+}
+
+func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
+	self.Location.WriteDisplay(player, buffer)
+	buffer.WriteString(`:{"symbol":"`)
+	buffer.WriteRune(self.Symbol)
+	buffer.WriteString(`"}`)
+}
+
+func EntityIdGenerator(lastId EntityId) chan (EntityId) {
+	next := make(chan EntityId)
+	id := lastId + 1
+	go func() {
+		for {
+			next <- id
+			id++
+		}
+	}()
+	return next
+}
+
+type Player struct {
+	Connection    *connection
+	LastUpdateLoc Coord
+	Moves         string
+	Entity
+}
+
+func NewPlayer(c *connection) Creature {
+	entity := Entity{
+		ID:     c.id,
+		Symbol: '@',
+	}
+	return &Player{
+		Entity:     entity,
+		Moves:      "",
+		Connection: c,
+	}
+}
+
+func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 
 	select {
 	case moves := <-ntt.Connection.moveQueue:
@@ -69,33 +104,14 @@ func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
 	}
 }
 
-func (ntt *Entity) PopMoveQueue() {
+func (ntt *Player) PopMoveQueue() {
 	if len(ntt.Moves) > 0 {
 		ntt.Moves = ntt.Moves[1:]
 	}
 }
 
-func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
+func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	var buffer bytes.Buffer
 	gproc.WriteDisplay(ntt, &buffer)
 	ntt.Connection.send <- buffer.Bytes()
-}
-
-func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
-	self.Location.WriteDisplay(player, buffer)
-	buffer.WriteString(`:{"symbol":"`)
-	buffer.WriteRune(self.Symbol)
-	buffer.WriteString(`"}`)
-}
-
-func EntityIdGenerator(lastId EntityId) chan (EntityId) {
-	next := make(chan EntityId)
-	id := lastId + 1
-	go func() {
-		for {
-			next <- id
-			id++
-		}
-	}()
-	return next
 }
