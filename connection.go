@@ -2,7 +2,7 @@ package main
 
 import "github.com/gorilla/websocket"
 
-func newConnection(ws *websocket.Conn, id EntityId) *connection {
+func newConnection(ws *websocket.Conn, id EntityID) *connection {
 	return &connection{
 		ws:        ws,
 		id:        id,
@@ -15,7 +15,7 @@ type connection struct {
 	// The websocket connection.
 	ws *websocket.Conn
 
-	id EntityId
+	id EntityID
 
 	moveQueue chan string
 

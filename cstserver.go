@@ -11,7 +11,7 @@ import (
 
 type CstServer struct {
 	// Registered connections.
-	connections map[*connection]EntityId
+	connections map[*connection]EntityID
 
 	// Register requests from the connections.
 	register chan *connection
@@ -19,7 +19,7 @@ type CstServer struct {
 	// Unregister requests from connections.
 	unregister chan *connection
 
-	entityIdGen chan EntityId
+	entityIdGen chan EntityID
 
 	world *WorldGrid
 
@@ -37,8 +37,8 @@ func NewCstServer() *CstServer {
 	var srv = CstServer{
 		register:    make(chan *connection, 1000),
 		unregister:  make(chan *connection, 1000),
-		connections: make(map[*connection]EntityId),
-		entityIdGen: EntityIdGenerator(0),
+		connections: make(map[*connection]EntityID),
+		entityIdGen: EntityIDGenerator(0),
 		dunGenCache: NewDunGenCache(1000, entropy, dgproto),
 	}
 
@@ -83,7 +83,7 @@ func (srv *CstServer) unregisterConnection(c *connection) {
 	if debugFlag {
 		println("closing-final")
 	}
-	srv.world.RemoveEntityId(c.id)
+	srv.world.RemoveEntityID(c.id)
 	delete(srv.connections, c)
 	close(c.send)
 }
