@@ -47,6 +47,12 @@ func subtractGrids(gr1, gr2 *(map[GridCoord]bool)) {
 	}
 }
 
+func subtractGridList(grids *(map[GridCoord]bool), gridList []GridCoord) {
+	for _, gc := range gridList {
+		delete(*grids, gc)
+	}
+}
+
 func intersectGrids(gr1, gr2 *(map[GridCoord]bool)) {
 	for gc, _ := range *gr1 {
 		if _, present := (*gr2)[gc]; !present {

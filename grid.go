@@ -8,14 +8,13 @@ import (
 )
 
 type GridProcessor interface {
-	DungeonAt(Coord) int
 	TickNumber() uint64
-	WalkableAt(Coord) bool
 	WriteDisplay(Creature, *bytes.Buffer)
 }
 
 type GridKeeper interface {
 	DeferMove(Creature)
+	DungeonAt(Coord) int
 	EmptyAt(Coord) bool
 	MoveEntity(Creature, Coord)
 	NewEntity(Creature) (Creature, bool)
@@ -24,10 +23,12 @@ type GridKeeper interface {
 	RemoveEntityID(EntityID)
 	UpdateMovers(GridProcessor)
 	SendDisplays(GridProcessor)
+	WalkableAt(Coord) bool
 	WriteEntities(Creature, *bytes.Buffer)
 }
 
 type SubGrid struct {
+	dunGenCache *DunGenCache
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityID
 	Entities    map[EntityID]Creature
@@ -38,12 +39,21 @@ type SubGrid struct {
 
 func NewSubGrid(gcoord GridCoord) *SubGrid {
 	return &SubGrid{
+		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
 		Entities:    make(map[EntityID]Creature),
 		ParentQueue: make(chan EntityID, (subgrid_width * subgrid_height)),
 		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+}
+
+func (self *SubGrid) DungeonAt(coord Coord) int {
+	return self.dunGenCache.DungeonAt(coord)
+}
+
+func (srv *SubGrid) WalkableAt(coord Coord) bool {
+	return srv.dunGenCache.WalkableAt(coord)
 }
 
 func (self *SubGrid) Count() int {
@@ -71,10 +81,18 @@ func (self *SubGrid) MoveEntity(ntt Creature, loc Coord) {
 		}
 	}
 }
+func (self *SubGrid) RandomCoord() Coord {
+	lx := self.RNG.Intn(subgrid_width)
+	ly := self.RNG.Intn(subgrid_height)
+	x := (self.GridCoord.x * subgrid_width) + int64(lx)
+	y := (self.GridCoord.y * subgrid_height) + int64(ly)
+	return Coord{x, y}
+}
+
 func (self *SubGrid) NewEntity(ntt Creature) (Creature, bool) {
-	var loc = randomSubgridCoord()
-	for n := 0; (!self.EmptyAt(loc)) && (n < subgrid_placement_trys); n++ {
-		loc = randomSubgridCoord()
+	loc := self.RandomCoord()
+	for n := 0; (!(self.EmptyAt(loc) && self.WalkableAt(loc))) && (n < subgrid_placement_trys); n++ {
+		loc = self.RandomCoord()
 	}
 	if !self.EmptyAt(loc) {
 		return &Entity{}, false
@@ -133,20 +151,24 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 }
 
 type WorldGrid struct {
-	grid       map[GridCoord]*SubGrid
-	entityGrid map[EntityID]GridCoord
-	RNG        *rand.Rand
-	spawnGrids []GridCoord
+	dunGenCache *DunGenCache
+	grid        map[GridCoord]*SubGrid
+	entityGrid  map[EntityID]GridCoord
+	entityIdGen chan EntityID
+	RNG         *rand.Rand
+	spawnGrids  []GridCoord
 }
 
 func NewWorldGrid() *WorldGrid {
 	spawnGrids := make([]GridCoord, 1)
 	spawnGrids[0] = GridCoord{0, 0}
 	return &WorldGrid{
-		grid:       make(map[GridCoord]*SubGrid),
-		entityGrid: make(map[EntityID]GridCoord),
-		RNG:        rand.New(rand.NewSource(time.Now().UnixNano())),
-		spawnGrids: spawnGrids,
+		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
+		grid:        make(map[GridCoord]*SubGrid),
+		entityGrid:  make(map[EntityID]GridCoord),
+		entityIdGen: EntityIDGenerator(0),
+		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		spawnGrids:  spawnGrids,
 	}
 }
 
@@ -187,11 +209,15 @@ func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
 
 func (self *WorldGrid) prepopCullGrids() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
 	pgrids := self.playerGrids()
-	prepop := expandGrids(pgrids)
-	cull := self.actualGridCoord()
+	expand1 := expandGrids(pgrids)
+	prepop := expandGrids(expand1)
+	actual := self.actualGridCoord()
+	cull := copyGrids(actual)
 	subtractGrids(cull, pgrids)
 	subtractGrids(cull, prepop)
-	subtractGrids(prepop, pgrids)
+	subtractGrids(prepop, actual)
+	subtractGrids(prepop, expand1)
+	subtractGridList(prepop, self.spawnGrids)
 	return prepop, cull
 }
 
@@ -204,6 +230,11 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 	for gcoord, _ := range *grids {
 		if i == n {
 			fmt.Println("prepop:", gcoord)
+			ok := true
+			for tries := 0; ok && tries < 10; tries++ {
+				monster := NewMonster(<-self.entityIdGen)
+				_, ok = self.NewEntityInGrid(monster, gcoord)
+			}
 			break
 		}
 		i++
@@ -225,6 +256,14 @@ func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	}
 	buffer.WriteString(`"e":""`)
 }
+func (self *WorldGrid) DungeonAt(coord Coord) int {
+	return self.dunGenCache.DungeonAt(coord)
+}
+
+func (srv *WorldGrid) WalkableAt(coord Coord) bool {
+	return srv.dunGenCache.WalkableAt(coord)
+}
+
 func (self *WorldGrid) DeferMove(ntt Creature) {}
 func (self *WorldGrid) EmptyAt(loc Coord) bool {
 	subgrid, present := self.grid[loc.Grid()]
@@ -254,9 +293,10 @@ func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 }
 func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 	var newEntity Creature
+	ntt.SetEntityID(<-self.entityIdGen)
 	ok := false
 	for !ok {
-		i := rand.Intn(len(self.spawnGrids))
+		i := self.RNG.Intn(len(self.spawnGrids))
 		gridCoord := self.spawnGrids[i]
 		subgrid := self.subgridAtGrid(gridCoord)
 		newEntity, ok = subgrid.NewEntity(ntt)
@@ -265,6 +305,19 @@ func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 		}
 	}
 	return newEntity, ok
+}
+func (self *WorldGrid) NewEntityInGrid(ntt Creature, gridCoord GridCoord) (Creature, bool) {
+	var newEntity Creature
+	ntt.SetEntityID(<-self.entityIdGen)
+	done := false
+	subgrid := self.subgridAtGrid(gridCoord)
+	for tries := 0; !done && tries < 50; tries++ {
+		newEntity, done = subgrid.NewEntity(ntt)
+	}
+	if done {
+		self.entityGrid[ntt.EntityID()] = gridCoord
+	}
+	return newEntity, done
 }
 func (self *WorldGrid) OutOfBounds(coord Coord) bool { return false }
 func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {

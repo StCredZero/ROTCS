@@ -2,10 +2,9 @@ package main
 
 import "github.com/gorilla/websocket"
 
-func newConnection(ws *websocket.Conn, id EntityID) *connection {
+func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
 		ws:        ws,
-		id:        id,
 		send:      make(chan []byte, 256),
 		moveQueue: make(chan string, 10),
 	}

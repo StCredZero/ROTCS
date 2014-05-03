@@ -15,6 +15,14 @@ import (
 
 var debugFlag = false
 
+var DungeonEntropy = DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
+var DungeonProto = DunGen{
+	xsize:      subgrid_width,
+	ysize:      subgrid_height,
+	targetObj:  20,
+	chanceRoom: 50,
+}
+
 func defaultAssetPath() string {
 	p, err := build.Default.Import("github.com/StCredZero/casterly", "", build.FindOnly)
 	if err != nil {

@@ -19,56 +19,42 @@ type CstServer struct {
 	// Unregister requests from connections.
 	unregister chan *connection
 
-	entityIdGen chan EntityID
+	//entityIdGen chan EntityID
 
 	world *WorldGrid
 
-	dunGenCache *DunGenCache
+	//dunGenCache *DunGenCache
 
 	tickNumber uint64
 }
 
 func NewCstServer() *CstServer {
-	entropy := DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
-	dgproto := DunGen{
-		xsize:      subgrid_width,
-		ysize:      subgrid_height,
-		targetObj:  20,
-		chanceRoom: 50,
-	}
+
 	var srv = CstServer{
 		register:    make(chan *connection, 1000),
 		unregister:  make(chan *connection, 1000),
 		connections: make(map[*connection]EntityID),
-		entityIdGen: EntityIDGenerator(0),
-		dunGenCache: NewDunGenCache(1000, entropy, dgproto),
+		//entityIdGen: EntityIDGenerator(0),
+
 	}
 
 	srv.world = NewWorldGrid()
 
-	newMonster := NewMonster(<-srv.entityIdGen)
-	newMonster, _ = srv.world.NewEntity(newMonster)
+	//newMonster := NewMonster(<-srv.entityIdGen)
+	//newMonster, _ = srv.world.NewEntity(newMonster)
 
 	return &srv
-}
-
-func (self *CstServer) DungeonAt(coord Coord) int {
-	return self.dunGenCache.DungeonAt(coord)
 }
 
 func (srv *CstServer) TickNumber() uint64 {
 	return srv.tickNumber
 }
 
-func (srv *CstServer) WalkableAt(coord Coord) bool {
-	return srv.dunGenCache.WalkableAt(coord)
-}
-
 func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`{"type":"update","data":{`)
 	buffer.WriteString(`"maptype":"basic",`)
 	buffer.WriteString(`"map":`)
-	srv.dunGenCache.WriteBasicMap(ntt, buffer)
+	srv.world.dunGenCache.WriteBasicMap(ntt, buffer)
 	buffer.WriteRune(',')
 	buffer.WriteString(`"entities":{`)
 	srv.world.WriteEntities(ntt, buffer)
@@ -80,12 +66,12 @@ func (srv *CstServer) registerConnection(c *connection) {
 	if debugFlag {
 		println("starting register")
 	}
+	player := NewPlayer(c)
+	entity, _ := srv.world.NewEntity(player)
+	c.id = entity.EntityID()
 	srv.connections[c] = c.id
-
-	newPlayer := NewPlayer(c)
-	newPlayer, _ = srv.world.NewEntity(newPlayer)
 	if debugFlag {
-		fmt.Println("Initialized entity: ", newPlayer)
+		fmt.Println("Initialized entity: ", entity)
 	}
 }
 
@@ -121,6 +107,7 @@ func (srv *CstServer) runLoop() {
 			}
 		}
 		prepop, cull := srv.world.prepopCullGrids()
+
 		srv.world.prepopulateGrids(prepop)
 		srv.world.cullGrids(cull)
 		srv.world.UpdateMovers(srv)
@@ -129,8 +116,8 @@ func (srv *CstServer) runLoop() {
 
 		tickDuration := time.Since(startTime).Seconds()
 		if tickDuration < 0.125 {
-			load := tickDuration / 0.125
-			fmt.Println("load: ", load)
+			//load := tickDuration / 0.125
+			//fmt.Println("load: ", load)
 			time.Sleep(time.Duration((0.125-tickDuration)*1000) * time.Millisecond)
 		}
 		srv.tickNumber++
@@ -146,8 +133,7 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		return
 	}
-	var id = <-srv.entityIdGen
-	c := newConnection(ws, id)
+	c := newConnection(ws)
 	srv.register <- c
 	defer func() { srv.unregister <- c }()
 	go c.writer()

@@ -22,6 +22,7 @@ type Creature interface {
 	MoveCommit()
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
+	SetEntityID(EntityID)
 	TickZero(GridProcessor) bool
 	WriteFor(Creature, *bytes.Buffer)
 }
@@ -44,6 +45,9 @@ func (ntt *Entity) SetCoord(coord Coord) {
 }
 func (ntt *Entity) EntityID() EntityID {
 	return ntt.ID
+}
+func (ntt *Entity) SetEntityID(id EntityID) {
+	ntt.ID = id
 }
 func (ntt *Entity) HasMove(gproc GridProcessor) bool {
 	phase := uint8((gproc.TickNumber() + ntt.TickOffset) % 8)
@@ -122,7 +126,7 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 		grid.DeferMove(ntt)
 		return
 	}
-	if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
+	if grid.EmptyAt(newLoc) && grid.WalkableAt(newLoc) {
 		grid.MoveEntity(ntt, newLoc)
 	}
 }
@@ -193,7 +197,7 @@ func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 	}
 	if minFound {
 		openAt := func(coord Coord) bool {
-			return gproc.WalkableAt(coord)
+			return grid.WalkableAt(coord)
 		}
 		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
 		if pathFound {
@@ -203,7 +207,7 @@ func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 				ntt.detections <- min
 				return
 			}
-			if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
+			if grid.EmptyAt(newLoc) && grid.WalkableAt(newLoc) {
 				grid.MoveEntity(ntt, newLoc)
 			}
 		}
