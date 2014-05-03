@@ -141,7 +141,7 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 type detection struct {
 	id   EntityID
 	loc  Coord
-	dist int64
+	dist float64
 }
 
 type Monster struct {
@@ -164,7 +164,7 @@ func NewMonster(id EntityID) Creature {
 
 func (ntt *Monster) Detect(player Creature) {
 	loc1, loc2 := ntt.Coord(), player.Coord()
-	dist := manhattanDist(loc1, loc2)
+	dist := distance(loc1, loc2)
 	if dist <= 7 {
 		det := detection{
 			id:   player.EntityID(),
@@ -195,7 +195,7 @@ func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 		openAt := func(coord Coord) bool {
 			return gproc.WalkableAt(coord)
 		}
-		path, pathFound := astarSearch(manhattanDist, openAt, neighbors4, ntt.Coord(), min.loc, 100)
+		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
 		if pathFound {
 			newLoc := path[0]
 			if grid.OutOfBounds(newLoc) {

@@ -7,7 +7,7 @@ import (
 
 type NodeF struct {
 	coord    Coord
-	priority int64
+	priority float64
 	index    int
 }
 
@@ -40,7 +40,7 @@ func (self *NodeFPQ) Pop() interface{} {
 	return item
 }
 
-func (pq *NodeFPQ) update(item *NodeF, coord Coord, priority int64) {
+func (pq *NodeFPQ) update(item *NodeF, coord Coord, priority float64) {
 	heap.Remove(pq, item.index)
 	item.coord = coord
 	item.priority = priority
@@ -74,7 +74,7 @@ func lowestOpenFScore(openSet *(map[Coord]bool), fScore *NodeFPQ) (Coord, bool) 
 	}
 }
 
-func setFScore(fScore *NodeFPQ, fIndex *(map[Coord]*NodeF), coord Coord, score int64) {
+func setFScore(fScore *NodeFPQ, fIndex *(map[Coord]*NodeF), coord Coord, score float64) {
 	fs, present := (*fIndex)[coord]
 	if present {
 		fScore.update(fs, coord, score)
@@ -86,7 +86,7 @@ func setFScore(fScore *NodeFPQ, fIndex *(map[Coord]*NodeF), coord Coord, score i
 }
 
 func astarSearch(
-	heuristic func(Coord, Coord) int64,
+	heuristic func(Coord, Coord) float64,
 	openAt func(Coord) bool,
 	neighbors func(Coord) []Coord,
 	start Coord,
@@ -96,7 +96,7 @@ func astarSearch(
 	closedSet := make(map[Coord]bool)
 	openSet := make(map[Coord]bool)
 	cameFrom := make(map[Coord]Coord)
-	gScore := make(map[Coord]int64)
+	gScore := make(map[Coord]float64)
 	fScore := make(NodeFPQ, 0, 1)
 	fIndex := make(map[Coord]*NodeF)
 
