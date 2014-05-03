@@ -74,15 +74,6 @@ func NewDunGen(proto *DunGen) *DunGen {
 	}
 }
 
-/*func (self *DunGen) initialize() *DunGen {
-	self.xsize = subgrid_width
-	self.ysize = subgrid_height
-	self.targetObj = 20
-	self.chanceRoom = 50
-
-	return self
-}*/
-
 func (self *DunGen) setCell(x int, y int, value int) {
 	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
 		self.dungeon_map[x+(self.xsize*y)] = value

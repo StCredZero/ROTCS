@@ -120,7 +120,9 @@ func (srv *CstServer) runLoop() {
 				break unregister
 			}
 		}
-
+		prepop, cull := srv.world.prepopCullGrids()
+		srv.world.prepopulateGrids(prepop)
+		srv.world.cullGrids(cull)
 		srv.world.UpdateMovers(srv)
 		srv.world.SendDisplays(srv)
 		srv.world.discardEmpty()

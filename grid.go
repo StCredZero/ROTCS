@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
+	"time"
 )
 
 type GridProcessor interface {
@@ -31,6 +33,7 @@ type SubGrid struct {
 	Entities    map[EntityID]Creature
 	ParentQueue chan EntityID
 	PlayerCount int
+	RNG         *rand.Rand
 }
 
 func NewSubGrid(gcoord GridCoord) *SubGrid {
@@ -39,6 +42,7 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 		Grid:        make(map[Coord]EntityID),
 		Entities:    make(map[EntityID]Creature),
 		ParentQueue: make(chan EntityID, (subgrid_width * subgrid_height)),
+		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -131,6 +135,7 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 type WorldGrid struct {
 	grid       map[GridCoord]*SubGrid
 	entityGrid map[EntityID]GridCoord
+	RNG        *rand.Rand
 	spawnGrids []GridCoord
 }
 
@@ -140,6 +145,7 @@ func NewWorldGrid() *WorldGrid {
 	return &WorldGrid{
 		grid:       make(map[GridCoord]*SubGrid),
 		entityGrid: make(map[EntityID]GridCoord),
+		RNG:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		spawnGrids: spawnGrids,
 	}
 }
@@ -179,7 +185,7 @@ func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
 	return &grids
 }
 
-func (self *WorldGrid) prepopCullExpansions() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
+func (self *WorldGrid) prepopCullGrids() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
 	pgrids := self.playerGrids()
 	prepop := expandGrids(pgrids)
 	cull := self.actualGridCoord()
@@ -187,6 +193,25 @@ func (self *WorldGrid) prepopCullExpansions() (*(map[GridCoord]bool), *(map[Grid
 	subtractGrids(cull, prepop)
 	subtractGrids(prepop, pgrids)
 	return prepop, cull
+}
+
+func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
+	if len(*grids) <= 0 {
+		return
+	}
+	n := self.RNG.Intn(len(*grids))
+	i := 0
+	for gcoord, _ := range *grids {
+		if i == n {
+			fmt.Println("prepop:", gcoord)
+			break
+		}
+		i++
+	}
+}
+
+func (self *WorldGrid) cullGrids(grids *(map[GridCoord]bool)) {
+
 }
 
 func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
