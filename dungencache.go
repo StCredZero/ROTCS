@@ -67,7 +67,7 @@ func (self *DunGenCache) WriteBasicMap(ntt Creature, buffer *bytes.Buffer) {
 		for x = xstart; x < xend; x++ {
 			cell := self.DungeonAt(Coord{x, y})
 			switch cell {
-			case TILE_FLOOR, TILE_CORRIDOR:
+			case TileFloor, TileCorridor:
 				buffer.WriteRune('.')
 			default:
 				buffer.WriteRune(' ')

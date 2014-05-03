@@ -8,12 +8,12 @@ import (
 	"sort"
 )
 
-const TILE_UNUSED = 0
-const TILE_WALL = 1
-const TILE_FLOOR = 2
-const TILE_STONEWALL = 3
-const TILE_CORRIDOR = 4
-const TILE_DOOR = 5
+const TileUnused = 0
+const TileWall = 1
+const TileFloor = 2
+const TileUnpass = 3
+const TileCorridor = 4
+const TileDoor = 5
 
 const minRoomDim = 2
 const maxRoomWidth = 28
@@ -22,10 +22,10 @@ const minCorridorDim = 2
 const maxLengthCorridor = 16
 const maxRooms = 100
 
-const DIR_NORTH = 0
-const DIR_SOUTH = 1
-const DIR_EAST = 2
-const DIR_WEST = 3
+const North = 0
+const South = 1
+const East = 2
+const West = 3
 
 type DRect struct {
 	x int
@@ -94,14 +94,14 @@ func (self *DunGen) getCell(x int, y int) int {
 	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
 		return self.dungeon_map[x+(self.xsize*y)]
 	} else {
-		return TILE_UNUSED
+		return TileUnused
 	}
 }
 
 func (self *DunGen) isWalkable(x int, y int) bool {
-	return ((self.getCell(x, y) == TILE_FLOOR) ||
-		(self.getCell(x, y) == TILE_CORRIDOR) ||
-		(self.getCell(x, y) == TILE_DOOR))
+	return ((self.getCell(x, y) == TileFloor) ||
+		(self.getCell(x, y) == TileCorridor) ||
+		(self.getCell(x, y) == TileDoor))
 }
 
 func (self *DunGen) debugPrint() string {
@@ -112,13 +112,13 @@ func (self *DunGen) debugPrint() string {
 				buffer.WriteString("V")
 			} else if self.passageEast.x == x && self.passageEast.y == y {
 				buffer.WriteString("}")
-			} else if (self.walls[DIR_NORTH])[LCoord{x, y}] {
+			} else if (self.walls[North])[LCoord{x, y}] {
 				buffer.WriteString("N")
-			} else if (self.walls[DIR_SOUTH])[LCoord{x, y}] {
+			} else if (self.walls[South])[LCoord{x, y}] {
 				buffer.WriteString("S")
-			} else if (self.walls[DIR_WEST])[LCoord{x, y}] {
+			} else if (self.walls[West])[LCoord{x, y}] {
 				buffer.WriteString("W")
-			} else if (self.walls[DIR_EAST])[LCoord{x, y}] {
+			} else if (self.walls[East])[LCoord{x, y}] {
 				buffer.WriteString("E")
 			} else if self.isWalkable(x, y) {
 				buffer.WriteString(".")
@@ -147,7 +147,7 @@ func (self *DunGen) getRand(min int, max int) int {
 func (self *DunGen) isRectClear(room DRect) bool {
 	for y := room.y; y <= room.bottom(); y++ {
 		for x := room.x; x <= room.right(); x++ {
-			if self.getCell(x, y) != TILE_UNUSED {
+			if self.getCell(x, y) != TileUnused {
 				return false
 			}
 		}
@@ -172,7 +172,7 @@ func (self *DunGen) firstRoom() DRect {
 }
 
 func (self *DunGen) setWall(coord LCoord, direction int) {
-	if coord.inBounds() && self.getCell(coord.x, coord.y) == TILE_UNUSED {
+	if coord.inBounds() && self.getCell(coord.x, coord.y) == TileUnused {
 		for dir := 0; dir < 4; dir++ {
 			if dir == direction {
 				(self.walls[dir])[coord] = true
@@ -195,27 +195,27 @@ func (self *DunGen) setRect(rect DRect) bool {
 	}
 	for y := rect.y; y < rect.bottom(); y++ {
 		for x := rect.x; x < rect.right(); x++ {
-			self.setCell(x, y, TILE_FLOOR)
+			self.setCell(x, y, TileFloor)
 		}
 	}
 	if rect.y > 1 {
 		for x := rect.x; x < rect.right(); x++ {
-			self.setWall(LCoord{x, rect.y - 1}, DIR_NORTH)
+			self.setWall(LCoord{x, rect.y - 1}, North)
 		}
 	}
 	if rect.bottom() < (self.ysize - 2) {
 		for x := rect.x; x < rect.right(); x++ {
-			self.setWall(LCoord{x, rect.bottom()}, DIR_SOUTH)
+			self.setWall(LCoord{x, rect.bottom()}, South)
 		}
 	}
 	if rect.x > 1 {
 		for y := rect.y; y < rect.bottom(); y++ {
-			self.setWall(LCoord{rect.x - 1, y}, DIR_WEST)
+			self.setWall(LCoord{rect.x - 1, y}, West)
 		}
 	}
 	if rect.right() < (self.xsize - 2) {
 		for y := rect.y; y < rect.bottom(); y++ {
-			self.setWall(LCoord{rect.right(), y}, DIR_EAST)
+			self.setWall(LCoord{rect.right(), y}, East)
 		}
 	}
 	self.objects = self.objects + 1
@@ -292,23 +292,23 @@ func (self *DunGen) tryCorridor(coord LCoord, dir int) bool {
 	corrLen := self.getRand(minCorridorDim, maxLengthCorridor)
 	var rect DRect
 	switch dir {
-	case DIR_NORTH:
+	case North:
 		rect = self.newShyRect(coord.x, coord.y-corrLen, 1, corrLen)
-	case DIR_SOUTH:
+	case South:
 		rect = self.newShyRect(coord.x, coord.y, 1, corrLen)
-	case DIR_EAST:
+	case East:
 		rect = self.newShyRect(coord.x, coord.y, corrLen, 1)
-	case DIR_WEST:
+	case West:
 		rect = self.newShyRect(coord.x-corrLen, coord.y, corrLen, 1)
 	}
 	result := self.setRect(rect)
 	if result {
-		self.setCell(coord.x, coord.y, TILE_FLOOR)
+		self.setCell(coord.x, coord.y, TileFloor)
 		switch dir {
-		case DIR_NORTH, DIR_SOUTH:
+		case North, South:
 			self.clearWalls(coord.x+1, coord.y)
 			self.clearWalls(coord.x-1, coord.y)
-		case DIR_WEST, DIR_EAST:
+		case West, East:
 			self.clearWalls(coord.x, coord.y+1)
 			self.clearWalls(coord.x, coord.y-1)
 		}
@@ -322,28 +322,28 @@ func (self *DunGen) tryRoom(coord LCoord, dir int) bool {
 
 	var rect DRect
 	switch dir {
-	case DIR_NORTH:
+	case North:
 		xoff := self.rng.Intn(w)
 		rect = self.newShyRect(coord.x-xoff, coord.y-h, w, h)
-	case DIR_SOUTH:
+	case South:
 		xoff := self.rng.Intn(w)
 		rect = self.newShyRect(coord.x-xoff, coord.y+1, w, h)
-	case DIR_EAST:
+	case East:
 		yoff := self.rng.Intn(h)
 		rect = self.newShyRect(coord.x+1, coord.y-yoff, w, h)
-	case DIR_WEST:
+	case West:
 		yoff := self.rng.Intn(h)
 		rect = self.newShyRect(coord.x-w, coord.y-yoff, w, h)
 	}
 
 	result := self.setRoom(rect)
 	if result {
-		self.setCell(coord.x, coord.y, TILE_FLOOR)
+		self.setCell(coord.x, coord.y, TileFloor)
 		switch dir {
-		case DIR_NORTH, DIR_SOUTH:
+		case North, South:
 			self.clearWalls(coord.x+1, coord.y)
 			self.clearWalls(coord.x-1, coord.y)
-		case DIR_WEST, DIR_EAST:
+		case West, East:
 			self.clearWalls(coord.x, coord.y+1)
 			self.clearWalls(coord.x, coord.y-1)
 		}
@@ -385,8 +385,8 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 		}
 	}
 
-	self.passageSouth = self.pickStartDir(DIR_SOUTH)
-	self.passageEast = self.pickStartDir(DIR_EAST)
+	self.passageSouth = self.pickStartDir(South)
+	self.passageEast = self.pickStartDir(East)
 	self.passageNorthEnd = self.getRand(1, self.ysize-2)
 	self.passageWestEnd = self.getRand(1, self.xsize-2)
 
@@ -403,17 +403,17 @@ func (self *DunGen) makePassages(northDg *DunGen, westDg *DunGen) {
 	if !self.passaged {
 		nx := northDg.passageSouth.x
 		for y := 0; y <= self.passageNorthEnd; y++ {
-			self.setCell(nx, y, TILE_FLOOR)
+			self.setCell(nx, y, TileFloor)
 		}
 		for y1 := self.passageSouth.y; y1 < self.ysize; y1++ {
-			self.setCell(self.passageSouth.x, y1, TILE_FLOOR)
+			self.setCell(self.passageSouth.x, y1, TileFloor)
 		}
 		wy := westDg.passageEast.y
 		for x := 0; x <= self.passageWestEnd; x++ {
-			self.setCell(x, wy, TILE_FLOOR)
+			self.setCell(x, wy, TileFloor)
 		}
 		for x1 := self.passageEast.x; x1 < self.xsize; x1++ {
-			self.setCell(x1, self.passageEast.y, TILE_FLOOR)
+			self.setCell(x1, self.passageEast.y, TileFloor)
 		}
 		self.passaged = true
 	}
