@@ -97,6 +97,17 @@ func (self GridCoord) Corner() Coord {
 	return Coord{self.x * subgrid_width, self.y * subgrid_height}
 }
 
+func (self GridCoord) Expansion() []GridCoord {
+	result := make([]GridCoord, 0, 9)
+	var x, y int64
+	for y = -1; y <= 1; y++ {
+		for x = -1; x <= 1; x++ {
+			result = append(result, GridCoord{self.x + x, self.y + y})
+		}
+	}
+	return result
+}
+
 func (gridCoord GridCoord) WriteTo(b *bytes.Buffer) (int, error) {
 	xn, xerr := b.Write(big.NewInt(gridCoord.x).Bytes())
 	if xerr != nil {

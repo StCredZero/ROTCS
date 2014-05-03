@@ -148,6 +148,36 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	}
 	return subgrid
 }
+
+func (self *WorldGrid) playerGrids() *(map[GridCoord]bool) {
+	grids := make(map[GridCoord]bool)
+	for _, subgrid := range self.grid {
+		if subgrid.PlayerCount > 0 {
+			grids[subgrid.GridCoord] = true
+		}
+	}
+	return &grids
+}
+
+func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
+	grids := make(map[GridCoord]bool)
+	for gc, _ := range self.grid {
+		grids[gc] = true
+	}
+	return &grids
+}
+
+func (self *WorldGrid) prepopCullExpansions() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
+	pgrids := self.playerGrids()
+	prepop := expandGrids(pgrids)
+	cull := expandGrids(prepop)
+	actual := self.actualGridCoord()
+	subtractGrids(cull, prepop)
+	intersectGrids(cull, actual)
+	subtractGrids(prepop, pgrids)
+	return prepop, cull
+}
+
 func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	coord := player.Coord()
 	visibleGrids := coord.VisibleGrids(39, 12)
