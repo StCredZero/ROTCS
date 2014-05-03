@@ -1,6 +1,10 @@
 package main
 
-import "math"
+import (
+	"fmt"
+	"math"
+	"sort"
+)
 
 func abs(n int64) int64 {
 	if n < 0 {
@@ -49,4 +53,15 @@ func intersectGrids(gr1, gr2 *(map[GridCoord]bool)) {
 			delete(*gr1, gc)
 		}
 	}
+}
+
+func printGrids(grids *(map[GridCoord]bool)) {
+	sorted := make(SortableGCoords, len(*grids))
+	i := 0
+	for gc, _ := range *grids {
+		sorted[i] = gc
+		i++
+	}
+	sort.Sort(sorted)
+	fmt.Println(sorted)
 }

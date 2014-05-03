@@ -122,15 +122,12 @@ func (srv *CstServer) runLoop() {
 		}
 
 		prepop, cull := srv.world.prepopCullExpansions()
-		println("Prepop:")
-		for gc, _ := range *prepop {
-			fmt.Print(gc)
-		}
-		println("")
-		println("Cull:")
-		for gc, _ := range *cull {
-			fmt.Print(gc)
-		}
+		print("Actual:")
+		printGrids(srv.world.actualGridCoord())
+		print("Prepop:")
+		printGrids(prepop)
+		print("Cull:")
+		printGrids(cull)
 
 		srv.world.UpdateMovers(srv)
 		srv.world.SendDisplays(srv)

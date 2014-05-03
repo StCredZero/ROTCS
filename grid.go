@@ -181,11 +181,11 @@ func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
 
 func (self *WorldGrid) prepopCullExpansions() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
 	pgrids := self.playerGrids()
-	p1 := expandGrids(pgrids)
-	prepop := expandGrids(p1)
+	prepop := expandGrids(pgrids)
 	cull := self.actualGridCoord()
+	subtractGrids(cull, pgrids)
 	subtractGrids(cull, prepop)
-	subtractGrids(prepop, p1)
+	subtractGrids(prepop, pgrids)
 	return prepop, cull
 }
 

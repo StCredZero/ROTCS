@@ -22,19 +22,6 @@ const minCorridorDim = 2
 const maxLengthCorridor = 16
 const maxRooms = 100
 
-type SortableLCoords []LCoord
-
-func (this SortableLCoords) Len() int {
-	return len(this)
-}
-func (this SortableLCoords) Less(i, j int) bool {
-	return (this[i].x < this[j].x) ||
-		((this[i].x == this[j].x) && (this[i].y < this[j].y))
-}
-func (this SortableLCoords) Swap(i, j int) {
-	this[i], this[j] = this[j], this[i]
-}
-
 const DIR_NORTH = 0
 const DIR_SOUTH = 1
 const DIR_EAST = 2

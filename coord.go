@@ -132,6 +132,32 @@ func (self LCoord) inShyBounds() bool {
 		self.x < subgrid_width-1 && self.y < subgrid_height-1
 }
 
+type SortableLCoords []LCoord
+
+func (this SortableLCoords) Len() int {
+	return len(this)
+}
+func (this SortableLCoords) Less(i, j int) bool {
+	return (this[i].x < this[j].x) ||
+		((this[i].x == this[j].x) && (this[i].y < this[j].y))
+}
+func (this SortableLCoords) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+
+type SortableGCoords []GridCoord
+
+func (this SortableGCoords) Len() int {
+	return len(this)
+}
+func (this SortableGCoords) Less(i, j int) bool {
+	return (this[i].x < this[j].x) ||
+		((this[i].x == this[j].x) && (this[i].y < this[j].y))
+}
+func (this SortableGCoords) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+
 func loc2grid(d int64, dimSize int64) int64 {
 	if d >= 0 {
 		return (d / dimSize)
