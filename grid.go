@@ -63,6 +63,9 @@ func (self *SubGrid) DeferMove(ntt Creature) {
 	self.ParentQueue <- ntt.EntityID()
 }
 func (self *SubGrid) EmptyAt(loc Coord) bool {
+	if loc.Grid() != self.GridCoord {
+		panic("Should not be asked about outside coord!")
+	}
 	_, present := self.Grid[loc]
 	return !present
 }
@@ -109,6 +112,9 @@ func (self *SubGrid) OutOfBounds(coord Coord) bool {
 	return (coord.Grid() != self.GridCoord)
 }
 func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
+	if loc.Grid() != self.GridCoord {
+		panic("Should not put outside coord!")
+	}
 	ntt.SetCoord(loc)
 	self.Grid[loc] = ntt.EntityID()
 	self.Entities[ntt.EntityID()] = ntt

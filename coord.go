@@ -52,13 +52,6 @@ func neighbors4(coord Coord) []Coord {
 	}
 }
 
-func randomSubgridCoord() Coord {
-	return Coord{
-		x: int64(rand.Intn(subgrid_width)),
-		y: int64(rand.Intn(subgrid_height)),
-	}
-}
-
 func (self Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
 	set := make(map[GridCoord]bool)
 	var c1 = Coord{self.x - xdist, self.y - ydist}
