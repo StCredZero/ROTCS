@@ -105,7 +105,6 @@ func astarSearch(
 	setFScore(&fScore, &fIndex, start, heuristic(start, goal))
 
 	for n := 0; len(openSet) > 0 && n < limit; n++ {
-		// current := the node in openset having the lowest f_score[]
 		current, ok := lowestOpenFScore(&openSet, &fScore)
 		if !ok {
 			return []Coord{}, false
@@ -119,12 +118,11 @@ func astarSearch(
 			if !openAt(neighbor) || closedSet[neighbor] {
 				continue
 			}
-			tentativeg := gScore[current] + heuristic(current, neighbor)
-			if (!openSet[neighbor]) || (tentativeg < gScore[neighbor]) {
+			newg := gScore[current] + heuristic(current, neighbor)
+			if (!openSet[neighbor]) || (newg < gScore[neighbor]) {
 				cameFrom[neighbor] = current
-				gScore[neighbor] = tentativeg
-				//fScore[neighbor] = gScore[neighbor] + heuristic(neighbor, goal)
-				setFScore(&fScore, &fIndex, neighbor, tentativeg+heuristic(neighbor, goal))
+				gScore[neighbor] = newg
+				setFScore(&fScore, &fIndex, neighbor, newg+heuristic(neighbor, goal))
 				if !openSet[neighbor] {
 					openSet[neighbor] = true
 				}

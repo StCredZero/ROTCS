@@ -24,6 +24,8 @@ type CstServer struct {
 	world *WorldGrid
 
 	dunGenCache *DunGenCache
+
+	tickNumber uint64
 }
 
 func NewCstServer() *CstServer {
@@ -43,11 +45,19 @@ func NewCstServer() *CstServer {
 	}
 
 	srv.world = NewWorldGrid()
+
+	newMonster := NewMonster(<-srv.entityIdGen)
+	newMonster, _ = srv.world.NewEntity(newMonster)
+
 	return &srv
 }
 
 func (self *CstServer) DungeonAt(coord Coord) int {
 	return self.dunGenCache.DungeonAt(coord)
+}
+
+func (srv *CstServer) TickNumber() uint64 {
+	return srv.tickNumber
 }
 
 func (srv *CstServer) WalkableAt(coord Coord) bool {
@@ -119,6 +129,7 @@ func (srv *CstServer) runLoop() {
 			fmt.Println("load: ", load)
 			time.Sleep(time.Duration((0.125-tickDuration)*1000) * time.Millisecond)
 		}
+		srv.tickNumber++
 		runtime.Gosched()
 	}
 }

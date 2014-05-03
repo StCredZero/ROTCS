@@ -7,6 +7,7 @@ import (
 
 type GridProcessor interface {
 	DungeonAt(Coord) int
+	TickNumber() uint64
 	WalkableAt(Coord) bool
 	WriteDisplay(Creature, *bytes.Buffer)
 }
@@ -102,6 +103,7 @@ func (self *SubGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 		if id != player.EntityID() {
 			ntt := self.Entities[id]
 			ntt.WriteFor(player, buffer)
+			ntt.Detect(player)
 			buffer.WriteString(`,`)
 		}
 	}
@@ -109,7 +111,9 @@ func (self *SubGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
-		ntt.Move(self, gproc)
+		if ntt.HasMove(gproc) {
+			ntt.Move(self, gproc)
+		}
 	}
 }
 

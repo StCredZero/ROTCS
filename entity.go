@@ -12,6 +12,7 @@ type Creature interface {
 	EntityID() EntityID
 	Coord() Coord
 	Detect(Creature)
+	HasMove(GridProcessor) bool
 	IsPlayer() bool
 	Move(GridKeeper, GridProcessor)
 	MoveCommit()
@@ -21,9 +22,10 @@ type Creature interface {
 }
 
 type Entity struct {
-	ID       EntityID
-	Location Coord
-	Symbol   rune
+	ID           EntityID
+	Location     Coord
+	Symbol       rune
+	MoveSchedule uint8
 }
 
 func (ntt *Entity) Coord() Coord {
@@ -39,6 +41,11 @@ func (ntt *Entity) SetCoord(coord Coord) {
 
 func (ntt *Entity) EntityID() EntityID {
 	return ntt.ID
+}
+
+func (ntt *Entity) HasMove(gproc GridProcessor) bool {
+	phase := uint8(gproc.TickNumber() % 8)
+	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
 
 func (ntt *Entity) IsPlayer() bool {
@@ -59,7 +66,6 @@ func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`:{"symbol":"`)
 	buffer.WriteRune(self.Symbol)
 	buffer.WriteString(`"}`)
-	self.Detect(player)
 }
 
 func EntityIDGenerator(lastId EntityID) chan (EntityID) {
@@ -75,16 +81,17 @@ func EntityIDGenerator(lastId EntityID) chan (EntityID) {
 }
 
 type Player struct {
+	Entity
 	Connection    *connection
 	LastUpdateLoc Coord
 	Moves         string
-	Entity
 }
 
 func NewPlayer(c *connection) Creature {
 	entity := Entity{
-		ID:     c.id,
-		Symbol: '@',
+		ID:           c.id,
+		Symbol:       '@',
+		MoveSchedule: 0xFF,
 	}
 	return Creature(&Player{
 		Entity:     entity,
@@ -142,18 +149,20 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 
 type detection struct {
 	id   EntityID
+	loc  Coord
 	dist int64
 }
 
 type Monster struct {
-	detections chan detection
 	Entity
+	detections chan detection
 }
 
-func NewMonster(c *connection) Creature {
+func NewMonster(id EntityID) Creature {
 	entity := Entity{
-		ID:     c.id,
-		Symbol: '@',
+		ID:           id,
+		Symbol:       '%',
+		MoveSchedule: 0x55,
 	}
 	return &Monster{
 		Entity:     entity,
@@ -167,6 +176,7 @@ func (ntt *Monster) Detect(player Creature) {
 	if dist <= 7 {
 		det := detection{
 			id:   player.EntityID(),
+			loc:  loc2,
 			dist: dist,
 		}
 		ntt.detections <- det
@@ -178,19 +188,33 @@ func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 	min = detection{
 		dist: math.MaxInt32,
 	}
-	done, found := false, false
+	done, minFound := false, false
 	for !done {
 		select {
 		case det = <-ntt.detections:
 			if det.dist < min.dist {
 				min = det
-				found = true
+				minFound = true
 			}
 		default:
 			done = true
 		}
 	}
-	if found {
-
+	if minFound {
+		openAt := func(coord Coord) bool {
+			return gproc.WalkableAt(coord)
+		}
+		path, pathFound := astarSearch(manhattanDist, openAt, neighbors4, ntt.Coord(), min.loc, 100)
+		if pathFound {
+			newLoc := path[0]
+			if grid.OutOfBounds(newLoc) {
+				grid.DeferMove(ntt)
+				ntt.detections <- min
+				return
+			}
+			if grid.EmptyAt(newLoc) && gproc.WalkableAt(newLoc) {
+				grid.MoveEntity(ntt, newLoc)
+			}
+		}
 	}
 }
