@@ -121,14 +121,6 @@ func (srv *CstServer) runLoop() {
 			}
 		}
 
-		prepop, cull := srv.world.prepopCullExpansions()
-		print("Actual:")
-		printGrids(srv.world.actualGridCoord())
-		print("Prepop:")
-		printGrids(prepop)
-		print("Cull:")
-		printGrids(cull)
-
 		srv.world.UpdateMovers(srv)
 		srv.world.SendDisplays(srv)
 		srv.world.discardEmpty()
@@ -145,7 +137,7 @@ func (srv *CstServer) runLoop() {
 }
 
 func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
-	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
+	ws, err := websocket.Upgrade(w, r, nil, 4096, 4096)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(w, "Not a websocket handshake", 400)
 		return
