@@ -18,6 +18,7 @@ type Creature interface {
 	MoveCommit()
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
+	TickZero(GridProcessor) bool
 	WriteFor(Creature, *bytes.Buffer)
 }
 
@@ -26,6 +27,7 @@ type Entity struct {
 	Location     Coord
 	Symbol       rune
 	MoveSchedule uint8
+	TickOffset   uint64
 }
 
 func (ntt *Entity) Coord() Coord {
@@ -40,13 +42,17 @@ func (ntt *Entity) EntityID() EntityID {
 	return ntt.ID
 }
 func (ntt *Entity) HasMove(gproc GridProcessor) bool {
-	phase := uint8(gproc.TickNumber() % 8)
+	phase := uint8((gproc.TickNumber() + ntt.TickOffset) % 8)
 	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
 func (ntt *Entity) IsPlayer() bool                                   { return false }
 func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor)        {}
 func (ntt *Entity) MoveCommit()                                      {}
 func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
+func (ntt *Entity) TickZero(gproc GridProcessor) bool {
+	phase := (gproc.TickNumber() + ntt.TickOffset) % 23
+	return phase == 0
+}
 
 func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
@@ -79,6 +85,7 @@ func NewPlayer(c *connection) Creature {
 		ID:           c.id,
 		Symbol:       '@',
 		MoveSchedule: 0xFF,
+		TickOffset:   rand.Intn(23),
 	}
 	return Creature(&Player{
 		Entity:     entity,
@@ -90,7 +97,6 @@ func NewPlayer(c *connection) Creature {
 func (ntt *Player) IsPlayer() bool {
 	return true
 }
-
 func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 
 	select {
@@ -116,13 +122,11 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 		grid.MoveEntity(ntt, newLoc)
 	}
 }
-
 func (ntt *Player) MoveCommit() {
 	if len(ntt.Moves) > 0 {
 		ntt.Moves = ntt.Moves[1:]
 	}
 }
-
 func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	var buffer bytes.Buffer
 	gproc.WriteDisplay(ntt, &buffer)
@@ -146,6 +150,7 @@ func NewMonster(id EntityID) Creature {
 		ID:           id,
 		Symbol:       '%',
 		MoveSchedule: 0x55,
+		TickOffset:   rand.Intn(23),
 	}
 	return &Monster{
 		Entity:     entity,
@@ -165,7 +170,6 @@ func (ntt *Monster) Detect(player Creature) {
 		ntt.detections <- det
 	}
 }
-
 func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 	var min, det detection
 	min = detection{
