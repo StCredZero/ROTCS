@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"math/rand"
+	"time"
 )
+
+var offsetRNG = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 type EntityID uint32
 
@@ -85,7 +89,7 @@ func NewPlayer(c *connection) Creature {
 		ID:           c.id,
 		Symbol:       '@',
 		MoveSchedule: 0xFF,
-		TickOffset:   rand.Intn(23),
+		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
 	return Creature(&Player{
 		Entity:     entity,
@@ -150,7 +154,7 @@ func NewMonster(id EntityID) Creature {
 		ID:           id,
 		Symbol:       '%',
 		MoveSchedule: 0x55,
-		TickOffset:   rand.Intn(23),
+		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
 	return &Monster{
 		Entity:     entity,

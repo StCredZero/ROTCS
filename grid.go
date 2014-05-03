@@ -139,6 +139,7 @@ func NewWorldGrid() *WorldGrid {
 		spawnGrids: spawnGrids,
 	}
 }
+
 func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	subgrid, present := self.grid[gridCoord]
 	if !present {

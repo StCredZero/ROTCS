@@ -6,11 +6,11 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"runtime"
+	//"runtime"
 	"text/template"
 
 	//"container/heap"
-	"fmt"
+	//"fmt"
 )
 
 var debugFlag = false
@@ -27,7 +27,7 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 	homeTempl.Execute(c, req.Host)
 }
 
-var myarray = [][]int{
+/*var myarray = [][]int{
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	{0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
@@ -45,17 +45,17 @@ func testOpen(coord Coord) bool {
 		return myarray[coord.y][coord.x] != 0
 	}
 	return false
-}
+}*/
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GOMAXPROCS(runtime.NumCPU())
 
-	result, ok := astarSearch(manhattanDist, testOpen, neighbors4, Coord{1, 1}, Coord{1, 8}, 100)
+	/*result, ok := astarSearch(manhattanDist, testOpen, neighbors4, Coord{1, 1}, Coord{1, 8}, 100)
 	if ok {
 		fmt.Println(result)
 	} else {
 		println("not found")
-	}
+	}*/
 
 	flag.Parse()
 
