@@ -31,35 +31,22 @@ type Entity struct {
 func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
-
-func (ntt *Entity) Detect(player Creature) {
-}
+func (ntt *Entity) Detect(player Creature) {}
 
 func (ntt *Entity) SetCoord(coord Coord) {
 	ntt.Location = coord
 }
-
 func (ntt *Entity) EntityID() EntityID {
 	return ntt.ID
 }
-
 func (ntt *Entity) HasMove(gproc GridProcessor) bool {
 	phase := uint8(gproc.TickNumber() % 8)
 	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
-
-func (ntt *Entity) IsPlayer() bool {
-	return false
-}
-
-func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor) {
-}
-
-func (ntt *Entity) MoveCommit() {
-}
-
-func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {
-}
+func (ntt *Entity) IsPlayer() bool                                   { return false }
+func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor)        {}
+func (ntt *Entity) MoveCommit()                                      {}
+func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
 
 func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
@@ -98,10 +85,6 @@ func NewPlayer(c *connection) Creature {
 		Moves:      "",
 		Connection: c,
 	})
-}
-
-func (ntt *Player) Coord() Coord {
-	return ntt.Location
 }
 
 func (ntt *Player) IsPlayer() bool {
