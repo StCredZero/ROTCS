@@ -41,6 +41,10 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 		ParentQueue: make(chan EntityID, (subgrid_width * subgrid_height)),
 	}
 }
+
+func (self *SubGrid) Count() int {
+	return len(self.Grid)
+}
 func (self *SubGrid) DeferMove(ntt Creature) {
 	self.ParentQueue <- ntt.EntityID()
 }
@@ -96,7 +100,7 @@ func (self *SubGrid) RemoveEntityID(id EntityID) {
 		panic("Removing nonexistent Entity")
 	}
 	if ntt.IsPlayer() {
-		self.PlayerCount++
+		self.PlayerCount--
 	}
 	delete(self.Grid, ntt.Coord())
 	delete(self.Entities, id)
@@ -159,6 +163,14 @@ func (self *WorldGrid) playerGrids() *(map[GridCoord]bool) {
 	return &grids
 }
 
+func (self *WorldGrid) discardEmpty() {
+	for gc, subgrid := range self.grid {
+		if subgrid.Count() == 0 {
+			delete(self.grid, gc)
+		}
+	}
+}
+
 func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
 	grids := make(map[GridCoord]bool)
 	for gc, _ := range self.grid {
@@ -169,12 +181,11 @@ func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
 
 func (self *WorldGrid) prepopCullExpansions() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
 	pgrids := self.playerGrids()
-	prepop := expandGrids(pgrids)
-	cull := expandGrids(prepop)
-	actual := self.actualGridCoord()
+	p1 := expandGrids(pgrids)
+	prepop := expandGrids(p1)
+	cull := self.actualGridCoord()
 	subtractGrids(cull, prepop)
-	intersectGrids(cull, actual)
-	subtractGrids(prepop, pgrids)
+	subtractGrids(prepop, p1)
 	return prepop, cull
 }
 

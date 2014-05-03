@@ -120,8 +120,21 @@ func (srv *CstServer) runLoop() {
 				break unregister
 			}
 		}
+
+		prepop, cull := srv.world.prepopCullExpansions()
+		println("Prepop:")
+		for gc, _ := range *prepop {
+			fmt.Print(gc)
+		}
+		println("")
+		println("Cull:")
+		for gc, _ := range *cull {
+			fmt.Print(gc)
+		}
+
 		srv.world.UpdateMovers(srv)
 		srv.world.SendDisplays(srv)
+		srv.world.discardEmpty()
 
 		tickDuration := time.Since(startTime).Seconds()
 		if tickDuration < 0.125 {
