@@ -235,7 +235,7 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 	i := 0
 	for gcoord, _ := range *grids {
 		if i == n {
-			fmt.Println("prepop:", gcoord)
+			fmt.Println("Prepop:", gcoord)
 			ok := true
 			for tries := 0; ok && tries < 10; tries++ {
 				monster := NewMonster(<-self.entityIdGen)
@@ -248,7 +248,16 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 }
 
 func (self *WorldGrid) cullGrids(grids *(map[GridCoord]bool)) {
-
+	for gcoord, _ := range *grids {
+		fmt.Println("Cull:", gcoord)
+		subgrid := self.subgridAtGrid(gcoord)
+		for id, ntt := range subgrid.Entities {
+			if ntt.IsTransient() {
+				subgrid.RemoveEntityID(id)
+			}
+		}
+		break
+	}
 }
 
 func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {

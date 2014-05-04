@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"math/big"
-	"math/rand"
+	//"math/rand"
 	"strconv"
 )
 

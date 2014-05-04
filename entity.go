@@ -18,6 +18,7 @@ type Creature interface {
 	Detect(Creature)
 	HasMove(GridProcessor) bool
 	IsPlayer() bool
+	IsTransient() bool
 	Move(GridKeeper, GridProcessor)
 	MoveCommit()
 	SendDisplay(GridKeeper, GridProcessor)
@@ -54,6 +55,7 @@ func (ntt *Entity) HasMove(gproc GridProcessor) bool {
 	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
 func (ntt *Entity) IsPlayer() bool                                   { return false }
+func (ntt *Entity) IsTransient() bool                                { return true }
 func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor)        {}
 func (ntt *Entity) MoveCommit()                                      {}
 func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
@@ -102,9 +104,8 @@ func NewPlayer(c *connection) Creature {
 	})
 }
 
-func (ntt *Player) IsPlayer() bool {
-	return true
-}
+func (ntt *Player) IsPlayer() bool    { return true }
+func (ntt *Player) IsTransient() bool { return false }
 func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 
 	select {
