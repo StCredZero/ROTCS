@@ -2,19 +2,21 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	//"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
+type empty struct{}
+
 type GridProcessor interface {
 	TickNumber() uint64
-	WriteDisplay(Creature, *bytes.Buffer)
 }
 
 type GridKeeper interface {
 	DeferMove(Creature)
-	DungeonAt(Coord) int
+	DungeonAt(Coord) int8
 	EmptyAt(Coord) bool
 	MoveEntity(Creature, Coord)
 	NewEntity(Creature) (Creature, bool)
@@ -24,6 +26,7 @@ type GridKeeper interface {
 	UpdateMovers(GridProcessor)
 	SendDisplays(GridProcessor)
 	WalkableAt(Coord) bool
+	WriteDisplay(Creature, *bytes.Buffer)
 	WriteEntities(Creature, *bytes.Buffer)
 }
 
@@ -32,6 +35,7 @@ type SubGrid struct {
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityID
 	Entities    map[EntityID]Creature
+	parent      *WorldGrid
 	ParentQueue chan EntityID
 	PlayerCount int
 	RNG         *rand.Rand
@@ -48,7 +52,7 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 	}
 }
 
-func (self *SubGrid) DungeonAt(coord Coord) int {
+func (self *SubGrid) DungeonAt(coord Coord) int8 {
 	return self.dunGenCache.DungeonAt(coord)
 }
 
@@ -156,6 +160,23 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 	}
 }
 
+func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
+	x, y := ntt.Coord().x, ntt.Coord().y
+	buffer.WriteString(`{"type":"update","data":{`)
+	buffer.WriteString(`"location":[`)
+	buffer.WriteString(strconv.FormatInt(x, 10))
+	buffer.WriteRune(',')
+	buffer.WriteString(strconv.FormatInt(y, 10))
+	buffer.WriteString(`],`)
+	buffer.WriteString(`"maptype":"basic",`)
+	buffer.WriteString(`"map":`)
+	self.dunGenCache.WriteBasicMap(ntt, buffer)
+	buffer.WriteRune(',')
+	buffer.WriteString(`"entities":{`)
+	self.parent.WriteEntities(ntt, buffer)
+	buffer.WriteString(`}}}`)
+}
+
 type WorldGrid struct {
 	dunGenCache *DunGenCache
 	grid        map[GridCoord]*SubGrid
@@ -182,6 +203,7 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	subgrid, present := self.grid[gridCoord]
 	if !present {
 		subgrid = NewSubGrid(gridCoord)
+		subgrid.parent = self
 		self.grid[gridCoord] = subgrid
 	}
 	return subgrid
@@ -235,7 +257,6 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 	i := 0
 	for gcoord, _ := range *grids {
 		if i == n {
-			fmt.Println("Prepop:", gcoord)
 			ok := true
 			for tries := 0; ok && tries < 10; tries++ {
 				monster := NewMonster(<-self.entityIdGen)
@@ -249,7 +270,6 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 
 func (self *WorldGrid) cullGrids(grids *(map[GridCoord]bool)) {
 	for gcoord, _ := range *grids {
-		fmt.Println("Cull:", gcoord)
 		subgrid := self.subgridAtGrid(gcoord)
 		for id, ntt := range subgrid.Entities {
 			if ntt.IsTransient() {
@@ -271,7 +291,7 @@ func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	}
 	buffer.WriteString(`"e":""`)
 }
-func (self *WorldGrid) DungeonAt(coord Coord) int {
+func (self *WorldGrid) DungeonAt(coord Coord) int8 {
 	return self.dunGenCache.DungeonAt(coord)
 }
 
@@ -354,10 +374,23 @@ func (self *WorldGrid) RemoveEntityID(id EntityID) {
 	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.RemoveEntityID(id)
 }
-func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
+func (self *WorldGrid) ParallelExec(doWork func(*SubGrid)) {
+	n := len(self.grid)
+	semaphore := make(chan empty, n)
 	for _, subgrid := range self.grid {
-		subgrid.UpdateMovers(gproc)
+		go func(sg *SubGrid) {
+			doWork(sg)
+			semaphore <- empty{}
+		}(subgrid)
 	}
+	for i := 0; i < n; i++ {
+		<-semaphore
+	}
+}
+func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
+	self.ParallelExec(func(subgrid *SubGrid) {
+		subgrid.UpdateMovers(gproc)
+	})
 	for _, subgrid := range self.grid {
 		done := false
 		for !done {
@@ -372,7 +405,10 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	}
 }
 func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
-	for _, subgrid := range self.grid {
+	self.ParallelExec(func(subgrid *SubGrid) {
 		subgrid.SendDisplays(gproc)
-	}
+	})
+}
+func (self *WorldGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
+	panic("Should not call on World!")
 }

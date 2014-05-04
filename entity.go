@@ -138,7 +138,7 @@ func (ntt *Player) MoveCommit() {
 }
 func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	var buffer bytes.Buffer
-	gproc.WriteDisplay(ntt, &buffer)
+	grid.WriteDisplay(ntt, &buffer)
 	ntt.Connection.send <- buffer.Bytes()
 	ntt.LastUpdateLoc = ntt.Location
 }

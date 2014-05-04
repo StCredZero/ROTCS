@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"runtime"
-	"strconv"
 	"time"
 )
 
@@ -51,7 +49,7 @@ func (srv *CstServer) TickNumber() uint64 {
 	return srv.tickNumber
 }
 
-func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
+/*func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	x, y := ntt.Coord().x, ntt.Coord().y
 	buffer.WriteString(`{"type":"update","data":{`)
 	buffer.WriteString(`"location":[`)
@@ -67,7 +65,7 @@ func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	srv.world.WriteEntities(ntt, buffer)
 	buffer.WriteString(`}}}`)
 
-}
+}*/
 
 func (srv *CstServer) registerConnection(c *connection) {
 	if debugFlag {
@@ -123,8 +121,8 @@ func (srv *CstServer) runLoop() {
 
 		tickDuration := time.Since(startTime).Seconds()
 		if tickDuration < 0.125 {
-			//load := tickDuration / 0.125
-			//fmt.Println("load: ", load)
+			load := tickDuration / 0.125
+			fmt.Println("load: ", load)
 			time.Sleep(time.Duration((0.125-tickDuration)*1000) * time.Millisecond)
 		}
 		srv.tickNumber++

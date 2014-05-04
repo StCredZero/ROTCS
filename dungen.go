@@ -52,7 +52,7 @@ type DunGen struct {
 	chanceRoom int
 	passaged   bool
 
-	dungeon_map [subgrid_width * subgrid_height]int
+	dungeon_map [subgrid_width * subgrid_height]int8
 
 	walls [4](map[LCoord]bool)
 	rooms []DRect
@@ -74,14 +74,14 @@ func NewDunGen(proto *DunGen) *DunGen {
 	}
 }
 
-func (self *DunGen) setCell(x int, y int, value int) {
+func (self *DunGen) setCell(x int, y int, value int8) {
 	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
 		self.dungeon_map[x+(self.xsize*y)] = value
 		self.clearWalls(x, y)
 	}
 }
 
-func (self *DunGen) getCell(x int, y int) int {
+func (self *DunGen) getCell(x int, y int) int8 {
 	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
 		return self.dungeon_map[x+(self.xsize*y)]
 	} else {
@@ -410,6 +410,6 @@ func (self *DunGen) makePassages(northDg *DunGen, westDg *DunGen) {
 	}
 }
 
-func (self *DunGen) TileAt(lcoord LCoord) int {
+func (self *DunGen) TileAt(lcoord LCoord) int8 {
 	return self.dungeon_map[lcoord.x+(lcoord.y*self.xsize)]
 }

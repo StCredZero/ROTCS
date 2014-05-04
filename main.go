@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	//"runtime"
+	"runtime"
 	"text/template"
 
 	//"container/heap"
@@ -56,7 +56,8 @@ func testOpen(coord Coord) bool {
 }*/
 
 func main() {
-	//runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GOMAXPROCS(1)
 
 	/*result, ok := astarSearch(manhattanDist, testOpen, neighbors4, Coord{1, 1}, Coord{1, 8}, 100)
 	if ok {

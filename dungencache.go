@@ -44,7 +44,7 @@ func (self *DunGenCache) DungeonAtGrid(gcoord GridCoord) *DunGen {
 	return dg
 }
 
-func (self *DunGenCache) DungeonAt(coord Coord) int {
+func (self *DunGenCache) DungeonAt(coord Coord) int8 {
 	dgrid := self.DungeonAtGrid(coord.Grid())
 	lcoord := coord.LCoord()
 	return dgrid.TileAt(lcoord)
