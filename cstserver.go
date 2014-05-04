@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -51,7 +52,13 @@ func (srv *CstServer) TickNumber() uint64 {
 }
 
 func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
+	x, y := ntt.Coord().x, ntt.Coord().y
 	buffer.WriteString(`{"type":"update","data":{`)
+	buffer.WriteString(`"location":[`)
+	buffer.WriteString(strconv.FormatInt(x, 10))
+	buffer.WriteRune(',')
+	buffer.WriteString(strconv.FormatInt(y, 10))
+	buffer.WriteString(`],`)
 	buffer.WriteString(`"maptype":"basic",`)
 	buffer.WriteString(`"map":`)
 	srv.world.dunGenCache.WriteBasicMap(ntt, buffer)
