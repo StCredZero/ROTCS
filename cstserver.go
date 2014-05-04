@@ -33,39 +33,14 @@ func NewCstServer() *CstServer {
 		register:    make(chan *connection, 1000),
 		unregister:  make(chan *connection, 1000),
 		connections: make(map[*connection]EntityID),
-		//entityIdGen: EntityIDGenerator(0),
-
 	}
-
 	srv.world = NewWorldGrid()
-
-	//newMonster := NewMonster(<-srv.entityIdGen)
-	//newMonster, _ = srv.world.NewEntity(newMonster)
-
 	return &srv
 }
 
 func (srv *CstServer) TickNumber() uint64 {
 	return srv.tickNumber
 }
-
-/*func (srv *CstServer) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
-	x, y := ntt.Coord().x, ntt.Coord().y
-	buffer.WriteString(`{"type":"update","data":{`)
-	buffer.WriteString(`"location":[`)
-	buffer.WriteString(strconv.FormatInt(x, 10))
-	buffer.WriteRune(',')
-	buffer.WriteString(strconv.FormatInt(y, 10))
-	buffer.WriteString(`],`)
-	buffer.WriteString(`"maptype":"basic",`)
-	buffer.WriteString(`"map":`)
-	srv.world.dunGenCache.WriteBasicMap(ntt, buffer)
-	buffer.WriteRune(',')
-	buffer.WriteString(`"entities":{`)
-	srv.world.WriteEntities(ntt, buffer)
-	buffer.WriteString(`}}}`)
-
-}*/
 
 func (srv *CstServer) registerConnection(c *connection) {
 	if debugFlag {
