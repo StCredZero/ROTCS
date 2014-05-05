@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"go/build"
 	"log"
 	"net/http"
@@ -24,7 +25,7 @@ var DungeonProto = DunGen{
 }
 
 func defaultAssetPath() string {
-	p, err := build.Default.Import("github.com/StCredZero/casterly", "", build.FindOnly)
+	p, err := build.Default.Import("github.com/StCredZero/ROTCS/static", "", build.FindOnly)
 	if err != nil {
 		return "."
 	}
@@ -35,36 +36,9 @@ func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.T
 	homeTempl.Execute(c, req.Host)
 }
 
-/*var myarray = [][]int{
-	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
-	{0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0},
-	{0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0},
-	{0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0},
-	{0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
-	{0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-}
-
-func testOpen(coord Coord) bool {
-	if coord.x >= 0 && coord.y >= 0 && coord.x < 10 && coord.y < 10 {
-		return myarray[coord.y][coord.x] != 0
-	}
-	return false
-}*/
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//runtime.GOMAXPROCS(1)
-
-	/*result, ok := astarSearch(manhattanDist, testOpen, neighbors4, Coord{1, 1}, Coord{1, 8}, 100)
-	if ok {
-		fmt.Println(result)
-	} else {
-		println("not found")
-	}*/
 
 	flag.Parse()
 
@@ -76,8 +50,8 @@ func main() {
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
 	var homeTempl = template.Must(template.ParseFiles(filepath.Join(*assets, "index.html")))
 
-	println(assets)
-	println(homeTempl)
+	fmt.Println(*addr)
+	fmt.Println(*assets)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		srv.wsHandler(w, r)
@@ -87,7 +61,7 @@ func main() {
 		homeHandler(w, r, homeTempl)
 	})
 
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./static"))))
+	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(*assets))))
 
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)

@@ -64,7 +64,11 @@ func (srv *CstServer) unregisterConnection(c *connection) {
 	close(c.send)
 }
 
+const ticksPerSec = 8
+const tickSecs = 1.0 / ticksPerSec
+
 func (srv *CstServer) runLoop() {
+	var load [ticksPerSec]float64
 	for {
 		startTime := time.Now()
 
@@ -95,10 +99,20 @@ func (srv *CstServer) runLoop() {
 		srv.world.discardEmpty()
 
 		tickDuration := time.Since(startTime).Seconds()
-		if tickDuration < 0.125 {
-			load := tickDuration / 0.125
-			fmt.Println("load: ", load)
-			time.Sleep(time.Duration((0.125-tickDuration)*1000) * time.Millisecond)
+		phase := int(srv.tickNumber % ticksPerSec)
+		load[phase] = tickDuration / tickSecs
+
+		if phase == 0 {
+			var sum float64
+			for i := 0; i < ticksPerSec; i++ {
+				sum += load[i]
+			}
+			avg := sum / ticksPerSec
+			fmt.Println("Load: ", avg)
+		}
+
+		if tickDuration < tickSecs {
+			time.Sleep(time.Duration((tickSecs-tickDuration)*1000) * time.Millisecond)
 		}
 		srv.tickNumber++
 		runtime.Gosched()
