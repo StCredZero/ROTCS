@@ -25,7 +25,7 @@ var DungeonProto = DunGen{
 }
 
 func defaultAssetPath() string {
-	p, err := build.Default.Import("github.com/StCredZero/ROTCS/static", "", build.FindOnly)
+	p, err := build.Default.Import("github.com/StCredZero/ROTCS", "", build.FindOnly)
 	if err != nil {
 		return "."
 	}
@@ -48,7 +48,8 @@ func main() {
 
 	var addr = flag.String("addr", ":8080", "http service address")
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
-	var homeTempl = template.Must(template.ParseFiles(filepath.Join(*assets, "index.html")))
+	var htmlPath = filepath.Join(*assets, "static")
+	var homeTempl = template.Must(template.ParseFiles(filepath.Join(htmlPath, "index.html")))
 
 	fmt.Println(*addr)
 	fmt.Println(*assets)
@@ -61,7 +62,7 @@ func main() {
 		homeHandler(w, r, homeTempl)
 	})
 
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(*assets))))
+	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(htmlPath))))
 
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
