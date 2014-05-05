@@ -187,7 +187,6 @@ type WorldGrid struct {
 	dunGenCache *DunGenCache
 	grid        map[GridCoord]*SubGrid
 	entityGrid  map[EntityID]GridCoord
-	entityIdGen chan EntityID
 	RNG         *rand.Rand
 	spawnGrids  []GridCoord
 }
@@ -199,7 +198,6 @@ func NewWorldGrid() *WorldGrid {
 		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
 		grid:        make(map[GridCoord]*SubGrid),
 		entityGrid:  make(map[EntityID]GridCoord),
-		entityIdGen: EntityIDGenerator(0),
 		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		spawnGrids:  spawnGrids,
 	}
@@ -265,7 +263,7 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 		if i == n {
 			ok := true
 			for tries := 0; ok && tries < 10; tries++ {
-				monster := NewMonster(<-self.entityIdGen)
+				monster := NewMonster(NewEntityID())
 				_, ok = self.NewEntityInGrid(monster, gcoord)
 			}
 			break
@@ -334,7 +332,7 @@ func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 }
 func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 	var newEntity Creature
-	ntt.SetEntityID(<-self.entityIdGen)
+	ntt.SetEntityID(NewEntityID())
 	ok := false
 	for !ok {
 		i := self.RNG.Intn(len(self.spawnGrids))
@@ -349,7 +347,7 @@ func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 }
 func (self *WorldGrid) NewEntityInGrid(ntt Creature, gridCoord GridCoord) (Creature, bool) {
 	var newEntity Creature
-	ntt.SetEntityID(<-self.entityIdGen)
+	ntt.SetEntityID(NewEntityID())
 	done := false
 	subgrid := self.subgridAtGrid(gridCoord)
 	for tries := 0; !done && tries < 50; tries++ {

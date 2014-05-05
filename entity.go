@@ -6,11 +6,17 @@ import (
 	"math"
 	"math/rand"
 	"time"
+
+	"github.com/satori/go.uuid"
 )
 
 var offsetRNG = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-type EntityID uint32
+type EntityID [16]byte
+
+func NewEntityID() EntityID {
+	return EntityID(uuid.NewV1())
+}
 
 type Creature interface {
 	EntityID() EntityID
@@ -69,18 +75,6 @@ func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`:{"symbol":"`)
 	buffer.WriteRune(self.Symbol)
 	buffer.WriteString(`"}`)
-}
-
-func EntityIDGenerator(lastId EntityID) chan (EntityID) {
-	next := make(chan EntityID)
-	id := lastId + 1
-	go func() {
-		for {
-			next <- id
-			id++
-		}
-	}()
-	return next
 }
 
 type Player struct {
