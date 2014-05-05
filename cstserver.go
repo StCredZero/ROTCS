@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"github.com/gorilla/websocket"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type CstServer struct {
@@ -43,22 +43,16 @@ func (srv *CstServer) TickNumber() uint64 {
 }
 
 func (srv *CstServer) registerConnection(c *connection) {
-	if debugFlag {
-		println("starting register")
-	}
+	TRACE.Println("starting register")
 	player := NewPlayer(c)
 	entity, _ := srv.world.NewEntity(player)
 	c.id = entity.EntityID()
 	srv.connections[c] = c.id
-	if debugFlag {
-		fmt.Println("Initialized entity: ", entity)
-	}
+	TRACE.Println("Initialized entity: ", entity)
 }
 
 func (srv *CstServer) unregisterConnection(c *connection) {
-	if debugFlag {
-		println("closing-final")
-	}
+	TRACE.Println("closing-final")
 	srv.world.RemoveEntityID(c.id)
 	delete(srv.connections, c)
 	close(c.send)
@@ -108,7 +102,8 @@ func (srv *CstServer) runLoop() {
 				sum += load[i]
 			}
 			avg := sum / ticksPerSec
-			fmt.Println("Load: ", avg)
+			//message := fmt.Sprintf("Load: %f", avg)
+			INFO.Printf("Load: %f", avg)
 		}
 
 		if tickDuration < tickSecs {

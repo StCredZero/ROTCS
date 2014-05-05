@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"math/rand"
 	"time"
@@ -114,9 +113,7 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 	}
 
 	newLoc := loc.MovedBy(move)
-	if debugFlag {
-		fmt.Println(newLoc)
-	}
+	TRACE.Println(newLoc)
 	if grid.OutOfBounds(newLoc) {
 		grid.DeferMove(ntt)
 		return

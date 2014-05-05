@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
-	"fmt"
 	"math/rand"
 	"sort"
 )
@@ -119,13 +118,6 @@ func (self *DunGen) debugPrint() string {
 		}
 		buffer.WriteString("\n")
 	}
-	if debugFlag {
-		for i := 0; i < self.numRooms; i++ {
-			fmt.Print(self.rooms[i])
-			println()
-		}
-	}
-
 	return buffer.String()
 }
 
