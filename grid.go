@@ -43,7 +43,7 @@ type SubGrid struct {
 
 func NewSubGrid(gcoord GridCoord) *SubGrid {
 	return &SubGrid{
-		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
+		dunGenCache: NewDunGenCache(10, DungeonEntropy, DungeonProto),
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
 		Entities:    make(map[EntityID]Creature),
