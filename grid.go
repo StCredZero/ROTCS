@@ -160,6 +160,8 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 	}
 }
 
+// WriteDisplay can only be called on the SubGrid through ParallelExec()
+// It is not concurrent
 func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	x, y := ntt.Coord().x, ntt.Coord().y
 	buffer.WriteString(`{"type":"update","data":{`)
@@ -173,7 +175,11 @@ func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	self.dunGenCache.WriteBasicMap(ntt, buffer)
 	buffer.WriteRune(',')
 	buffer.WriteString(`"entities":{`)
+
+	// This call to parent works concurrently. It's read only.
+	// It has to be the parent to coordinate all visible SubGrids
 	self.parent.WriteEntities(ntt, buffer)
+
 	buffer.WriteString(`}}}`)
 }
 
