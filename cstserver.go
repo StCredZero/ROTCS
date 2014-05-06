@@ -65,6 +65,7 @@ func (srv *CstServer) runLoop() {
 	var load [ticksPerSec]float64
 	for {
 		startTime := time.Now()
+		runtime.Gosched()
 
 	register:
 		for {
@@ -92,6 +93,8 @@ func (srv *CstServer) runLoop() {
 		srv.world.SendDisplays(srv)
 		srv.world.discardEmpty()
 
+		runtime.GC()
+
 		tickDuration := time.Since(startTime).Seconds()
 		phase := int(srv.tickNumber % ticksPerSec)
 		load[phase] = tickDuration / tickSecs
@@ -110,7 +113,6 @@ func (srv *CstServer) runLoop() {
 			time.Sleep(time.Duration((tickSecs-tickDuration)*1000) * time.Millisecond)
 		}
 		srv.tickNumber++
-		runtime.Gosched()
 	}
 }
 
