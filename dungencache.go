@@ -73,19 +73,28 @@ func (self *DunGenCache) WriteEntityMap(ntt Creature, buffer *bytes.Buffer) {
 
 func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
 	corner := ntt.Coord().Corner()
+	move := ntt.LastDispCoord().AsMoveTo(ntt.Coord())
+	var start Coord
+	switch move {
+	case 's':
+		start = Coord{corner.x, corner.y + subgrid_height - 1}
+	case 'e':
+		start = Coord{corner.x + subgrid_width - 1, corner.y}
+	default:
+		start = corner
+	}
 	buffer.WriteString(`"maptype":"line",`)
 	buffer.WriteString(`"start":[`)
-	buffer.WriteString(strconv.FormatInt(corner.x, 10))
+	buffer.WriteString(strconv.FormatInt(start.x, 10))
 	buffer.WriteRune(',')
-	buffer.WriteString(strconv.FormatInt(corner.y, 10))
+	buffer.WriteString(strconv.FormatInt(start.y, 10))
 	buffer.WriteString(`],`)
 	buffer.WriteString(`"orientation":"`)
-	move := ntt.Coord().AsMoveTo(ntt.LastDispCoord())
 	buffer.WriteRune(move)
 	buffer.WriteString(`",`)
 	buffer.WriteString(`"line":"`)
 	switch move {
-	case 'n', 's':
+	case 'n':
 		for x := corner.x; x < (corner.x + subgrid_width); x++ {
 			cell := self.DungeonAt(Coord{x, corner.y})
 			switch cell {
@@ -95,9 +104,29 @@ func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
 				buffer.WriteRune(' ')
 			}
 		}
-	case 'w', 'e':
+	case 's':
+		for x := corner.x; x < (corner.x + subgrid_width); x++ {
+			cell := self.DungeonAt(Coord{x, corner.y + subgrid_height - 1})
+			switch cell {
+			case TileFloor, TileCorridor:
+				buffer.WriteRune('.')
+			default:
+				buffer.WriteRune(' ')
+			}
+		}
+	case 'w':
 		for y := corner.y; y < (corner.y + subgrid_height); y++ {
 			cell := self.DungeonAt(Coord{corner.x, y})
+			switch cell {
+			case TileFloor, TileCorridor:
+				buffer.WriteRune('.')
+			default:
+				buffer.WriteRune(' ')
+			}
+		}
+	case 'e':
+		for y := corner.y; y < (corner.y + subgrid_height); y++ {
+			cell := self.DungeonAt(Coord{corner.x + subgrid_width, y})
 			switch cell {
 			case TileFloor, TileCorridor:
 				buffer.WriteRune('.')
