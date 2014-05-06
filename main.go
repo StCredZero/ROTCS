@@ -76,10 +76,9 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//runtime.GOMAXPROCS(1)
 
-	var addr = flag.String("addr", ":8080", "http service address")
-	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
-	var htmlPath = filepath.Join(*assets, "static")
-	//var homeTempl = template.Must(template.ParseFiles(filepath.Join(htmlPath, "index.html")))
+	addr := flag.String("addr", ":8080", "http service address")
+	assets := flag.String("assets", defaultAssetPath(), "path to assets")
+	htmlPath := filepath.Join(*assets, "static")
 
 	logPath := filepath.Join(*assets, "log")
 	trace := flag.Bool("trace", false, "log trace messages")
@@ -87,18 +86,26 @@ func main() {
 	warn := flag.Bool("warn", true, "log warnings")
 	errf := flag.Bool("error", true, "log errors")
 
+	daemon := flag.Bool("daemon", false, "run as daemon")
+
 	flag.Parse()
 
 	logfile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("Failed to open log file:", err)
 	}
-	multi := io.MultiWriter(logfile, os.Stdout)
+	var writer io.Writer
+	if *daemon {
+		writer = logfile
+	} else {
+		writer = io.MultiWriter(logfile, os.Stdout)
+	}
+
 	initLogging(
-		logWriter(*trace, multi),
-		logWriter(*info, multi),
-		logWriter(*warn, multi),
-		logWriter(*errf, multi))
+		logWriter(*trace, writer),
+		logWriter(*info, writer),
+		logWriter(*warn, writer),
+		logWriter(*errf, writer))
 
 	// Instantiate Server and start runLoop
 	var srv = NewCstServer()
@@ -110,11 +117,7 @@ func main() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		srv.wsHandler(w, r)
 	})
-	/*
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			homeHandler(w, r, homeTempl)
-		})
-	*/
+
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(htmlPath))))
 
 	if err := http.ListenAndServe(*addr, nil); err != nil {
