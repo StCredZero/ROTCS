@@ -236,7 +236,9 @@ Game.renderDisplay = function(updateObj) {
         Game.entities = updateObj.entities; 
     }
     var location = updateObj.location;
-    document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+location[0]+","+location[1];
+    if (location) {
+        document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+location[0]+","+location[1];
+    }
     if (updateObj.maptype === "basic") {
         for (var j = 0; j < Game.dheight; j++) {
             for (var i = 0; i < Game.dwidth; i++) {
