@@ -47,7 +47,7 @@ var Game = {
         }
 
         var initReq = new XMLHttpRequest();
-        initReq.open("get", "/static/wsaddr", false);
+        initReq.open("get", "/wsaddr", false);
         initReq.send();
         var wsaddr = (initReq.responseText).trim();
 

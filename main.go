@@ -79,7 +79,7 @@ func main() {
 	var addr = flag.String("addr", ":8080", "http service address")
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
 	var htmlPath = filepath.Join(*assets, "static")
-	var homeTempl = template.Must(template.ParseFiles(filepath.Join(htmlPath, "index.html")))
+	//var homeTempl = template.Must(template.ParseFiles(filepath.Join(htmlPath, "index.html")))
 
 	logPath := filepath.Join(*assets, "log")
 	trace := flag.Bool("trace", false, "log trace messages")
@@ -93,7 +93,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to open log file:", err)
 	}
-	multi := io.MultiWriter(logfile, os.Stderr)
+	multi := io.MultiWriter(logfile, os.Stdout)
 	initLogging(
 		logWriter(*trace, multi),
 		logWriter(*info, multi),
@@ -110,12 +110,12 @@ func main() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		srv.wsHandler(w, r)
 	})
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		homeHandler(w, r, homeTempl)
-	})
-
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(htmlPath))))
+	/*
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			homeHandler(w, r, homeTempl)
+		})
+	*/
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(htmlPath))))
 
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
