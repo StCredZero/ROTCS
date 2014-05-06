@@ -76,8 +76,6 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//runtime.GOMAXPROCS(1)
 
-	flag.Parse()
-
 	var addr = flag.String("addr", ":8080", "http service address")
 	var assets = flag.String("assets", defaultAssetPath(), "path to assets")
 	var htmlPath = filepath.Join(*assets, "static")
@@ -88,6 +86,8 @@ func main() {
 	info := flag.Bool("info", true, "log info messages")
 	warn := flag.Bool("warn", true, "log warnings")
 	errf := flag.Bool("error", true, "log errors")
+
+	flag.Parse()
 
 	logfile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
