@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/golang/groupcache/lru"
+	"strconv"
 )
 
 type DunGenCache struct {
@@ -56,7 +57,62 @@ func (self *DunGenCache) WalkableAt(coord Coord) bool {
 	return dgrid.isWalkable(lcoord.x, lcoord.y)
 }
 
+func (self *DunGenCache) WriteMap(ntt Creature, buffer *bytes.Buffer) {
+	if manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 0 {
+		self.WriteEntityMap(ntt, buffer)
+	} else if manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 1 {
+		self.WriteLineMap(ntt, buffer)
+	} else {
+		self.WriteBasicMap(ntt, buffer)
+	}
+}
+
+func (self *DunGenCache) WriteEntityMap(ntt Creature, buffer *bytes.Buffer) {
+	buffer.WriteString(`"maptype":"entity"`)
+}
+
+func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
+	corner := ntt.Coord().Corner()
+	buffer.WriteString(`"maptype":"line",`)
+	buffer.WriteString(`"start":[`)
+	buffer.WriteString(strconv.FormatInt(corner.x, 10))
+	buffer.WriteRune(',')
+	buffer.WriteString(strconv.FormatInt(corner.y, 10))
+	buffer.WriteString(`],`)
+	buffer.WriteString(`"orientation":"`)
+	move := ntt.Coord().AsMoveTo(ntt.LastDispCoord())
+	buffer.WriteRune(move)
+	buffer.WriteString(`",`)
+	buffer.WriteString(`"line":"`)
+	switch move {
+	case 'n', 's':
+		for x := corner.x; x < (corner.x + subgrid_width); x++ {
+			cell := self.DungeonAt(Coord{x, corner.y})
+			switch cell {
+			case TileFloor, TileCorridor:
+				buffer.WriteRune('.')
+			default:
+				buffer.WriteRune(' ')
+			}
+		}
+	case 'w', 'e':
+		for y := corner.y; y < (corner.y + subgrid_height); y++ {
+			cell := self.DungeonAt(Coord{corner.x, y})
+			switch cell {
+			case TileFloor, TileCorridor:
+				buffer.WriteRune('.')
+			default:
+				buffer.WriteRune(' ')
+			}
+		}
+	}
+	buffer.WriteRune('"')
+}
+
 func (self *DunGenCache) WriteBasicMap(ntt Creature, buffer *bytes.Buffer) {
+	buffer.WriteString(`"maptype":"basic",`)
+	buffer.WriteString(`"map":`)
+
 	var x, y, xstart, ystart, xend, yend int64
 	xstart = ntt.Coord().x - (subgrid_width / 2)
 	ystart = ntt.Coord().y - (subgrid_height / 2)

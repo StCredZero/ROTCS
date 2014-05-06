@@ -170,9 +170,7 @@ func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteRune(',')
 	buffer.WriteString(strconv.FormatInt(y, 10))
 	buffer.WriteString(`],`)
-	buffer.WriteString(`"maptype":"basic",`)
-	buffer.WriteString(`"map":`)
-	self.dunGenCache.WriteBasicMap(ntt, buffer)
+	self.dunGenCache.WriteMap(ntt, buffer)
 	buffer.WriteRune(',')
 	buffer.WriteString(`"entities":{`)
 

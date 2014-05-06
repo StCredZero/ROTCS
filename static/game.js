@@ -235,11 +235,12 @@ Game.renderDisplay = function(updateObj) {
     if (updateObj.entities) {
         Game.entities = updateObj.entities; 
     }
-    var location = updateObj.location;
-    if (location) {
-        document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+location[0]+","+location[1];
-    }
+
     if (updateObj.maptype === "basic") {
+        var location = updateObj.location;
+        if (location) {
+            Game.location = location;
+        }
         for (var j = 0; j < Game.dheight; j++) {
             for (var i = 0; i < Game.dwidth; i++) {
                 var cellValue = updateObj.map[j].charAt(i);
@@ -248,24 +249,18 @@ Game.renderDisplay = function(updateObj) {
         }
         Game.commitDisplay();
     } else if (updateObj.maptype === "line") {
-        var moveRecord = updateObj.moveRecord;
-        var lines = updateObj.map;
-        for (var i = 0; i < lines.length; i++) {
-            var move = moveRecord[i];
-            var line = lines[i];
-            if (move == "n") { 
-                Game.scrollMapNorth(line); 
-            } else if (move == "s") { 
-                Game.scrollMapSouth(line); 
-            } else if (move == "w") { 
-                Game.scrollMapWest(line); 
-            } else if (move == "e") { 
-                Game.scrollMapEast(line); 
-            }
-        }
+        Game.scrollTo(updateObj.location)
+        Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);
         Game.commitDisplay();
     } else if (updateObj.maptype === "entity") {
+        var location = updateObj.location;
+        if (location) {
+            Game.location = location;
+        }
         Game.commitDisplay();
+    }
+    if (Game.location) {
+        document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+Game.location[0]+","+Game.location[1];
     }
 }
 
@@ -336,6 +331,16 @@ Game.handleMouseEvent = function (e) {
     Game.sendMove(actions);
     //console.log(moves.join(""));
 };
+
+Game.setLocationCell = function(x, y, cellValue) {
+    var cornerx = Game.location[0] - Math.floor(Game.dwidth / 2)
+    var cornery = Game.location[1] - Math.floor(Game.dheight / 2)
+    var localx = x - cornerx;
+    var localy = y - cornery;
+    if (localx >= 0 && localy >= 0 && localx < Game.dwidth && localy < Game.dheight) {
+        Game.setBufferCell(localx, localy, cellValue);
+    }
+}
  
 Game.setBufferCell = function(x, y, cellValue) {
     var h = Game.dheight;
@@ -357,35 +362,92 @@ Game.previousCell = function(x, y) {
     return Game.previousBuffer[y][x];
 }
 
+Game.sign = function(x) {
+    if (x < 0) {
+        return -1
+    } else if (x > 0) {
+        return 1
+    } else {
+        return 0
+    }
+}
+
+Game.scrollTo = function(newloc) {
+    if (Game.location) {
+        var newx = newloc[0];
+        var newy = newloc[1];
+        var oldx = Game.location[0];
+        var oldy = Game.location[1];
+        var xvec = Game.sign(newx - oldx);
+        var yvec = Game.sign(newy - oldy);
+        Game.scrollMapX(xvec);
+        Game.scrollMapY(yvec);
+        Game.location = newloc;
+    }
+}
+
+Game.drawLine = function(start, orientation, line) {
+    var x1 = start[0];
+    var y1 = start[1];
+    if (orientation == "n" || orientation == "s") {
+        for (var x = x1; x < (x1 + Game.dwidth); x++) {
+            var cellValue = line.charAt(x - x1);
+            Game.setLocationCell(x, y1, cellValue);
+        }
+    }
+    if (orientation == "w" || orientation == "e") {
+        for (var y = y1; y < (y1 + Game.dheight); y++) {
+            var cellValue = line.charAt(y - y1);
+            Game.setLocationCell(x1, y, cellValue);
+        }
+    }
+}
+
+Game.scrollMapX = function(vec) {
+    Game.xboffset = (Game.xboffset + vec + Game.dwidth) % Game.dwidth;
+}
+
+Game.scrollMapY = function(vec) {
+    Game.yboffset = (Game.yboffset + vec + Game.dheight) % Game.dheight;
+}
+
 Game.scrollMapNorth = function(newLine) {
     Game.yboffset = (Game.yboffset - 1 + Game.dheight) % Game.dheight;
-    for (var x = 0; x < Game.dwidth; x++) {
-        var cellValue = newLine.charAt(x);
-        Game.setBufferCell(x, 0, cellValue);
+    if (newLine) {
+        for (var x = 0; x < Game.dwidth; x++) {
+            var cellValue = newLine.charAt(x);
+            Game.setBufferCell(x, 0, cellValue);
+        }
     }
 };
 
 Game.scrollMapSouth = function(newLine) {
     Game.yboffset = (Game.yboffset + 1 + Game.dheight) % Game.dheight;
-    for (var x = 0; x < Game.dwidth; x++) {
-        var cellValue = newLine.charAt(x);
-        Game.setBufferCell(x, (Game.dheight - 1), cellValue);
+    if (newLine) {
+        for (var x = 0; x < Game.dwidth; x++) {
+            var cellValue = newLine.charAt(x);
+            Game.setBufferCell(x, (Game.dheight - 1), cellValue);
+        }
     }
 };
 
 Game.scrollMapWest = function(newLine) {
     Game.xboffset = (Game.xboffset - 1 + Game.dwidth) % Game.dwidth;
-    for (var y = 0; y < Game.dheight; y++) {
-        var cellValue = newLine.charAt(y);
-        Game.setBufferCell(0, y, cellValue);
+    if (newLine) {
+        for (var y = 0; y < Game.dheight; y++) {
+            var cellValue = newLine.charAt(y);
+            Game.setBufferCell(0, y, cellValue);
+        }
     }
 };
 
 Game.scrollMapEast = function(newLine) {
     Game.xboffset = (Game.xboffset + 1 + Game.dwidth) % Game.dwidth;
-    for (var y = 0; y < Game.dheight; y++) {
-        var cellValue = newLine.charAt(y);
-        Game.setBufferCell((Game.dwidth - 1), y, cellValue);
+    if (newLine) {
+        for (var y = 0; y < Game.dheight; y++) {
+            var cellValue = newLine.charAt(y);
+            Game.setBufferCell((Game.dwidth - 1), y, cellValue);
+        }
     }
 };
 

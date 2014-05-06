@@ -30,17 +30,39 @@ func (self Coord) LCoord() LCoord {
 	}
 }
 
-func (loc Coord) MovedBy(move rune) Coord {
-	if move == 'n' {
-		return Coord{loc.x, loc.y - 1}
-	} else if move == 's' {
-		return Coord{loc.x, loc.y + 1}
-	} else if move == 'w' {
-		return Coord{loc.x - 1, loc.y}
-	} else if move == 'e' {
-		return Coord{loc.x + 1, loc.y}
+func (self Coord) MovedBy(move rune) Coord {
+	var result Coord
+	switch move {
+	case 'n':
+		result = Coord{self.x, self.y - 1}
+	case 's':
+		result = Coord{self.x, self.y + 1}
+	case 'w':
+		result = Coord{self.x - 1, self.y}
+	case 'e':
+		result = Coord{self.x + 1, self.y}
+	default:
+		result = self
 	}
-	return loc
+	return result
+}
+
+func (self Coord) AsMoveTo(other Coord) rune {
+	if self.x == other.x && (self.y-1) == other.y {
+		return 'n'
+	} else if self.x == other.x && (self.y+1) == other.y {
+		return 's'
+	} else if (self.x-1) == other.x && self.y == other.y {
+		return 'w'
+	} else if (self.x+1) == other.x && self.y == other.y {
+		return 'e'
+	} else {
+		return '0'
+	}
+}
+
+func (self Coord) Corner() Coord {
+	return Coord{self.x - (subgrid_width / 2), self.y - (subgrid_height / 2)}
 }
 
 func neighbors4(coord Coord) []Coord {
