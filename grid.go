@@ -212,6 +212,14 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 	return subgrid
 }
 
+func (self *WorldGrid) playerCount() int {
+	count := 0
+	for _, subgrid := range self.grid {
+		count += subgrid.PlayerCount
+	}
+	return count
+}
+
 func (self *WorldGrid) playerGrids() *(map[GridCoord]bool) {
 	grids := make(map[GridCoord]bool)
 	for _, subgrid := range self.grid {

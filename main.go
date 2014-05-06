@@ -16,6 +16,7 @@ import (
 
 var (
 	TRACE   *log.Logger
+	PROF    *log.Logger
 	INFO    *log.Logger
 	WARNING *log.Logger
 	ERROR   *log.Logger
@@ -29,14 +30,14 @@ var DungeonProto = DunGen{
 	chanceRoom: 50,
 }
 
-func initLogging(
-	traceHandle io.Writer,
-	infoHandle io.Writer,
-	warningHandle io.Writer,
-	errorHandle io.Writer) {
+func initLogging(traceHandle, profHandle, infoHandle, warningHandle, errorHandle io.Writer) {
 
 	TRACE = log.New(traceHandle,
 		"TRACE: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	PROF = log.New(profHandle,
+		"PROFILE: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 
 	INFO = log.New(infoHandle,
@@ -80,8 +81,8 @@ func main() {
 	assets := flag.String("assets", defaultAssetPath(), "path to assets")
 	htmlPath := filepath.Join(*assets, "static")
 
-	logPath := filepath.Join(*assets, "log")
 	trace := flag.Bool("trace", false, "log trace messages")
+	prof := flag.Bool("prof", true, "log profile messages")
 	info := flag.Bool("info", true, "log info messages")
 	warn := flag.Bool("warn", true, "log warnings")
 	errf := flag.Bool("error", true, "log errors")
@@ -90,19 +91,32 @@ func main() {
 
 	flag.Parse()
 
+	logPath := filepath.Join(*assets, "log")
+	profPath := filepath.Join(*assets, "prof")
+
 	logfile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("Failed to open log file:", err)
 	}
-	var writer io.Writer
+	var writer, profWriter io.Writer
 	if *daemon {
 		writer = logfile
 	} else {
 		writer = io.MultiWriter(logfile, os.Stdout)
 	}
+	profile, err := os.OpenFile(profPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("Failed to open profile log:", err)
+	}
+	if *prof {
+		profWriter = profile
+	} else {
+		profWriter = ioutil.Discard
+	}
 
 	initLogging(
 		logWriter(*trace, writer),
+		profWriter,
 		logWriter(*info, writer),
 		logWriter(*warn, writer),
 		logWriter(*errf, writer))
