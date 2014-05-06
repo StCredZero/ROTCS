@@ -192,8 +192,7 @@ type WorldGrid struct {
 }
 
 func NewWorldGrid() *WorldGrid {
-	spawnGrids := make([]GridCoord, 1)
-	spawnGrids[0] = GridCoord{0, 0}
+	spawnGrids := []GridCoord{{0, 0}, {0, 1}, {1, 0}, {1, 1}, {-1, -1}, {-1, 0}, {0, -1}}
 	return &WorldGrid{
 		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
 		grid:        make(map[GridCoord]*SubGrid),
