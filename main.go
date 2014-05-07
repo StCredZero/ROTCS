@@ -77,7 +77,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//runtime.GOMAXPROCS(1)
 
-	addr := flag.String("addr", ":8080", "http service address")
+	port := flag.String("port", ":8080", "http service port")
 	assets := flag.String("assets", defaultAssetPath(), "path to assets")
 	htmlPath := filepath.Join(*assets, "static")
 
@@ -125,7 +125,7 @@ func main() {
 	var srv = NewCstServer()
 	go srv.runLoop()
 
-	INFO.Println("Port:", *addr)
+	INFO.Println("Port:", *port)
 	INFO.Println("Asset Path:", *assets)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +134,7 @@ func main() {
 
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(htmlPath))))
 
-	if err := http.ListenAndServe(*addr, nil); err != nil {
+	if err := http.ListenAndServe(*port, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 }
