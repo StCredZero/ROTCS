@@ -104,9 +104,8 @@ var Game = {
                 while ( ! Game.sendMoveQueue.isEmpty()) {
                     actions = actions + Game.sendMoveQueue.dequeue();
                 }
-                var jsonObj = {"type":"mv", "data":actions};
-                var data = JSON.stringify(jsonObj);
-                console.log("sending "+data);
+                //var jsonObj = {"type":"mv", "data":actions};
+                //var data = JSON.stringify(jsonObj);
                 Game.lastMoveTime = currentTime;
                 Game.ws.send(actions);
                 //Game.ws.send(data);
