@@ -324,10 +324,8 @@ func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 	sg1 := self.subgridAtGrid(gc1)
 	gc2 := loc.Grid()
 	if gc1 == gc2 {
-		println("non-global move")
 		sg1.MoveEntity(ntt, loc)
 	} else {
-		println("global move")
 		sg2 := self.subgridAtGrid(gc2)
 		sg1.RemoveEntityID(ntt.EntityID())
 		sg2.PutEntityAt(ntt, loc)
