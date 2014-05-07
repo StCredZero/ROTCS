@@ -62,7 +62,7 @@ func (self Coord) AsMoveTo(other Coord) rune {
 }
 
 func (self Coord) Corner() Coord {
-	return Coord{self.x - (subgrid_width / 2), self.y - (subgrid_height / 2)}
+	return Coord{self.x - 39, self.y - 12}
 }
 
 func neighbors4(coord Coord) []Coord {

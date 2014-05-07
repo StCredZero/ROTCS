@@ -22,6 +22,8 @@ type Creature interface {
 	Coord() Coord
 	Detect(Creature)
 	HasMove(GridProcessor) bool
+	Initialized() bool
+	SetInitialized(bool)
 	IsPlayer() bool
 	IsTransient() bool
 	LastDispCoord() Coord
@@ -36,6 +38,7 @@ type Creature interface {
 
 type Entity struct {
 	ID           EntityID
+	Init         bool
 	Location     Coord
 	Symbol       rune
 	MoveSchedule uint8
@@ -46,7 +49,12 @@ func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
 func (ntt *Entity) Detect(player Creature) {}
-
+func (ntt *Entity) Initialized() bool {
+	return ntt.Init
+}
+func (ntt *Entity) SetInitialized(flag bool) {
+	ntt.Init = flag
+}
 func (ntt *Entity) SetCoord(coord Coord) {
 	ntt.Location = coord
 }

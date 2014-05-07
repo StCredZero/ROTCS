@@ -58,9 +58,9 @@ func (self *DunGenCache) WalkableAt(coord Coord) bool {
 }
 
 func (self *DunGenCache) WriteMap(ntt Creature, buffer *bytes.Buffer) {
-	if manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 0 {
+	if ntt.Initialized() && manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 0 {
 		self.WriteEntityMap(ntt, buffer)
-	} else if manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 1 {
+	} else if ntt.Initialized() && manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 1 {
 		self.WriteLineMap(ntt, buffer)
 	} else {
 		self.WriteBasicMap(ntt, buffer)
@@ -94,9 +94,9 @@ func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`",`)
 	buffer.WriteString(`"line":"`)
 	switch move {
-	case 'n':
-		for x := corner.x; x < (corner.x + subgrid_width); x++ {
-			cell := self.DungeonAt(Coord{x, corner.y})
+	case 'n', 's':
+		for x := start.x; x < (start.x + subgrid_width); x++ {
+			cell := self.DungeonAt(Coord{x, start.y})
 			switch cell {
 			case TileFloor, TileCorridor:
 				buffer.WriteRune('.')
@@ -104,29 +104,9 @@ func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
 				buffer.WriteRune(' ')
 			}
 		}
-	case 's':
-		for x := corner.x; x < (corner.x + subgrid_width); x++ {
-			cell := self.DungeonAt(Coord{x, corner.y + subgrid_height - 1})
-			switch cell {
-			case TileFloor, TileCorridor:
-				buffer.WriteRune('.')
-			default:
-				buffer.WriteRune(' ')
-			}
-		}
-	case 'w':
-		for y := corner.y; y < (corner.y + subgrid_height); y++ {
-			cell := self.DungeonAt(Coord{corner.x, y})
-			switch cell {
-			case TileFloor, TileCorridor:
-				buffer.WriteRune('.')
-			default:
-				buffer.WriteRune(' ')
-			}
-		}
-	case 'e':
-		for y := corner.y; y < (corner.y + subgrid_height); y++ {
-			cell := self.DungeonAt(Coord{corner.x + subgrid_width, y})
+	case 'w', 'e':
+		for y := start.y; y < (start.y + subgrid_height); y++ {
+			cell := self.DungeonAt(Coord{start.x, y})
 			switch cell {
 			case TileFloor, TileCorridor:
 				buffer.WriteRune('.')
@@ -161,4 +141,5 @@ func (self *DunGenCache) WriteBasicMap(ntt Creature, buffer *bytes.Buffer) {
 		buffer.WriteString(`",`)
 	}
 	buffer.WriteString(`"e"]`)
+	ntt.SetInitialized(true)
 }
