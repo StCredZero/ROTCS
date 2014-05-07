@@ -22,7 +22,7 @@ DESC="Description of the service"
 NAME=ROTCS
 DAEMON=$GOPATH/bin/$NAME
 ROTCSDIR=$GOPATH/src/github.com/StCredZero/ROTCS
-DAEMON_ARGS="-daemon -assets=$ROTCSDIR"
+DAEMON_ARGS="-daemon -port=:80 -assets=$ROTCSDIR"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
