@@ -133,6 +133,8 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 	}
 	if grid.EmptyAt(newLoc) && grid.WalkableAt(newLoc) {
 		grid.MoveEntity(ntt, newLoc)
+	} else {
+		ntt.MoveCommit() //Don't move, but lose the []Moves item anyways
 	}
 }
 func (ntt *Player) MoveCommit() {
