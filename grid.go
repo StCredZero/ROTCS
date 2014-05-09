@@ -68,7 +68,7 @@ func (self *SubGrid) DeferMove(ntt Creature) {
 }
 func (self *SubGrid) EmptyAt(loc Coord) bool {
 	if loc.Grid() != self.GridCoord {
-		panic("Should not be asked about outside coord!")
+		ERROR.Panic("Should not be asked about outside coord!")
 	}
 	_, present := self.Grid[loc]
 	return !present
@@ -117,7 +117,7 @@ func (self *SubGrid) OutOfBounds(coord Coord) bool {
 }
 func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
 	if loc.Grid() != self.GridCoord {
-		panic("Should not put outside coord!")
+		ERROR.Panic("Should not put outside coord!")
 	}
 	ntt.SetCoord(loc)
 	self.Grid[loc] = ntt.EntityID()
@@ -129,7 +129,7 @@ func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
 func (self *SubGrid) RemoveEntityID(id EntityID) {
 	ntt, present := self.Entities[id]
 	if !present {
-		panic("Removing nonexistent Entity")
+		ERROR.Panic("Removing nonexistent Entity")
 	}
 	if ntt.IsPlayer() {
 		self.PlayerCount--
@@ -319,7 +319,7 @@ func (self *WorldGrid) EmptyAt(loc Coord) bool {
 func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 	gc1, present := self.entityGrid[ntt.EntityID()]
 	if !present {
-		panic("Moving nonexistent Entity")
+		ERROR.Panic("Moving nonexistent Entity")
 	}
 	sg1 := self.subgridAtGrid(gc1)
 	gc2 := loc.Grid()
@@ -365,7 +365,7 @@ func (self *WorldGrid) OutOfBounds(coord Coord) bool { return false }
 func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
 	_, present := self.entityGrid[ntt.EntityID()]
 	if present {
-		panic("Placing already existing Entity")
+		ERROR.Panic("Placing already existing Entity")
 	}
 	gridCoord := loc.Grid()
 	self.entityGrid[ntt.EntityID()] = gridCoord
@@ -375,7 +375,7 @@ func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
 func (self *WorldGrid) RemoveEntityID(id EntityID) {
 	gridCoord, present := self.entityGrid[id]
 	if !present {
-		panic("Removing nonexistent Entity")
+		ERROR.Panic("Removing nonexistent Entity")
 	}
 	delete(self.entityGrid, id)
 	subgrid := self.subgridAtGrid(gridCoord)
@@ -417,5 +417,5 @@ func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
 	})
 }
 func (self *WorldGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
-	panic("Should not call on World!")
+	ERROR.Panic("Should not call on World!")
 }
