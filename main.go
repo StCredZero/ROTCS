@@ -121,6 +121,8 @@ func main() {
 		logWriter(*warn, writer),
 		logWriter(*errf, writer))
 
+	log.SetOutput(writer)
+
 	// Instantiate Server and start runLoop
 	var srv = NewCstServer()
 	go srv.runLoop()
