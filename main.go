@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	//"fmt"
-	"go/build"
 	"io"
 	"io/ioutil"
 	"log"
@@ -53,14 +52,6 @@ func initLogging(traceHandle, profHandle, infoHandle, warningHandle, errorHandle
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-func defaultAssetPath() string {
-	p, err := build.Default.Import("github.com/StCredZero/ROTCS", "", build.FindOnly)
-	if err != nil {
-		return "."
-	}
-	return p.Dir
-}
-
 func homeHandler(c http.ResponseWriter, req *http.Request, homeTempl *template.Template) {
 	homeTempl.Execute(c, req.Host)
 }
@@ -78,7 +69,7 @@ func main() {
 	//runtime.GOMAXPROCS(1)
 
 	port := flag.String("port", ":8080", "http service port")
-	assets := flag.String("assets", defaultAssetPath(), "path to assets")
+	assets := flag.String("assets", ".", "path to assets")
 	htmlPath := filepath.Join(*assets, "static")
 
 	trace := flag.Bool("trace", false, "log trace messages")
