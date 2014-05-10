@@ -6,6 +6,8 @@ import (
 	"sort"
 )
 
+type empty struct{}
+
 func abs(n int64) int64 {
 	if n < 0 {
 		return 0 - n

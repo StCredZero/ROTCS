@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-type empty struct{}
-
 type GridProcessor interface {
 	TickNumber() uint64
 }
