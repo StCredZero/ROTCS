@@ -53,10 +53,10 @@ var Game = {
 
         var wsocket = new WebSocket("ws://"+wsaddr+"/ws");
         this.ws = wsocket;
-        this.ws.onopen = function() {
+        /*this.ws.onopen = function() {
             var initMsg = JSON.stringify({"type":"init"});
             wsocket.send(initMsg);
-        };
+        };*/
         this.ws.onmessage = function(event) {
             var jsonObj = JSON.parse(event.data);
             //var jsonObj = eval("("+event.data + ")");
