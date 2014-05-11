@@ -9,7 +9,6 @@ import (
 
 func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
-		closeConn: make(chan empty, 8),
 		isOpen:    true,
 		ws:        ws,
 		send:      make(chan []byte, 256),
@@ -18,19 +17,21 @@ func newConnection(ws *websocket.Conn) *connection {
 }
 
 type connection struct {
-	closeConn chan empty
-
-	// The websocket connection.
-	ws *websocket.Conn
-
 	id EntityID
 
 	isOpen bool
+	buf1   [8]int64
 
 	moveQueue chan string
+	buf2      [8]int64
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+	buf3 [8]int64
+
+	// The websocket connection.
+	ws   *websocket.Conn
+	buf4 [8]int64
 }
 
 func (c *connection) reader(srv *CstServer) {
