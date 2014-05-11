@@ -106,7 +106,7 @@ func (srv *CstServer) runLoop() {
 			avg := sum / ticksPerSec
 			pop := srv.world.playerCount()
 			//message := fmt.Sprintf("Load: %f", avg)
-			LogProfile("Players: %d Load: %f", pop, avg)
+			LogProfile("Players, Load: ", pop, avg)
 		}
 
 		if tickDuration < tickSecs {
