@@ -30,6 +30,10 @@ type connection struct {
 }
 
 func (c *connection) reader(srv *CstServer) {
+	defer func() {
+		TRACE.Println("closing reader")
+		c.closeConn <- empty{}
+	}()
 readerLoop:
 	for c.isOpen {
 		_, message, err := c.ws.ReadMessage()
@@ -41,12 +45,15 @@ readerLoop:
 			break readerLoop
 		}
 		c.moveQueue <- s
+		runtime.Gosched()
 	}
-	TRACE.Println("closing reader")
-	c.closeConn <- empty{}
 }
 
 func (c *connection) writer() {
+	defer func() {
+		TRACE.Println("closing writer")
+		c.closeConn <- empty{}
+	}()
 writerLoop:
 	for message := range c.send {
 		if !c.isOpen {
@@ -59,9 +66,8 @@ writerLoop:
 			c.isOpen = false
 			break writerLoop
 		}
+		runtime.Gosched()
 	}
-	TRACE.Println("closing writer")
-	c.closeConn <- empty{}
 }
 
 func (c *connection) closer(srv *CstServer) {
