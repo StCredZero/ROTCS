@@ -52,7 +52,9 @@ writerLoop:
 		if !c.isOpen {
 			break writerLoop
 		}
+		TRACE.Println("writer about to WriteMessage", c.id)
 		err := c.ws.WriteMessage(websocket.TextMessage, message)
+		TRACE.Println("wrote WriteMessage", c.id)
 		if err != nil {
 			c.isOpen = false
 			break writerLoop
