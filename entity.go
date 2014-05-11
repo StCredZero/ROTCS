@@ -142,13 +142,12 @@ func (ntt *Player) MoveCommit() {
 	}
 }
 func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
-	TRACE.Print("Start SendDisplay ")
-	TRACE.Println(ntt.Location)
+	TRACE.Print("Start SendDisplay ", ntt.Location)
 	var buffer bytes.Buffer
 	grid.WriteDisplay(ntt, &buffer)
 	ntt.Connection.send <- buffer.Bytes()
 	ntt.LastUpdateLoc = ntt.Location
-	TRACE.Println("End SendDisplay")
+	TRACE.Print("End SendDisplay ", ntt.Location)
 }
 
 type detection struct {
