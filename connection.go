@@ -35,7 +35,7 @@ type connection struct {
 
 func (c *connection) reader(srv *CstServer) {
 	defer func() {
-		TRACE.Println("closing reader")
+		LogTrace("closing reader")
 		c.closeConn <- empty{}
 	}()
 readerLoop:
@@ -43,7 +43,7 @@ readerLoop:
 		_, message, err := c.ws.ReadMessage()
 		//n := bytes.Index(message, []byte{0})
 		s := string(message[:])
-		TRACE.Println("Got:", s)
+		LogTrace("Got:", s)
 		if err != nil {
 			c.isOpen = false
 			break readerLoop
@@ -55,7 +55,7 @@ readerLoop:
 
 func (c *connection) writer() {
 	defer func() {
-		TRACE.Println("closing writer")
+		LogTrace("closing writer")
 		c.closeConn <- empty{}
 	}()
 writerLoop:
@@ -63,7 +63,7 @@ writerLoop:
 		if !c.isOpen {
 			break writerLoop
 		}
-		TRACE.Println("writer about to WriteMessage", c.id)
+		LogTrace("writer about to WriteMessage", c.id)
 		deadline := time.Now().Add(time.Duration(time.Millisecond * 120))
 		err1 := c.ws.SetWriteDeadline(deadline)
 		if err1 != nil {
@@ -71,7 +71,7 @@ writerLoop:
 			break writerLoop
 		}
 		err2 := c.ws.WriteMessage(websocket.TextMessage, message)
-		TRACE.Println("wrote WriteMessage", c.id)
+		LogTrace("wrote WriteMessage", c.id)
 		if err2 != nil {
 			c.isOpen = false
 			break writerLoop
@@ -83,7 +83,7 @@ writerLoop:
 func (c *connection) closer(srv *CstServer) {
 	select {
 	case <-c.closeConn:
-		TRACE.Println("doing close")
+		LogTrace("doing close")
 		c.isOpen = false
 		c.ws.Close()
 	}

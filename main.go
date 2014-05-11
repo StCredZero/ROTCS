@@ -13,20 +13,56 @@ import (
 	"text/template"
 )
 
-var (
-	TRACE   *log.Logger
-	PROF    *log.Logger
-	INFO    *log.Logger
-	WARNING *log.Logger
-	ERROR   *log.Logger
-)
-
 var DungeonEntropy = DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
 var DungeonProto = DunGen{
 	xsize:      subgrid_width,
 	ysize:      subgrid_height,
 	targetObj:  20,
 	chanceRoom: 50,
+}
+
+var (
+	TRACE   *log.Logger
+	PROF    *log.Logger
+	INFO    *log.Logger
+	WARNING *log.Logger
+	ERROR   *log.Logger
+
+	traceFlag *bool
+	profFlag  *bool
+	infoFlag  *bool
+	warnFlag  *bool
+	errFlag   *bool
+)
+
+func LogTrace(args ...interface{}) {
+	if *traceFlag {
+		TRACE.Println(args...)
+	}
+}
+
+func LogProfile(args ...interface{}) {
+	if *profFlag {
+		PROF.Println(args...)
+	}
+}
+
+func LogInfo(args ...interface{}) {
+	if *infoFlag {
+		INFO.Println(args...)
+	}
+}
+
+func LogWarn(args ...interface{}) {
+	if *warnFlag {
+		WARNING.Println(args...)
+	}
+}
+
+func LogError(args ...interface{}) {
+	if *errFlag {
+		ERROR.Println(args...)
+	}
 }
 
 func initLogging(traceHandle, profHandle, infoHandle, warningHandle, errorHandle io.Writer) {
@@ -72,11 +108,11 @@ func main() {
 	assets := flag.String("assets", ".", "path to assets")
 	htmlPath := filepath.Join(*assets, "static")
 
-	trace := flag.Bool("trace", false, "log trace messages")
-	prof := flag.Bool("prof", true, "log profile messages")
-	info := flag.Bool("info", true, "log info messages")
-	warn := flag.Bool("warn", true, "log warnings")
-	errf := flag.Bool("error", true, "log errors")
+	traceFlag = flag.Bool("trace", false, "log trace messages")
+	profFlag = flag.Bool("prof", true, "log profile messages")
+	infoFlag = flag.Bool("info", true, "log info messages")
+	warnFlag = flag.Bool("warn", true, "log warnings")
+	errFlag = flag.Bool("error", true, "log errors")
 
 	daemon := flag.Bool("daemon", false, "run as daemon")
 
@@ -99,18 +135,18 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to open profile log:", err)
 	}
-	if *prof {
+	if *profFlag {
 		profWriter = profile
 	} else {
 		profWriter = ioutil.Discard
 	}
 
 	initLogging(
-		logWriter(*trace, writer),
+		logWriter(*traceFlag, writer),
 		profWriter,
-		logWriter(*info, writer),
-		logWriter(*warn, writer),
-		logWriter(*errf, writer))
+		logWriter(*infoFlag, writer),
+		logWriter(*warnFlag, writer),
+		logWriter(*errFlag, writer))
 
 	log.SetOutput(writer)
 
@@ -118,8 +154,8 @@ func main() {
 	var srv = NewCstServer()
 	go srv.runLoop()
 
-	INFO.Println("Port:", *port)
-	INFO.Println("Asset Path:", *assets)
+	LogInfo("Port:", *port)
+	LogInfo("Asset Path:", *assets)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		srv.wsHandler(w, r)

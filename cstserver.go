@@ -43,16 +43,16 @@ func (srv *CstServer) TickNumber() uint64 {
 }
 
 func (srv *CstServer) registerConnection(c *connection) {
-	TRACE.Println("starting register")
+	LogTrace("starting register")
 	player := NewPlayer(c)
 	entity, _ := srv.world.NewEntity(player)
 	c.id = entity.EntityID()
 	srv.connections[c] = c.id
-	TRACE.Println("Initialized entity: ", entity)
+	LogTrace("Initialized entity: ", entity)
 }
 
 func (srv *CstServer) unregisterConnection(c *connection) {
-	TRACE.Println("closing-final")
+	LogTrace("closing-final")
 	srv.world.RemoveEntityID(c.id)
 	delete(srv.connections, c)
 }
@@ -106,7 +106,7 @@ func (srv *CstServer) runLoop() {
 			avg := sum / ticksPerSec
 			pop := srv.world.playerCount()
 			//message := fmt.Sprintf("Load: %f", avg)
-			PROF.Printf("Players: %d Load: %f", pop, avg)
+			LogProfile("Players: %d Load: %f", pop, avg)
 		}
 
 		if tickDuration < tickSecs {
