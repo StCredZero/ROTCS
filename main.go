@@ -40,25 +40,21 @@ func LogTrace(args ...interface{}) {
 		TRACE.Println(args...)
 	}
 }
-
 func LogProfile(args ...interface{}) {
 	if *profFlag {
 		PROF.Println(args...)
 	}
 }
-
 func LogInfo(args ...interface{}) {
 	if *infoFlag {
 		INFO.Println(args...)
 	}
 }
-
 func LogWarn(args ...interface{}) {
 	if *warnFlag {
 		WARNING.Println(args...)
 	}
 }
-
 func LogError(args ...interface{}) {
 	if *errFlag {
 		ERROR.Println(args...)
@@ -66,25 +62,15 @@ func LogError(args ...interface{}) {
 }
 
 func initLogging(traceHandle, profHandle, infoHandle, warningHandle, errorHandle io.Writer) {
-
-	TRACE = log.New(traceHandle,
-		"TRACE: ",
+	TRACE = log.New(traceHandle, "TRACE: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
-
-	PROF = log.New(profHandle,
-		"PROFILE: ",
+	PROF = log.New(profHandle, "PROFILE: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
-
-	INFO = log.New(infoHandle,
-		"INFO: ",
+	INFO = log.New(infoHandle, "INFO: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
-
-	WARNING = log.New(warningHandle,
-		"WARNING: ",
+	WARNING = log.New(warningHandle, "WARNING: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
-
-	ERROR = log.New(errorHandle,
-		"ERROR: ",
+	ERROR = log.New(errorHandle, "ERROR: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 
