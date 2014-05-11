@@ -1,7 +1,11 @@
 package main
 
-import "github.com/gorilla/websocket"
-import "runtime"
+import (
+	"runtime"
+	"time"
+
+	"github.com/gorilla/websocket"
+)
 
 func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
@@ -60,9 +64,15 @@ writerLoop:
 			break writerLoop
 		}
 		TRACE.Println("writer about to WriteMessage", c.id)
-		err := c.ws.WriteMessage(websocket.TextMessage, message)
+		deadline := time.Now().Add(time.Duration(time.Millisecond * 100))
+		err1 := c.ws.SetWriteDeadline(deadline)
+		if err1 != nil {
+			c.isOpen = false
+			break writerLoop
+		}
+		err2 := c.ws.WriteMessage(websocket.TextMessage, message)
 		TRACE.Println("wrote WriteMessage", c.id)
-		if err != nil {
+		if err2 != nil {
 			c.isOpen = false
 			break writerLoop
 		}
