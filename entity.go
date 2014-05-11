@@ -126,7 +126,6 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 	}
 
 	newLoc := loc.MovedBy(move)
-	TRACE.Println(newLoc)
 	if grid.OutOfBounds(newLoc) {
 		grid.DeferMove(ntt)
 		return

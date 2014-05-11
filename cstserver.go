@@ -55,7 +55,6 @@ func (srv *CstServer) unregisterConnection(c *connection) {
 	TRACE.Println("closing-final")
 	srv.world.RemoveEntityID(c.id)
 	delete(srv.connections, c)
-	close(c.send)
 }
 
 const ticksPerSec = 8
