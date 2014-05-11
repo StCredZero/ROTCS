@@ -127,7 +127,6 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	c := newConnection(ws)
 	srv.register <- c
 	defer func() { srv.unregister <- c }()
-	go c.closer(srv)
 	go c.writer()
 	c.reader(srv)
 }
