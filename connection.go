@@ -64,7 +64,7 @@ writerLoop:
 			break writerLoop
 		}
 		TRACE.Println("writer about to WriteMessage", c.id)
-		deadline := time.Now().Add(time.Duration(time.Millisecond * 100))
+		deadline := time.Now().Add(time.Duration(time.Millisecond * 120))
 		err1 := c.ws.SetWriteDeadline(deadline)
 		if err1 != nil {
 			c.isOpen = false
