@@ -70,12 +70,3 @@ writerLoop:
 	c.isOpen = false
 	c.ws.Close()
 }
-
-/*func (c *connection) closer(srv *CstServer) {
-	select {
-	case <-c.closeConn:
-		LogTrace("doing close")
-		c.isOpen = false
-		c.ws.Close()
-	}
-}*/
