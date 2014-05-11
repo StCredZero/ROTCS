@@ -81,16 +81,10 @@ writerLoop:
 }
 
 func (c *connection) closer(srv *CstServer) {
-closeLoop:
-	for {
-		select {
-		case <-c.closeConn:
-			TRACE.Println("doing close")
-			c.isOpen = false
-			c.ws.Close()
-			break closeLoop
-		default:
-			runtime.Gosched()
-		}
+	select {
+	case <-c.closeConn:
+		TRACE.Println("doing close")
+		c.isOpen = false
+		c.ws.Close()
 	}
 }
