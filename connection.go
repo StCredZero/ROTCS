@@ -20,18 +20,14 @@ type connection struct {
 	id EntityID
 
 	isOpen bool
-	buf1   [8]int64
 
 	moveQueue chan string
-	buf2      [8]int64
 
 	// Buffered channel of outbound messages.
 	send chan []byte
-	buf3 [8]int64
 
 	// The websocket connection.
-	ws   *websocket.Conn
-	buf4 [8]int64
+	ws *websocket.Conn
 }
 
 func (c *connection) reader(srv *CstServer) {
