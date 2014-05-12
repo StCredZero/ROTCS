@@ -20,6 +20,7 @@ func NewEntityID() EntityID {
 type Creature interface {
 	EntityID() EntityID
 	CalcMove(GridKeeper) Coord
+	CanSwapWith(Creature) bool
 	Coord() Coord
 	Detect(Creature)
 	HasMove(GridProcessor) bool
@@ -46,6 +47,9 @@ type Entity struct {
 
 func (ntt *Entity) CalcMove(grid GridKeeper) Coord {
 	return ntt.Location
+}
+func (ntt *Entity) CanSwapWith(c Creature) bool {
+	return false
 }
 func (ntt *Entity) Coord() Coord {
 	return ntt.Location
@@ -127,34 +131,12 @@ func (ntt *Player) CalcMove(grid GridKeeper) Coord {
 	}
 	return loc.MovedBy(move)
 }
+func (ntt *Player) CanSwapWith(other Creature) bool {
+	return other.IsPlayer()
+}
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
-
-/*func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
-
-	select {
-	case moves := <-ntt.Connection.moveQueue:
-		ntt.Moves = moves
-	default:
-	}
-	loc := ntt.Location
-	move := '0'
-	for _, move = range ntt.Moves {
-		break
-	}
-
-	newLoc := loc.MovedBy(move)
-	if grid.OutOfBounds(newLoc) {
-		grid.DeferMove(ntt)
-		return
-	}
-	if grid.EmptyAt(newLoc) && grid.WalkableAt(newLoc) {
-		grid.MoveEntity(ntt, newLoc)
-	} else {
-		ntt.MoveCommit() //Don't move, but lose the []Moves item anyways
-	}
-}*/
 func (ntt *Player) MoveCommit() {
 	if len(ntt.Moves) > 0 {
 		ntt.Moves = ntt.Moves[1:]
@@ -232,39 +214,3 @@ func (ntt *Monster) Detect(player Creature) {
 		ntt.detections <- det
 	}
 }
-
-/*func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
-	var min, det detection
-	min = detection{
-		dist: math.MaxInt32,
-	}
-	done, minFound := false, false
-	for !done {
-		select {
-		case det = <-ntt.detections:
-			if det.dist < min.dist {
-				min = det
-				minFound = true
-			}
-		default:
-			done = true
-		}
-	}
-	if minFound {
-		openAt := func(coord Coord) bool {
-			return grid.WalkableAt(coord)
-		}
-		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
-		if pathFound {
-			newLoc := path[0]
-			if grid.OutOfBounds(newLoc) {
-				grid.DeferMove(ntt)
-				ntt.detections <- min
-				return
-			}
-			if grid.EmptyAt(newLoc) && grid.WalkableAt(newLoc) {
-				grid.MoveEntity(ntt, newLoc)
-			}
-		}
-	}
-}*/
