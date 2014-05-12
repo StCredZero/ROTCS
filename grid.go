@@ -13,7 +13,7 @@ type GridProcessor interface {
 }
 
 type GridKeeper interface {
-	DeferMove(Creature)
+	DeferMove(Creature, Coord)
 	DungeonAt(Coord) int8
 	EmptyAt(Coord) bool
 	MoveEntity(Creature, Coord)
@@ -28,13 +28,27 @@ type GridKeeper interface {
 	WriteEntities(Creature, *bytes.Buffer)
 }
 
+func ExecuteMove(ntt Creature, grid GridKeeper, loc Coord) {
+	if grid.OutOfBounds(loc) {
+		grid.DeferMove(ntt, loc)
+	} else if grid.EmptyAt(loc) && grid.WalkableAt(loc) {
+		LogTrace("about to move", ntt, loc)
+		grid.MoveEntity(ntt, loc)
+	}
+}
+
+type DeferredMove struct {
+	id  EntityID
+	loc Coord
+}
+
 type SubGrid struct {
 	dunGenCache *DunGenCache
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityID
 	Entities    map[EntityID]Creature
 	parent      *WorldGrid
-	ParentQueue chan EntityID
+	ParentQueue chan DeferredMove
 	PlayerCount int
 	RNG         *rand.Rand
 }
@@ -45,7 +59,7 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
 		Entities:    make(map[EntityID]Creature),
-		ParentQueue: make(chan EntityID, (subgrid_width * subgrid_height)),
+		ParentQueue: make(chan DeferredMove, ((2 * subgrid_width) + (2 * subgrid_height))),
 		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
@@ -61,8 +75,12 @@ func (srv *SubGrid) WalkableAt(coord Coord) bool {
 func (self *SubGrid) Count() int {
 	return len(self.Grid)
 }
-func (self *SubGrid) DeferMove(ntt Creature) {
-	self.ParentQueue <- ntt.EntityID()
+func (self *SubGrid) DeferMove(ntt Creature, loc Coord) {
+	deferredMove := DeferredMove{
+		id:  ntt.EntityID(),
+		loc: loc,
+	}
+	self.ParentQueue <- deferredMove
 }
 func (self *SubGrid) EmptyAt(loc Coord) bool {
 	if loc.Grid() != self.GridCoord {
@@ -77,12 +95,11 @@ const subgrid_placement_trys = 100
 func (self *SubGrid) MoveEntity(ntt Creature, loc Coord) {
 	if ntt.Coord() != loc {
 		if loc.Grid() != self.GridCoord {
-			self.DeferMove(ntt)
+			ERROR.Panic("Should not be here!")
 		} else {
 			delete(self.Grid, ntt.Coord())
 			self.Grid[loc] = ntt.EntityID()
 			ntt.SetCoord(loc)
-			ntt.MoveCommit()
 		}
 	}
 }
@@ -148,7 +165,8 @@ func (self *SubGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
 		if ntt.HasMove(gproc) {
-			ntt.Move(self, gproc)
+			loc := ntt.CalcMove(self)
+			ExecuteMove(ntt, self, loc)
 		}
 	}
 }
@@ -306,7 +324,7 @@ func (srv *WorldGrid) WalkableAt(coord Coord) bool {
 	return srv.dunGenCache.WalkableAt(coord)
 }
 
-func (self *WorldGrid) DeferMove(ntt Creature) {}
+func (self *WorldGrid) DeferMove(ntt Creature, loc Coord) {}
 func (self *WorldGrid) EmptyAt(loc Coord) bool {
 	subgrid, present := self.grid[loc.Grid()]
 	if !present {
@@ -327,7 +345,6 @@ func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 		sg2 := self.subgridAtGrid(gc2)
 		sg1.RemoveEntityID(ntt.EntityID())
 		sg2.PutEntityAt(ntt, loc)
-		ntt.MoveCommit()
 		self.entityGrid[ntt.EntityID()] = gc2
 	}
 }
@@ -400,9 +417,9 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 		done := false
 		for !done {
 			select {
-			case id := <-subgrid.ParentQueue:
-				ntt := subgrid.Entities[id]
-				ntt.Move(self, gproc)
+			case deferred := <-subgrid.ParentQueue:
+				ntt := subgrid.Entities[deferred.id]
+				ExecuteMove(ntt, self, deferred.loc)
 			default:
 				done = true
 			}

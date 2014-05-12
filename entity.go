@@ -19,6 +19,7 @@ func NewEntityID() EntityID {
 
 type Creature interface {
 	EntityID() EntityID
+	CalcMove(GridKeeper) Coord
 	Coord() Coord
 	Detect(Creature)
 	HasMove(GridProcessor) bool
@@ -27,8 +28,6 @@ type Creature interface {
 	IsPlayer() bool
 	IsTransient() bool
 	LastDispCoord() Coord
-	Move(GridKeeper, GridProcessor)
-	MoveCommit()
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
 	SetEntityID(EntityID)
@@ -45,6 +44,9 @@ type Entity struct {
 	TickOffset   uint64
 }
 
+func (ntt *Entity) CalcMove(grid GridKeeper) Coord {
+	return ntt.Location
+}
 func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
@@ -73,8 +75,8 @@ func (ntt *Entity) IsTransient() bool { return true }
 func (ntt *Entity) LastDispCoord() Coord {
 	return ntt.Location
 }
-func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor)        {}
-func (ntt *Entity) MoveCommit()                                      {}
+
+//func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor)        {}
 func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
 func (ntt *Entity) TickZero(gproc GridProcessor) bool {
 	phase := (gproc.TickNumber() + ntt.TickOffset) % 23
@@ -109,10 +111,27 @@ func NewPlayer(c *connection) Creature {
 	})
 }
 
+func (ntt *Player) CalcMove(grid GridKeeper) Coord {
+	select {
+	case moves := <-ntt.Connection.moveQueue:
+		ntt.Moves = moves
+	default:
+	}
+	loc := ntt.Location
+	move := '0'
+	for _, move = range ntt.Moves {
+		break
+	}
+	if len(ntt.Moves) > 0 {
+		ntt.Moves = ntt.Moves[1:]
+	}
+	return loc.MovedBy(move)
+}
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
-func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
+
+/*func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 
 	select {
 	case moves := <-ntt.Connection.moveQueue:
@@ -135,7 +154,7 @@ func (ntt *Player) Move(grid GridKeeper, gproc GridProcessor) {
 	} else {
 		ntt.MoveCommit() //Don't move, but lose the []Moves item anyways
 	}
-}
+}*/
 func (ntt *Player) MoveCommit() {
 	if len(ntt.Moves) > 0 {
 		ntt.Moves = ntt.Moves[1:]
@@ -173,7 +192,34 @@ func NewMonster(id EntityID) Creature {
 		detections: make(chan detection, (subgrid_width * subgrid_height)),
 	}
 }
-
+func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
+	var min, det detection
+	min = detection{
+		dist: math.MaxInt32,
+	}
+	done, minFound := false, false
+	for !done {
+		select {
+		case det = <-ntt.detections:
+			if det.dist < min.dist {
+				min = det
+				minFound = true
+			}
+		default:
+			done = true
+		}
+	}
+	if minFound {
+		openAt := func(coord Coord) bool {
+			return grid.WalkableAt(coord)
+		}
+		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
+		if pathFound {
+			return path[0]
+		}
+	}
+	return ntt.Location
+}
 func (ntt *Monster) Detect(player Creature) {
 	loc1, loc2 := ntt.Coord(), player.Coord()
 	dist := distance(loc1, loc2)
@@ -186,7 +232,8 @@ func (ntt *Monster) Detect(player Creature) {
 		ntt.detections <- det
 	}
 }
-func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
+
+/*func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 	var min, det detection
 	min = detection{
 		dist: math.MaxInt32,
@@ -220,4 +267,4 @@ func (ntt *Monster) Move(grid GridKeeper, gproc GridProcessor) {
 			}
 		}
 	}
-}
+}*/
