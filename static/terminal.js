@@ -106,7 +106,6 @@ var Terminal = Terminal || function(containerId) {
   var magicWord_ = null;
 
   var fsn_ = null;
-  var is3D_ = false;
 
   // Fire worker to return recursive snapshot of current FS tree.
   var worker_ = new Worker('worker.js');
@@ -263,11 +262,6 @@ var Terminal = Terminal || function(containerId) {
       }
 
       switch (cmd) {
-        case '3d':
-          clear_(this);
-          output('Hold on to your butts!');
-          toggle3DView_();
-          break;
         case 'cat':
           var fileName = args.join(' ');
 
@@ -288,9 +282,6 @@ var Terminal = Terminal || function(containerId) {
           output((new Date()).toLocaleString());
           break;
         case 'exit':
-          if (is3D_) {
-            toggle3DView_();
-          }
           if (timer_ != null) {
             magicWord_.stop();
             clearInterval(timer_);
@@ -298,7 +289,7 @@ var Terminal = Terminal || function(containerId) {
           break;
         case 'help':
           output('<div class="ls-files">' + CMDS_.join('<br>') + '</div>');
-          output('<p>Add files by dragging them from your desktop.</p>');
+          //output('<p>Add files by dragging them from your desktop.</p>');
           break;
         case 'install':
           // Check is installed.
@@ -723,41 +714,10 @@ var Terminal = Terminal || function(containerId) {
     }
   }
 
-  function toggle3DView_() {
-    var body = document.body;
-    body.classList.toggle('offscreen');
-
-    is3D_ = !is3D_;
-
-    if (body.classList.contains('offscreen')) {
-
-      container_.style.webkitTransform =
-          'translateY(' + (util.getDocHeight() - 175) + 'px)';
-
-      var transEnd_ = function(e) {
-        var iframe = document.createElement('iframe');
-        iframe.id = 'fsn';
-        iframe.src = '../fsn/fsn_proto.html';
-
-        fsn_ = body.insertBefore(iframe, body.firstElementChild);
-
-        iframe.contentWindow.onload = function() {
-          worker_.postMessage({cmd: 'read', type: type_, size: size_});
-        }
-        container_.removeEventListener('webkitTransitionEnd', transEnd_, false);
-      };
-      container_.addEventListener('webkitTransitionEnd', transEnd_, false);
-    } else {
-      container_.style.webkitTransform = 'translateY(0)';
-      body.removeChild(fsn_);
-      fsn_ = null;
-    }
-  }
-
   function output(html) {
     output_.insertAdjacentHTML('beforeEnd', html);
     //output_.scrollIntoView();
-    cmdLine_.scrollIntoView();
+    //cmdLine_.scrollIntoView();
   }
 
   return {
@@ -766,35 +726,6 @@ var Terminal = Terminal || function(containerId) {
              '! (v' + VERSION_ + ')</div>');
       output((new Date()).toLocaleString());
       output('<p>Documentation: type "help"</p>');
-
-      if (!!!window.requestFileSystem) {
-        output('<div>Sorry! The FileSystem APIs are not available in your browser.</div>');
-        return;
-      }
-
-      var type = persistent ? window.PERSISTENT : window.TEMPORARY;
-      window.requestFileSystem(type, size, function(filesystem) {
-        fs_ = filesystem;
-        cwd_ = fs_.root;
-        type_ = type;
-        size_ = size;
-
-        // If we get this far, attempt to create a folder to test if the
-        // --unlimited-quota-for-files fag is set.
-        cwd_.getDirectory('testquotaforfsfolder', {create: true}, function(dirEntry) {
-          dirEntry.remove(function() { // If successfully created, just delete it.
-            // noop.
-          });
-        }, function(e) {
-          if (e.code == FileError.QUOTA_EXCEEDED_ERR) {
-            output('ERROR: Write access to the FileSystem is unavailable.<br>');
-            output('Type "install" or run Chrome with the --unlimited-quota-for-files flag.');
-          } else {
-            errorHandler_(e);
-          }
-        });
-
-      }, errorHandler_);
     },
     output: output,
     setTheme: setTheme_,
@@ -814,7 +745,6 @@ var Terminal = Terminal || function(containerId) {
         }, errorHandler_);
       });
     },
-    toggle3DView: toggle3DView_,
     selectFile: selectFile_
   }
 };
