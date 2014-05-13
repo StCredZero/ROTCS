@@ -12,7 +12,8 @@ var Game = {
             "fontFamily":"courier"
         });
         this.canvas = this.display.getContainer();
-        document.body.appendChild(this.canvas);
+        var displayArea = document.getElementById('displayArea');
+        displayArea.appendChild(this.canvas);
 
         this.lastMoveTime = 0;
         this.loadTestMode = false;
