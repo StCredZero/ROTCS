@@ -12,8 +12,9 @@ var Game = {
             "fontFamily":"courier"
         });
         this.canvas = this.display.getContainer();
-        var displayArea = document.getElementById('displayArea');
-        displayArea.appendChild(this.canvas);
+        this.displayNode = document.getElementById('displayArea');
+        this.displayNode.appendChild(this.canvas);
+        this.displayNode.tabIndex = 1;
 
         this.lastMoveTime = 0;
         this.loadTestMode = false;
