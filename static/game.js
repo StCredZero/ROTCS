@@ -287,13 +287,13 @@ Game.renderDisplay = function(updateObj) {
         Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);
         Game.commitDisplay();
     } else if (updateObj.maptype === "entity") {
-        if (updateObj.collided) {
+        if (Game.oldLocation && updateObj.collided) {
             var loc = updateObj.location;
             if (loc) {
                 Game.scrollTo(loc);
             }
+            Game.oldLocation = null;
         }
-        Game.oldLocation = null;
         Game.commitDisplay();
     }
     if (Game.location) {
