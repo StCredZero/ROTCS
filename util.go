@@ -16,6 +16,13 @@ func abs(n int64) int64 {
 	}
 }
 
+func bool2rune(b bool) rune {
+	if b {
+		return '1'
+	}
+	return '0'
+}
+
 func manhattanDist(loc1 Coord, loc2 Coord) float64 {
 	return float64(abs(loc1.x-loc2.x)) + float64(abs(loc1.y-loc2.y))
 }

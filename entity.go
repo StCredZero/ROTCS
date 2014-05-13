@@ -21,6 +21,9 @@ type Creature interface {
 	EntityID() EntityID
 	CalcMove(GridKeeper) Coord
 	CanSwapWith(Creature) bool
+	Collided() bool
+	CollideWall()
+	CollideWith(Creature)
 	Coord() Coord
 	Detect(Creature)
 	HasMove(GridProcessor) bool
@@ -51,6 +54,11 @@ func (ntt *Entity) CalcMove(grid GridKeeper) Coord {
 func (ntt *Entity) CanSwapWith(c Creature) bool {
 	return false
 }
+func (ntt *Entity) Collided() bool {
+	return false
+}
+func (ntt *Entity) CollideWall()               {}
+func (ntt *Entity) CollideWith(other Creature) {}
 func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
@@ -96,6 +104,7 @@ func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 
 type Player struct {
 	Entity
+	collided      bool
 	Connection    *connection
 	LastUpdateLoc Coord
 	Moves         string
@@ -134,6 +143,16 @@ func (ntt *Player) CalcMove(grid GridKeeper) Coord {
 func (ntt *Player) CanSwapWith(other Creature) bool {
 	return other.IsPlayer()
 }
+func (ntt *Player) Collided() bool {
+	return ntt.collided
+}
+func (ntt *Player) CollideWall() {
+	ntt.collided = true
+}
+func (ntt *Player) CollideWith(other Creature) {
+	ntt.collided = true
+}
+
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
@@ -148,6 +167,7 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	grid.WriteDisplay(ntt, &buffer)
 	ntt.Connection.send <- buffer.Bytes()
 	ntt.LastUpdateLoc = ntt.Location
+	ntt.collided = false
 	LogTrace("End SendDisplay ", ntt.Location)
 }
 

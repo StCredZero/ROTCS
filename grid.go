@@ -38,10 +38,14 @@ func ExecuteMove(ntt Creature, grid GridKeeper, loc Coord) {
 		if present {
 			if ntt.CanSwapWith(other) {
 				grid.SwapEntities(ntt, other)
+			} else {
+				ntt.CollideWith(other)
 			}
 		} else {
 			grid.MoveEntity(ntt, loc)
 		}
+	} else {
+		ntt.CollideWall()
 	}
 }
 
@@ -210,7 +214,8 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 // It is not concurrent
 func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	x, y := ntt.Coord().x, ntt.Coord().y
-	buffer.WriteString(`{"type":"update","data":{`)
+	buffer.WriteString(`{"type":"update",`)
+	buffer.WriteString(`"data":{`)
 	buffer.WriteString(`"location":[`)
 	buffer.WriteString(strconv.FormatInt(x, 10))
 	buffer.WriteRune(',')
@@ -224,7 +229,10 @@ func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	// It has to be the parent to coordinate all visible SubGrids
 	self.parent.WriteEntities(ntt, buffer)
 
-	buffer.WriteString(`}}}`)
+	buffer.WriteString(`},`)
+	buffer.WriteString(`"collided":`)
+	buffer.WriteRune(bool2rune(ntt.Collided()))
+	buffer.WriteString(`}}`)
 }
 
 type WorldGrid struct {

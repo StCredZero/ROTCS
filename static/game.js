@@ -148,6 +148,31 @@ Game.coord = function(x, y) {
 }
 
 Game.sendMove = function(data) {
+    console.log("sending: ", data, Game.location);
+    if ((!Game.oldLocation) && Game.location) {
+        if (data == "n") {
+            var newLoc = [Game.location[0], Game.location[1] - 1];
+            Game.oldLocation = Game.location;
+            Game.scrollTo(newLoc);
+            Game.commitDisplay();
+        } else if (data == "s") {
+            var newLoc = [Game.location[0], Game.location[1] + 1];
+            Game.oldLocation = Game.location;
+            Game.scrollTo(newLoc);
+            Game.commitDisplay();
+        } else if (data == "e") {
+            var newLoc = [Game.location[0] + 1, Game.location[1]];
+            Game.oldLocation = Game.location;
+            Game.scrollTo(newLoc);
+            Game.commitDisplay();
+        } else if (data == "w") {
+            var newLoc = [Game.location[0] - 1, Game.location[1]];
+            Game.oldLocation = Game.location;
+            Game.scrollTo(newLoc);
+            Game.commitDisplay();
+        }
+    }
+    console.log("location now: ", Game.location);
     Game.sendMoveQueue.enqueue(data);
     //var data = JSON.stringify(jsonObj);
     //Game.ws.send(data);
@@ -214,10 +239,12 @@ Game.commitCell = function (drawMap,i, j, cellValue) {
 
 Game.commitDisplay = function() {
     var drawMap = {};
+    var cornerx = Game.location[0] - Game.centerx;
+    var cornery = Game.location[1] - Game.centery;
     for (var j = 0; j < Game.dheight; j++) {
         for (var i = 0; i < Game.dwidth; i++) {
             var cellValue = Game.bufferCell(i,j);
-            var key = Game.coord(i,j);
+            var key = [(cornerx+i), (cornery+j)].join(","); //var key = Game.coord(i,j);
             var entity = Game.entities[key];
             if (entity) {
                 cellValue = entity.symbol; 
@@ -236,9 +263,10 @@ Game.renderDisplay = function(updateObj) {
     }
 
     if (updateObj.maptype === "basic") {
-        var location = updateObj.location;
-        if (location) {
-            Game.location = location;
+        Game.oldLocation = null;
+        var loc = updateObj.location;
+        if (loc) {
+            Game.scrollTo(loc);
         }
         for (var j = 0; j < Game.dheight; j++) {
             for (var i = 0; i < Game.dwidth; i++) {
@@ -248,14 +276,24 @@ Game.renderDisplay = function(updateObj) {
         }
         Game.commitDisplay();
     } else if (updateObj.maptype === "line") {
+        if (Game.oldLocation) {
+            if (((Game.location)[0] != (updateObj.location)[0]) ||
+                ((Game.location)[1] != (updateObj.location)[1])) {
+                Game.scrollTo(Game.oldLocation);
+            }
+        } 
+        Game.oldLocation = null;
         Game.scrollTo(updateObj.location);
         Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);
         Game.commitDisplay();
     } else if (updateObj.maptype === "entity") {
-        var location = updateObj.location;
-        if (location) {
-            Game.location = location;
+        if (updateObj.collided) {
+            var loc = updateObj.location;
+            if (loc) {
+                Game.scrollTo(loc);
+            }
         }
+        Game.oldLocation = null;
         Game.commitDisplay();
     }
     if (Game.location) {
@@ -372,17 +410,21 @@ Game.sign = function(x) {
 }
 
 Game.scrollTo = function(newloc) {
+    //console.log("scrollto-begin: ", Game.location);
     if (Game.location) {
         var newx = newloc[0];
         var newy = newloc[1];
         var oldx = Game.location[0];
         var oldy = Game.location[1];
-        var xvec = Game.sign(newx - oldx);
-        var yvec = Game.sign(newy - oldy);
+        var xvec = newx - oldx;
+        var yvec = newy - oldy;
+        //console.log("scrollto: ", xvec, yvec);
         Game.scrollMapX(xvec);
         Game.scrollMapY(yvec);
-        Game.location = newloc;
-    }
+
+    } 
+    Game.location = newloc;
+    //console.log("scrollto-end: ", Game.location);
 }
 
 Game.drawLine = function(start, orientation, line) {
