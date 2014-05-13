@@ -147,29 +147,38 @@ Game.coord = function(x, y) {
     return Game.coordCache[y][x];
 }
 
+Game.entityUnsafeAt = function(newLoc) {
+    var x = newLoc[0]
+    var y = newLoc[1]
+    var k0 = [x,y-1].join(",")
+    var k1 = [x,y+1].join(",")
+    var k2 = [x+1,y].join(",")
+    var k3 = [x-1,y].join(",")
+    var k4 = [x,y].join(",")
+
+    return Game.entities[k0] || Game.entities[k1] || Game.entities[k2] ||
+        Game.entities[k3] || Game.entities[k4]
+}
+
+Game.preMove = function(newLoc) {
+    if (!Game.entityUnsafeAt(newLoc)) {
+        Game.oldLocation = Game.location;
+        Game.scrollTo(newLoc);
+        Game.commitDisplay();
+    }
+}
+
 Game.sendMove = function(data) {
     console.log("sending: ", data, Game.location);
     if ((!Game.oldLocation) && Game.location) {
-        if (data == "n") {
-            var newLoc = [Game.location[0], Game.location[1] - 1];
-            Game.oldLocation = Game.location;
-            Game.scrollTo(newLoc);
-            Game.commitDisplay();
-        } else if (data == "s") {
-            var newLoc = [Game.location[0], Game.location[1] + 1];
-            Game.oldLocation = Game.location;
-            Game.scrollTo(newLoc);
-            Game.commitDisplay();
-        } else if (data == "e") {
-            var newLoc = [Game.location[0] + 1, Game.location[1]];
-            Game.oldLocation = Game.location;
-            Game.scrollTo(newLoc);
-            Game.commitDisplay();
-        } else if (data == "w") {
-            var newLoc = [Game.location[0] - 1, Game.location[1]];
-            Game.oldLocation = Game.location;
-            Game.scrollTo(newLoc);
-            Game.commitDisplay();
+        if ((data == "n") && Game.walkableAt(39,11)) {
+            Game.preMove([Game.location[0], Game.location[1] - 1]);
+        } else if ((data == "s") && Game.walkableAt(39,13)) {
+            Game.preMove([Game.location[0], Game.location[1] + 1]);
+        } else if ((data == "e") && Game.walkableAt(40,12)) {
+            Game.preMove([Game.location[0] + 1, Game.location[1]]);
+        } else if ((data == "w") && Game.walkableAt(38,12)) {
+            Game.preMove([Game.location[0] - 1, Game.location[1]]);
         }
     }
     console.log("location now: ", Game.location);
@@ -202,6 +211,10 @@ Game.draw = function(aMapToDraw) {
     Game.display.drawEntire(mapToDraw);
     // Draw the player 
     Game.display.draw(Game.centerx, Game.centery, "@", "#1283B2", "#000");
+}
+
+Game.walkableAt = function (i,j) {
+    return Game.previousCell(i,j) == (".".charCodeAt(0))
 }
 
 Game.commitCell = function (drawMap,i, j, cellValue) {
