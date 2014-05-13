@@ -44,7 +44,7 @@ function Sound(opt_loop) {
     context_ = new window.AudioContext();
   }
 
-  this.load = function(url, mixToMono, opt_callback) {
+  /*this.load = function(url, mixToMono, opt_callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.responseType = 'arraybuffer';
@@ -54,7 +54,7 @@ function Sound(opt_loop) {
         if (opt_callback) {
           opt_callback();
         }
-        */
+        *//*
         context_.decodeAudioData(this.response, function(audioBuffer) {
           self_.sample = audioBuffer;
           opt_callback && opt_callback();
@@ -64,7 +64,7 @@ function Sound(opt_loop) {
       }
     };
     xhr.send();
-  };
+  };*/
 
   this.play = function() {
     if (context_) {
@@ -107,20 +107,6 @@ var Terminal = Terminal || function(containerId) {
 
   var fsn_ = null;
 
-  // Fire worker to return recursive snapshot of current FS tree.
-  var worker_ = new Worker('worker.js');
-  worker_.onmessage = function(e) {
-    var data = e.data;
-    if (data.entries) {
-      fsn_.contentWindow.postMessage({cmd: 'build', data: data.entries},
-                                     window.location.origin);
-    }
-    if (data.msg) {
-      output('<div>' + data.msg + '</div>');
-    }
-  };
-  worker_.onerror = function(e) { console.log(e) };
-
   // Create terminal and cache DOM nodes;
   var container_ = document.getElementById(containerId);
   container_.insertAdjacentHTML('beforeEnd',
@@ -131,21 +117,8 @@ var Terminal = Terminal || function(containerId) {
   var cmdLine_ = container_.querySelector('#input-line .cmdline');
   var output_ = container_.querySelector('output');
   var interlace_ = document.querySelector('.interlace');
-  var bell_ = new Sound(false);
-  bell_.load('beep.mp3', false);
-
-  // Hackery to resize the interlace background image as the container grows.
-  output_.addEventListener('DOMSubtreeModified', function(e) {
-    var docHeight = util.getDocHeight();
-    document.documentElement.style.height = docHeight + 'px';
-    //document.body.style.background = '-webkit-radial-gradient(center ' + (Math.round(docHeight / 2)) + 'px, contain, rgba(0,75,0,0.8), black) center center no-repeat, black';
-    interlace_.style.height = docHeight + 'px';
-    setTimeout(function() { // Need this wrapped in a setTimeout. Chrome is jupming to top :(
-      //window.scrollTo(0, docHeight);
-      cmdLine_.scrollIntoView();
-    }, 0);
-    //window.scrollTo(0, docHeight);
-  }, false);
+  //var bell_ = new Sound(false);
+  //bell_.load('beep.mp3', false);
 
   output_.addEventListener('click', function(e) {
     var el = e.target;
