@@ -159,9 +159,56 @@ Game.entityUnsafeAt = function(newLoc) {
     return Game.entities[k0] || Game.entities[k1] || Game.entities[k2] ||
         Game.entities[k3] || Game.entities[k4]
 }
-
-Game.preMove = function(newLoc) {
-    if (!Game.entityUnsafeAt(newLoc)) {
+//Game.bufferCell(i,j)
+Game.preMove = function(move) {
+    var newLoc = false
+    var line = []
+    if ((move == "n") && Game.walkableAt(39,11)) {
+        newLoc = [Game.location[0], Game.location[1] - 1];
+        if (!Game.entityUnsafeAt(newLoc)) {
+            for (var i = 0; i < Game.dwidth; i++) {
+                line.push(Game.bufferCell(i, Game.dheight - 1));
+                Game.setBufferCell(i, Game.dheight - 1, " ");
+            }
+            Game.stashedLine = line.join("");
+            Game.stashStart = [Game.location[0] - 39, Game.location[1] + 12];
+            Game.stashOrient = move;
+        }
+    } else if ((move == "s") && Game.walkableAt(39,13)) {
+        newLoc = [Game.location[0], Game.location[1] + 1];
+        if (!Game.entityUnsafeAt(newLoc)) {
+            for (var i = 0; i < Game.dwidth; i++) {
+                line.push(Game.bufferCell(i, 0));
+                Game.setBufferCell(i, 0, " ");
+            }
+            Game.stashedLine = line.join("");
+            Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
+            Game.stashOrient = move;
+        }
+    } else if ((move == "e") && Game.walkableAt(40,12)) {
+        newLoc = [Game.location[0] + 1, Game.location[1]];
+        if (!Game.entityUnsafeAt(newLoc)) {
+            for (var j = 0; j < Game.dheight; j++) {
+                line.push(Game.bufferCell(0, j));
+                Game.setBufferCell(0, j, " ");
+            }
+            Game.stashedLine = line.join("");
+            Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
+            Game.stashOrient = move;
+        }
+    } else if ((move == "w") && Game.walkableAt(38,12)) {
+        newLoc = [Game.location[0] - 1, Game.location[1]];
+        if (!Game.entityUnsafeAt(newLoc)) {
+            for (var j = 0; j < Game.dheight; j++) {
+                line.push(Game.bufferCell(Game.dwidth - 1, j));
+                Game.setBufferCell(Game.dwidth - 1, j, " ");
+            }
+            Game.stashedLine = line.join("");
+            Game.stashStart = [Game.location[0] + 39, Game.location[1] - 12];
+            Game.stashOrient = move;
+        }
+    }
+    if (line.length > 0) {
         Game.oldLocation = Game.location;
         Game.scrollTo(newLoc);
         Game.commitDisplay();
@@ -171,15 +218,7 @@ Game.preMove = function(newLoc) {
 Game.sendMove = function(data) {
     console.log("sending: ", data, Game.location);
     if ((!Game.oldLocation) && Game.location) {
-        if ((data == "n") && Game.walkableAt(39,11)) {
-            Game.preMove([Game.location[0], Game.location[1] - 1]);
-        } else if ((data == "s") && Game.walkableAt(39,13)) {
-            Game.preMove([Game.location[0], Game.location[1] + 1]);
-        } else if ((data == "e") && Game.walkableAt(40,12)) {
-            Game.preMove([Game.location[0] + 1, Game.location[1]]);
-        } else if ((data == "w") && Game.walkableAt(38,12)) {
-            Game.preMove([Game.location[0] - 1, Game.location[1]]);
-        }
+        Game.preMove(data);
     }
     console.log("location now: ", Game.location);
     Game.sendMoveQueue.enqueue(data);
@@ -293,6 +332,7 @@ Game.renderDisplay = function(updateObj) {
             if (((Game.location)[0] != (updateObj.location)[0]) ||
                 ((Game.location)[1] != (updateObj.location)[1])) {
                 Game.scrollTo(Game.oldLocation);
+                Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
             }
         } 
         Game.oldLocation = null;
@@ -304,6 +344,7 @@ Game.renderDisplay = function(updateObj) {
             var loc = updateObj.location;
             if (loc) {
                 Game.scrollTo(loc);
+                Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
             }
             Game.oldLocation = null;
         }
