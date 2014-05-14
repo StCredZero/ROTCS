@@ -220,7 +220,6 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	x, y := ntt.Coord().x, ntt.Coord().y
 	buffer.WriteString(`{"type":"update",`)
-	buffer.WriteString(`"data":{`)
 	buffer.WriteString(`"location":[`)
 	buffer.WriteString(strconv.FormatInt(x, 10))
 	buffer.WriteRune(',')
@@ -237,7 +236,7 @@ func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`},`)
 	buffer.WriteString(`"collided":`)
 	buffer.WriteRune(bool2rune(ntt.Collided()))
-	buffer.WriteString(`}}`)
+	buffer.WriteRune('}')
 }
 
 func (self *SubGrid) SendMessages() {

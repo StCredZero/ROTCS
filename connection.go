@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"runtime"
 	"strings"
 	"time"
@@ -11,9 +13,9 @@ import (
 func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
 		isOpen:    true,
-		ws:        ws,
-		send:      make(chan []byte, 256),
 		moveQueue: make(chan string, 10),
+		send:      make(chan []byte, 256),
+		ws:        ws,
 	}
 }
 
@@ -24,7 +26,9 @@ type connection struct {
 
 	moveQueue chan string
 
-	player Creature
+	outbox []string
+
+	player *Player
 
 	// Buffered channel of outbound messages.
 	send chan []byte
@@ -46,9 +50,12 @@ readerLoop:
 		if strings.EqualFold(msgtype, "mv") {
 			c.moveQueue <- s
 		} else if strings.EqualFold(msgtype, "ch") {
-			subgrid := c.player.GetSubgrid()
-			subgrid.chatQueue <- s
-			println(s)
+			fmt.Println("chat: ", s)
+			var buffer bytes.Buffer
+			buffer.WriteString(`{"type":"message","data":"`)
+			buffer.WriteString(s)
+			buffer.WriteString(`"}`)
+			c.player.outbox = append(c.player.outbox, buffer.String())
 		}
 		runtime.Gosched()
 	}

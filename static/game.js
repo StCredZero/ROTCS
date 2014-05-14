@@ -67,16 +67,17 @@ var Game = {
         };*/
         this.ws.onmessage = function(event) {
             var jsonObj = JSON.parse(event.data);
-            //var jsonObj = eval("("+event.data + ")");
-            //console.log(event.data);
             if (jsonObj.type === "init") {
                 Game.uuid = jsonObj.uuid; 
-                Game.renderDisplay(jsonObj.data);
+                Game.renderDisplay(jsonObj);
                 Game.initialized = true;
             }
             //if (Game.initialized && (jsonObj.type === "update")) {
             if (jsonObj.type === "update") {
-                Game.mapUpdateQueue.enqueue(jsonObj.data);
+                Game.mapUpdateQueue.enqueue(jsonObj);
+            }
+            if (jsonObj.type === "message") {
+                Game.showMessage(jsonObj.data);
             }
         };
 
@@ -110,7 +111,7 @@ var Game = {
             } else if (((currentTime - Game.lastMoveTime) > Game.requestInterval) && (! Game.sendQueue.isEmpty())) {
                 var actions = Game.sendQueue.dequeue();
                 Game.lastMoveTime = currentTime;
-                console.log("sending ", actions);
+                //console.log("sending ", actions);
                 Game.ws.send(actions);
             } else if (Game.loadTestMode && 
                        ((currentTime - Game.lastMoveTime) > Game.requestInterval * 9) && 
@@ -242,6 +243,12 @@ Game.sendMove = function(data) {
 Game.sendMessage = function(data) {
     Game.sendQueue.enqueue("ch:" + data);
 };
+
+Game.showMessage = function(message) {
+    if (Game.term) {
+        Game.term.output(message);
+    }
+}
 
 Game.displayScheme = {
     ".":{ "disp":" ",

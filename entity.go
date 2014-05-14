@@ -19,6 +19,7 @@ func NewEntityID() EntityID {
 
 type Creature interface {
 	EntityID() EntityID
+
 	CalcMove(GridKeeper) Coord
 	CanSwapWith(Creature) bool
 	Collided() bool
@@ -29,11 +30,12 @@ type Creature interface {
 	GetSubgrid() *SubGrid
 	HasMove(GridProcessor) bool
 	Initialized() bool
-	SetSubgrid(*SubGrid)
-	SetInitialized(bool)
 	IsPlayer() bool
 	IsTransient() bool
 	LastDispCoord() Coord
+	Outbox() []string
+	SetSubgrid(*SubGrid)
+	SetInitialized(bool)
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
 	SetEntityID(EntityID)
@@ -71,6 +73,9 @@ func (ntt *Entity) GetSubgrid() *SubGrid {
 }
 func (ntt *Entity) Initialized() bool {
 	return ntt.Init
+}
+func (ntt *Entity) Outbox() []string {
+	return nil
 }
 func (ntt *Entity) SetInitialized(flag bool) {
 	ntt.Init = flag
@@ -117,20 +122,22 @@ type Player struct {
 	Connection    *connection
 	LastUpdateLoc Coord
 	Moves         string
+	outbox        []string
 }
 
-func NewPlayer(c *connection) Creature {
+func NewPlayer(c *connection) *Player {
 	entity := Entity{
 		ID:           c.id,
 		Symbol:       '@',
 		MoveSchedule: 0xFF,
 		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
-	return Creature(&Player{
+	return &Player{
+		Connection: c,
 		Entity:     entity,
 		Moves:      "",
-		Connection: c,
-	})
+		outbox:     make([]string, 0, 10),
+	}
 }
 
 func (ntt *Player) CalcMove(grid GridKeeper) Coord {
@@ -161,7 +168,13 @@ func (ntt *Player) CollideWall() {
 func (ntt *Player) CollideWith(other Creature) {
 	ntt.collided = true
 }
-
+func (ntt *Player) Detect(player Creature) {
+	//if player.IsPlayer() {
+	for _, message := range player.Outbox() {
+		ntt.Connection.send <- []byte(message)
+	}
+	//}
+}
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
@@ -170,6 +183,9 @@ func (ntt *Player) MoveCommit() {
 		ntt.Moves = ntt.Moves[1:]
 	}
 }
+func (ntt *Player) Outbox() []string {
+	return ntt.outbox
+}
 func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	LogTrace("Start SendDisplay ", ntt.Location)
 	var buffer bytes.Buffer
@@ -177,6 +193,7 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	ntt.Connection.send <- buffer.Bytes()
 	ntt.LastUpdateLoc = ntt.Location
 	ntt.collided = false
+	ntt.outbox = ntt.outbox[:0]
 	LogTrace("End SendDisplay ", ntt.Location)
 }
 
