@@ -53,7 +53,7 @@ readerLoop:
 			fmt.Println("chat: ", s)
 			var buffer bytes.Buffer
 			buffer.WriteString(`{"type":"message","data":"`)
-			buffer.WriteString(s)
+			buffer.WriteString(c.player.FormattedMessage(s))
 			buffer.WriteString(`"}`)
 			c.player.outbox = append(c.player.outbox, buffer.String())
 		}

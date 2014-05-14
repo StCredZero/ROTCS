@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/satori/go.uuid"
@@ -27,6 +29,7 @@ type Creature interface {
 	CollideWith(Creature)
 	Coord() Coord
 	Detect(Creature)
+	DisplayString() string
 	GetSubgrid() *SubGrid
 	HasMove(GridProcessor) bool
 	Initialized() bool
@@ -68,6 +71,9 @@ func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
 func (ntt *Entity) Detect(player Creature) {}
+func (ntt *Entity) DisplayString() string {
+	return fmt.Sprintf("%X%X%X%X", ntt.ID[0], ntt.ID[1], ntt.ID[2], ntt.ID[3])
+}
 func (ntt *Entity) GetSubgrid() *SubGrid {
 	return ntt.subgrid
 }
@@ -174,6 +180,10 @@ func (ntt *Player) Detect(player Creature) {
 		ntt.Connection.send <- []byte(message)
 	}
 	//}
+}
+func (ntt *Player) FormattedMessage(msg string) string {
+	s := []string{ntt.DisplayString(), `: `, msg}
+	return strings.Join(s, "")
 }
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }

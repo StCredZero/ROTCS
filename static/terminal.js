@@ -96,7 +96,7 @@ var Terminal = Terminal || function(containerId) {
   ];
   const THEMES_ = ['default', 'cream'];
 
-  var hasFocus_ = "game";
+  var hasFocus_ = "";
   var game_ = null;
 
   var fs_ = null;
@@ -133,6 +133,11 @@ var Terminal = Terminal || function(containerId) {
   function setFocus_(value) {
       if (value !== hasFocus_) {
           hasFocus_ = value;
+          if (hasFocus_ === "term") {
+              cmdLine_.focus();
+          } else {
+              cmdLine_.blur();
+          }
       }
       if (game_ && (game_.focusID() !== value)) {
           game_.setFocus(value);
@@ -149,7 +154,7 @@ var Terminal = Terminal || function(containerId) {
 
   window.addEventListener('click', function(e) {
     //if (!document.body.classList.contains('offscreen')) {
-      cmdLine_.focus();
+      //cmdLine_.focus();
     //}
   }, false);
 

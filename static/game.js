@@ -2,12 +2,6 @@ var Game = {
     display: null,
  
     init: function(term) {
-        this.hasFocus = "game";
-        this.term = term
-        if (this.term) {
-            this.term.setGame(this);
-            this.term.setFocus("game");
-        }
         var dwidth = 79;  this.dwidth = dwidth;
         var dheight = 25; this.dheight = dheight;
         this.centerx = 39;
@@ -144,6 +138,11 @@ var Game = {
             // start the mainloop
             nextUpdate();
         }
+
+        this.term = term
+        if (this.term) {
+            this.term.setGame(this);
+        } 
     }
 };
 
@@ -152,7 +151,15 @@ Game.focusID = function() {
 }
 
 Game.setFocus = function(value) {
-    Game.hasFocus = value;
+    if (value !== Game.hasFocus) {
+        Game.hasFocus = value;
+        if (Game.hasFocus === "game") {
+            Game.displayNode.borderColor = "green";
+            Game.displayNode.focus();
+        } else {
+            Game.displayNode.borderColor = "#000000";
+        }
+    }
     if (Game.term && (Game.term.focusID() !== value)) {
         Game.term.setFocus(value);
     }
@@ -383,13 +390,17 @@ Game.handleKeyboardInput = function (e) {
 
     var code = e.keyCode; 
 
-    if (code == 9) {
-        if (! (Game.hasFocus === "game")) {
-            Game.setFocus("game");
-        } else {
+    if (code == 13 && (Game.hasFocus === "game")) {
+        Game.setFocus("term");
+        return;
+    }
+    if (code == 27) {
+        if (Game.hasFocus === "game") {
             Game.setFocus("term");
+            return;
+        } else if (Game.hasFocus === "term") {
+            Game.setFocus("game");
         }
-        e.preventDefault();
     }
     if (! (Game.hasFocus === "game")) { return; }
 
