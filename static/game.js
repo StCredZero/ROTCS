@@ -115,7 +115,7 @@ var Game = {
                 //var jsonObj = {"type":"mv", "data":actions};
                 //var data = JSON.stringify(jsonObj);
                 Game.lastMoveTime = currentTime;
-                Game.ws.send(actions);
+                Game.ws.send("mv:"+actions);
                 //Game.ws.send(data);
             } else if (Game.loadTestMode && 
                        ((currentTime - Game.lastMoveTime) > Game.requestInterval * 9) && 

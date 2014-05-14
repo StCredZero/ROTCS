@@ -2,6 +2,7 @@ package main
 
 import (
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -34,13 +35,15 @@ func (c *connection) reader(srv *CstServer) {
 readerLoop:
 	for c.isOpen {
 		_, message, err := c.ws.ReadMessage()
-		//n := bytes.Index(message, []byte{0})
-		s := string(message[:])
-		LogTrace("Got:", s)
 		if err != nil {
 			break readerLoop
 		}
-		c.moveQueue <- s
+		msgtype := string(message[0:2])
+		s := string(message[3:])
+		LogTrace("Got:", s)
+		if strings.EqualFold(msgtype, "mv") {
+			c.moveQueue <- s
+		}
 		runtime.Gosched()
 	}
 	LogTrace("closing reader")
