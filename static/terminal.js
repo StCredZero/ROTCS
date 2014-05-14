@@ -96,6 +96,9 @@ var Terminal = Terminal || function(containerId) {
   ];
   const THEMES_ = ['default', 'cream'];
 
+  var hasFocus_ = true;
+  var game_ = null;
+
   var fs_ = null;
   var cwd_ = null;
   var history_ = [];
@@ -127,6 +130,23 @@ var Terminal = Terminal || function(containerId) {
     }
   }, false);
 
+  function setFocus_(focusFlag) {
+    if (focusFlag) {
+      if (game_) {
+          console.log("requesting focus");
+        game_.requestFocus(this);
+      }
+      cmdLine_.focus();
+    } else {
+      cmdLine_.blur();
+    }
+    hasFocus_ = focusFlag;
+  }
+
+  function setGame_(gameObj) {
+    game_ = gameObj;
+  }
+
   window.addEventListener('click', function(e) {
     //if (!document.body.classList.contains('offscreen')) {
       cmdLine_.focus();
@@ -146,10 +166,13 @@ var Terminal = Terminal || function(containerId) {
   }, false);*/
 
   function inputTextClick_(e) {
+    setFocus_(true);
     this.value = this.value;
   }
 
   function keyboardShortcutHandler_(e) {
+    if (!hasFocus_) { return; }
+
     // Toggle CRT screen flicker.
     if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) { // crtl+s
       container_.classList.toggle('flicker');
@@ -166,6 +189,7 @@ var Terminal = Terminal || function(containerId) {
   }
 
   function historyHandler_(e) { // Tab needs to be keydown.
+    if (!hasFocus_) { return; }
 
     if (history_.length) {
       if (e.keyCode == 38 || e.keyCode == 40) {
@@ -196,6 +220,7 @@ var Terminal = Terminal || function(containerId) {
   }
 
   function processNewCommand_(e) {
+    if (!hasFocus_) { return; }
 
     // Beep on backspace and no value on command line.
     if (!this.value && e.keyCode == 8) {
@@ -690,7 +715,7 @@ var Terminal = Terminal || function(containerId) {
   function output(html) {
     output_.insertAdjacentHTML('beforeEnd', html);
     //output_.scrollIntoView();
-    //cmdLine_.scrollIntoView();
+    cmdLine_.scrollIntoView();
   }
 
   return {
@@ -703,22 +728,8 @@ var Terminal = Terminal || function(containerId) {
     output: output,
     setTheme: setTheme_,
     getCmdLine: function() { return cmdLine_; },
-    addDroppedFiles: function(files) {
-      util.toArray(files).forEach(function(file, i) {
-        cwd_.getFile(file.name, {create: true, exclusive: true}, function(fileEntry) {
-
-          // Tell FSN visualizer we've added a file.
-          if (fsn_) {
-            fsn_.contentWindow.postMessage({cmd: 'touch', data: file.name}, location.origin);
-          }
-          
-          fileEntry.createWriter(function(fileWriter) {
-            fileWriter.write(file);
-          }, errorHandler_);
-        }, errorHandler_);
-      });
-    },
-    selectFile: selectFile_
+    setFocus: setFocus_,
+    setGame: setGame_
   }
 };
 

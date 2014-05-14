@@ -8,28 +8,9 @@
         <script src="/game.js"></script>
         <link rel="stylesheet" media="all" href="terminal.css">
     </head>
-    <body onload="Game.init()">
+    <body>
         <h3><div id="locationDisp">ROTCS</div></h3>
-        <div id="displayArea">&nbsp;</div>
-
-
-        <aside class="help hidden">
-          <section>
-            <div>
-              <span onclick="toggleHelp()" id="close">x</span>
-              <h2>Keyboard shortcuts</h2>
-              <div class="shortcuts">
-                <p><strong>&lt;ctrl&gt; + s</strong> : Toggle CRT monitor flicker effect</p>
-                <p><strong>&lt;esc&gt;</strong> : toggle this help menu</p>
-              </div>
-            </div>
-            <div>
-              <h2>What is this?</h2>
-              <p>A Command-line terminal/shell running on top of HTML5 APIs.</p>
-              <p>By: Eric Bidelman &lt;ericbidelman@chromium.org&gt;</p>
-            </div>
-          </section>
-        </aside>
+        <div id="displayArea" tabindex="1">&nbsp;</div>
 
         <!--<div class="crt top"></div>-->
         <div class="interlace">&nbsp;</div>
@@ -46,6 +27,7 @@
           (function() {
           var term = new Terminal('container');
           term.initFS(false, 1024 * 1024);
+          Game.init(term);
           
           if (document.location.hash) {
           var theme = document.location.hash.substring(1).split('=')[1];

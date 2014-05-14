@@ -1,7 +1,13 @@
 var Game = {
     display: null,
  
-    init: function() {
+    init: function(term) {
+        this.hasFocus = true;
+        this.term = term
+        if (this.term) {
+            this.term.setGame(this);
+            this.term.setFocus(false);
+        }
         var dwidth = 79;  this.dwidth = dwidth;
         var dheight = 25; this.dheight = dheight;
         this.centerx = 39;
@@ -145,6 +151,17 @@ var Game = {
     }
 };
 
+Game.requestFocus = function(obj) {
+    Game.hasFocus = false;
+}
+
+Game.takeFocus = function() {
+    if (Game.term) {
+        Game.term.setFocus(false);
+    }
+    Game.hasFocus = true;
+}
+
 Game.coord = function(x, y) {
     return Game.coordCache[y][x];
 }
@@ -218,11 +235,10 @@ Game.preMove = function(move) {
 }
 
 Game.sendMove = function(data) {
-    console.log("sending: ", data, Game.location);
+    //Game.term.output("sending: "+data+"<br>");
     if ((!Game.oldLocation) && Game.location) {
         Game.preMove(data);
     }
-    console.log("location now: ", Game.location);
     Game.sendMoveQueue.enqueue(data);
     //var data = JSON.stringify(jsonObj);
     //Game.ws.send(data);
@@ -361,6 +377,16 @@ Game.handleKeyboardInput = function (e) {
 
     var code = e.keyCode; 
 
+    if (code == 9) {
+        if (!Game.hasFocus) {
+            Game.takeFocus();
+        } else {
+            Game.term.setFocus(true);
+        }
+        e.preventDefault();
+    }
+    if (!Game.hasFocus) { return; }
+
     if (code == 85) {
         // keyCode for "u"
         Game.loadTestMode = ! Game.loadTestMode;
@@ -398,6 +424,7 @@ Game.findPath = function(x, y) {
 }
 
 Game.handleMouseEvent = function (e) {
+    Game.takeFocus();
     var arrays_equal = function(a,b) { return !(a<b || b<a); };
     var moveToLetter = function(aMove) {
         if (arrays_equal(aMove,[-1,0])) { return "w"; }
