@@ -2,11 +2,11 @@ var Game = {
     display: null,
  
     init: function(term) {
-        this.hasFocus = true;
+        this.hasFocus = "game";
         this.term = term
         if (this.term) {
             this.term.setGame(this);
-            this.term.setFocus(false);
+            this.term.setFocus("game");
         }
         var dwidth = 79;  this.dwidth = dwidth;
         var dheight = 25; this.dheight = dheight;
@@ -147,15 +147,15 @@ var Game = {
     }
 };
 
-Game.requestFocus = function(obj) {
-    Game.hasFocus = false;
+Game.focusID = function() {
+    return Game.hasFocus;
 }
 
-Game.takeFocus = function() {
-    if (Game.term) {
-        Game.term.setFocus(false);
+Game.setFocus = function(value) {
+    Game.hasFocus = value;
+    if (Game.term && (Game.term.focusID() !== value)) {
+        Game.term.setFocus(value);
     }
-    Game.hasFocus = true;
 }
 
 Game.coord = function(x, y) {
@@ -246,7 +246,7 @@ Game.sendMessage = function(data) {
 
 Game.showMessage = function(message) {
     if (Game.term) {
-        Game.term.output(message);
+        Game.term.output(message+"<br>");
     }
 }
 
@@ -384,14 +384,14 @@ Game.handleKeyboardInput = function (e) {
     var code = e.keyCode; 
 
     if (code == 9) {
-        if (!Game.hasFocus) {
-            Game.takeFocus();
+        if (! (Game.hasFocus === "game")) {
+            Game.setFocus("game");
         } else {
-            Game.term.setFocus(true);
+            Game.setFocus("term");
         }
         e.preventDefault();
     }
-    if (!Game.hasFocus) { return; }
+    if (! (Game.hasFocus === "game")) { return; }
 
     if (code == 85) {
         // keyCode for "u"
@@ -430,7 +430,7 @@ Game.findPath = function(x, y) {
 }
 
 Game.handleMouseEvent = function (e) {
-    Game.takeFocus();
+    Game.setFocus("game");
     var arrays_equal = function(a,b) { return !(a<b || b<a); };
     var moveToLetter = function(aMove) {
         if (arrays_equal(aMove,[-1,0])) { return "w"; }

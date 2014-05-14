@@ -96,7 +96,7 @@ var Terminal = Terminal || function(containerId) {
   ];
   const THEMES_ = ['default', 'cream'];
 
-  var hasFocus_ = true;
+  var hasFocus_ = "game";
   var game_ = null;
 
   var fs_ = null;
@@ -130,17 +130,17 @@ var Terminal = Terminal || function(containerId) {
     }
   }, false);
 
-  function setFocus_(focusFlag) {
-    if (focusFlag) {
-      if (game_) {
-          console.log("requesting focus");
-        game_.requestFocus(this);
+  function setFocus_(value) {
+      if (value !== hasFocus_) {
+          hasFocus_ = value;
       }
-      cmdLine_.focus();
-    } else {
-      cmdLine_.blur();
-    }
-    hasFocus_ = focusFlag;
+      if (game_ && (game_.focusID() !== value)) {
+          game_.setFocus(value);
+      }
+  }
+
+  function focusID_() {
+      return hasFocus_;
   }
 
   function setGame_(gameObj) {
@@ -166,12 +166,12 @@ var Terminal = Terminal || function(containerId) {
   }, false);*/
 
   function inputTextClick_(e) {
-    setFocus_(true);
+    setFocus_("term");
     this.value = this.value;
   }
 
   function keyboardShortcutHandler_(e) {
-    if (!hasFocus_) { return; }
+    if (! (hasFocus_ === "term")) { return; }
 
     // Toggle CRT screen flicker.
     if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) { // crtl+s
@@ -189,7 +189,7 @@ var Terminal = Terminal || function(containerId) {
   }
 
   function historyHandler_(e) { // Tab needs to be keydown.
-    if (!hasFocus_) { return; }
+    if (! (hasFocus_ === "term")) { return; }
 
     if (history_.length) {
       if (e.keyCode == 38 || e.keyCode == 40) {
@@ -220,7 +220,7 @@ var Terminal = Terminal || function(containerId) {
   }
 
   function processNewCommand_(e) {
-    if (!hasFocus_) { return; }
+    if (! (hasFocus_ === "term")) { return; }
 
     // Beep on backspace and no value on command line.
     if (!this.value && e.keyCode == 8) {
@@ -732,7 +732,8 @@ var Terminal = Terminal || function(containerId) {
     setTheme: setTheme_,
     getCmdLine: function() { return cmdLine_; },
     setFocus: setFocus_,
-    setGame: setGame_
+    setGame: setGame_,
+    focusID: focusID_
   }
 };
 
