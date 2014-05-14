@@ -27,7 +27,7 @@ var Game = {
 
         this.mapUpdateQueue = new Queue();
         this.drawQueue = new Queue();
-        this.sendMoveQueue = new Queue();
+        this.sendQueue = new Queue();
         this.initialized = false;
 
         this.requestInterval = (1000.0 / 8.0);
@@ -107,19 +107,14 @@ var Game = {
             } else if (! Game.mapUpdateQueue.isEmpty()) {
                 var updateObj = Game.mapUpdateQueue.dequeue();
                 Game.renderDisplay(updateObj);
-            } else if (((currentTime - Game.lastMoveTime) > Game.requestInterval) && (! Game.sendMoveQueue.isEmpty())) {
-                var actions = '';
-                while ( ! Game.sendMoveQueue.isEmpty()) {
-                    actions = actions + Game.sendMoveQueue.dequeue();
-                }
-                //var jsonObj = {"type":"mv", "data":actions};
-                //var data = JSON.stringify(jsonObj);
+            } else if (((currentTime - Game.lastMoveTime) > Game.requestInterval) && (! Game.sendQueue.isEmpty())) {
+                var actions = Game.sendQueue.dequeue();
                 Game.lastMoveTime = currentTime;
-                Game.ws.send("mv:"+actions);
-                //Game.ws.send(data);
+                console.log("sending ", actions);
+                Game.ws.send(actions);
             } else if (Game.loadTestMode && 
                        ((currentTime - Game.lastMoveTime) > Game.requestInterval * 9) && 
-                       Game.sendMoveQueue.isEmpty()) 
+                       Game.sendQueue.isEmpty()) 
             {
                 Game.sendMove("nneessww");
             }
@@ -187,7 +182,7 @@ Game.preMove = function(move) {
         if (!Game.entityUnsafeAt(newLoc)) {
             for (var i = 0; i < Game.dwidth; i++) {
                 line.push(Game.bufferCell(i, Game.dheight - 1));
-                Game.setBufferCell(i, Game.dheight - 1, " ");
+                Game.setBufferCell(i, Game.dheight - 1, Game.bufferCell(i, 0));
             }
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] - 39, Game.location[1] + 12];
@@ -198,7 +193,7 @@ Game.preMove = function(move) {
         if (!Game.entityUnsafeAt(newLoc)) {
             for (var i = 0; i < Game.dwidth; i++) {
                 line.push(Game.bufferCell(i, 0));
-                Game.setBufferCell(i, 0, " ");
+                Game.setBufferCell(i, 0, Game.bufferCell(i, Game.dheight - 1));
             }
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
@@ -209,7 +204,7 @@ Game.preMove = function(move) {
         if (!Game.entityUnsafeAt(newLoc)) {
             for (var j = 0; j < Game.dheight; j++) {
                 line.push(Game.bufferCell(0, j));
-                Game.setBufferCell(0, j, " ");
+                Game.setBufferCell(0, j, Game.bufferCell(Game.dwidth - 1, j));
             }
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
@@ -220,7 +215,7 @@ Game.preMove = function(move) {
         if (!Game.entityUnsafeAt(newLoc)) {
             for (var j = 0; j < Game.dheight; j++) {
                 line.push(Game.bufferCell(Game.dwidth - 1, j));
-                Game.setBufferCell(Game.dwidth - 1, j, " ");
+                Game.setBufferCell(Game.dwidth - 1, j, Game.bufferCell(0, j));
             }
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] + 39, Game.location[1] - 12];
@@ -239,9 +234,13 @@ Game.sendMove = function(data) {
     if ((!Game.oldLocation) && Game.location) {
         Game.preMove(data);
     }
-    Game.sendMoveQueue.enqueue(data);
+    Game.sendQueue.enqueue("mv:" + data);
     //var data = JSON.stringify(jsonObj);
     //Game.ws.send(data);
+};
+
+Game.sendMessage = function(data) {
+    Game.sendQueue.enqueue("ch:" + data);
 };
 
 Game.displayScheme = {

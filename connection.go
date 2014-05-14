@@ -24,6 +24,8 @@ type connection struct {
 
 	moveQueue chan string
 
+	player Creature
+
 	// Buffered channel of outbound messages.
 	send chan []byte
 
@@ -43,6 +45,10 @@ readerLoop:
 		LogTrace("Got:", s)
 		if strings.EqualFold(msgtype, "mv") {
 			c.moveQueue <- s
+		} else if strings.EqualFold(msgtype, "ch") {
+			subgrid := c.player.GetSubgrid()
+			subgrid.chatQueue <- s
+			println(s)
 		}
 		runtime.Gosched()
 	}

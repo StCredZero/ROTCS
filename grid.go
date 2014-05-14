@@ -55,6 +55,7 @@ type DeferredMove struct {
 }
 
 type SubGrid struct {
+	chatQueue   chan string
 	dunGenCache *DunGenCache
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityID
@@ -67,6 +68,7 @@ type SubGrid struct {
 
 func NewSubGrid(gcoord GridCoord) *SubGrid {
 	return &SubGrid{
+		chatQueue:   make(chan string, (subgrid_width * subgrid_height)),
 		dunGenCache: NewDunGenCache(10, DungeonEntropy, DungeonProto),
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
@@ -143,6 +145,7 @@ func (self *SubGrid) NewEntity(ntt Creature) (Creature, bool) {
 		return &Entity{}, false
 	}
 	ntt.SetCoord(loc)
+	ntt.SetSubgrid(self)
 	self.Entities[ntt.EntityID()] = ntt
 	self.Grid[loc] = ntt.EntityID()
 	if ntt.IsPlayer() {
@@ -158,6 +161,7 @@ func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
 		ERROR.Panic("Should not put outside coord!")
 	}
 	ntt.SetCoord(loc)
+	ntt.SetSubgrid(self)
 	self.Grid[loc] = ntt.EntityID()
 	self.Entities[ntt.EntityID()] = ntt
 	if ntt.IsPlayer() {
@@ -172,6 +176,7 @@ func (self *SubGrid) RemoveEntityID(id EntityID) {
 	if ntt.IsPlayer() {
 		self.PlayerCount--
 	}
+	ntt.SetSubgrid(nil)
 	delete(self.Grid, ntt.Coord())
 	delete(self.Entities, id)
 }
@@ -233,6 +238,10 @@ func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`"collided":`)
 	buffer.WriteRune(bool2rune(ntt.Collided()))
 	buffer.WriteString(`}}`)
+}
+
+func (self *SubGrid) SendMessages() {
+
 }
 
 type WorldGrid struct {

@@ -249,10 +249,13 @@ var Terminal = Terminal || function(containerId) {
       input.readOnly = true;
       output_.appendChild(line);
 
+      var lineText = '';
+
       // Parse out command, args, and trim off whitespace.
       // TODO(ericbidelman): Support multiple comma separated commands.
       if (this.value && this.value.trim()) {
-        var args = this.value.split(' ').filter(function(val, i) {
+        lineText = this.value;
+        var args = lineText.split(' ').filter(function(val, i) {
           return val;
         });
         var cmd = args[0].toLowerCase();
@@ -548,8 +551,8 @@ var Terminal = Terminal || function(containerId) {
                  ' - By: Eric Bidelman &lt;ericbidelman@chromium.org&gt;');
           break;
         default:
-          if (cmd) {
-            output(cmd + ': command not found');
+          if (game_) {
+            game_.sendMessage(lineText);
           }
       };
 

@@ -47,6 +47,7 @@ func (srv *CstServer) registerConnection(c *connection) {
 	player := NewPlayer(c)
 	entity, _ := srv.world.NewEntity(player)
 	c.id = entity.EntityID()
+	c.player = entity
 	srv.connections[c] = c.id
 	LogTrace("Initialized entity: ", entity)
 }

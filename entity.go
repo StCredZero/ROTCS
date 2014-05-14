@@ -26,8 +26,10 @@ type Creature interface {
 	CollideWith(Creature)
 	Coord() Coord
 	Detect(Creature)
+	GetSubgrid() *SubGrid
 	HasMove(GridProcessor) bool
 	Initialized() bool
+	SetSubgrid(*SubGrid)
 	SetInitialized(bool)
 	IsPlayer() bool
 	IsTransient() bool
@@ -40,6 +42,7 @@ type Creature interface {
 }
 
 type Entity struct {
+	subgrid      *SubGrid
 	ID           EntityID
 	Init         bool
 	Location     Coord
@@ -63,6 +66,9 @@ func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
 func (ntt *Entity) Detect(player Creature) {}
+func (ntt *Entity) GetSubgrid() *SubGrid {
+	return ntt.subgrid
+}
 func (ntt *Entity) Initialized() bool {
 	return ntt.Init
 }
@@ -71,6 +77,9 @@ func (ntt *Entity) SetInitialized(flag bool) {
 }
 func (ntt *Entity) SetCoord(coord Coord) {
 	ntt.Location = coord
+}
+func (ntt *Entity) SetSubgrid(grid *SubGrid) {
+	ntt.subgrid = grid
 }
 func (ntt *Entity) EntityID() EntityID {
 	return ntt.ID
