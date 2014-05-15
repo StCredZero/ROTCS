@@ -310,7 +310,7 @@ var Terminal = Terminal || function(containerId) {
     }
   }
 
-  function formatColumns_(entries) {
+  /*function formatColumns_(entries) {
     var maxName = entries[0].name;
     util.toArray(entries).forEach(function(entry, i) {
       if (entry.name.length > maxName.length) {
@@ -328,7 +328,7 @@ var Terminal = Terminal || function(containerId) {
 
     return ['<div class="ls-files" style="-webkit-column-width:',
             colWidth, 'px;', height, '">'];
-  }
+  }*/
 
   function invalidOpForEntryType_(e, cmd, dest) {
     if (e.code == FileError.NOT_FOUND_ERR) {
@@ -365,80 +365,6 @@ var Terminal = Terminal || function(containerId) {
         break;
     };
     output('<div>Error: ' + msg + '</div>');
-  }
-
-  function createDir_(rootDirEntry, folders, opt_errorCallback) {
-    var errorCallback = opt_errorCallback || errorHandler_;
-
-    rootDirEntry.getDirectory(folders[0], {create: true}, function(dirEntry) {
-
-      // Recursively add the new subfolder if we still have a subfolder to create.
-      if (folders.length) {
-        createDir_(dirEntry, folders.slice(1));
-      }
-    }, errorCallback);
-  }
-
-  function open_(cmd, path, successCallback) {
-    if (!fs_) {
-      return;
-    }
-
-    cwd_.getFile(path, {}, successCallback, function(e) {
-      if (e.code == FileError.NOT_FOUND_ERR) {
-        output(cmd + ': ' + path + ': No such file or directory<br>');
-      }
-    });
-  }
-
-  function read_(cmd, path, successCallback) {
-    if (!fs_) {
-      return;
-    }
-
-    cwd_.getFile(path, {}, function(fileEntry) {
-      fileEntry.file(function(file) {
-        var reader = new FileReader();
-
-        reader.onloadend = function(e) {
-          successCallback(this.result);
-        };
-
-        reader.readAsText(file);
-      }, errorHandler_);
-    }, function(e) {
-      if (e.code == FileError.INVALID_STATE_ERR) {
-        output(cmd + ': ' + path + ': is a directory<br>');
-      } else if (e.code == FileError.NOT_FOUND_ERR) {
-        output(cmd + ': ' + path + ': No such file or directory<br>');
-      }
-    });
-  }
-
-  function ls_(successCallback) {
-    if (!fs_) {
-      return;
-    }
-
-    // Read contents of current working directory. According to spec, need to
-    // keep calling readEntries() until length of result array is 0. We're
-    // guarenteed the same entry won't be returned again.
-    var entries = [];
-    var reader = cwd_.createReader();
-
-    var readEntries = function() {
-      reader.readEntries(function(results) {
-        if (!results.length) {
-          entries = entries.sort();
-          successCallback(entries);
-        } else {
-          entries = entries.concat(util.toArray(results));
-          readEntries();
-        }
-      }, errorHandler_);
-    };
-
-    readEntries();
   }
 
   function clear_(input) {
