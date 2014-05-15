@@ -114,7 +114,7 @@ var Terminal = Terminal || function(containerId) {
   container_.insertAdjacentHTML('beforeEnd',
       ['<output></output>',
        '<div id="input-line" class="input-line">',
-       '<div class="prompt">$&gt;</div><div><input class="cmdline" autofocus /></div>',
+       '<div class="prompt">$&gt;</div><div class="cmdwrap"><input class="cmdline" autofocus /></div>',
        '</div>'].join(''));
   var cmdLine_ = container_.querySelector('#input-line .cmdline');
   var output_ = container_.querySelector('output');
