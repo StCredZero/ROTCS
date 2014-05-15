@@ -345,8 +345,15 @@ Game.commitDisplay = function() {
 };
  
 Game.renderDisplay = function(updateObj) {
-    if (updateObj.entities) {
-        Game.entities = updateObj.entities; 
+    if (updateObj.entities) { Game.entities = updateObj.entities; }
+    if (updateObj.health) { Game.health = updateObj.health; }
+    if (updateObj.messages) {
+        var messages = updateObj.messages
+        for (var i = 0; i < messages.length; i++) {
+            if (messages[i].length > 0) {
+                Game.showMessage(messages[i]);
+            }
+        }
     }
 
     if (updateObj.maptype === "basic") {
@@ -386,7 +393,9 @@ Game.renderDisplay = function(updateObj) {
         Game.commitDisplay();
     }
     if (Game.location) {
-        document.getElementById("locationDisp").innerHTML = "ROTCS - location: "+Game.location[0]+","+Game.location[1];
+        document.getElementById("locationDisp").innerHTML = 
+            ["Health: ", Game.health, 
+             "  Location: " , Game.location[0],",",Game.location[1]].join("");
     }
 }
 

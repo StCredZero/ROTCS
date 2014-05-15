@@ -22,8 +22,11 @@ func NewEntityID() EntityID {
 type Creature interface {
 	EntityID() EntityID
 
+	AddMessage(string)
 	CalcMove(GridKeeper) Coord
+	CanDamage(Creature) bool
 	CanSwapWith(Creature) bool
+	ChangeHealth(int)
 	Collided() bool
 	CollideWall()
 	CollideWith(Creature)
@@ -32,22 +35,26 @@ type Creature interface {
 	DisplayString() string
 	GetSubgrid() *SubGrid
 	HasMove(GridProcessor) bool
+	Health() int
+	Inbox() []string
 	Initialized() bool
 	IsPlayer() bool
 	IsTransient() bool
 	LastDispCoord() Coord
 	Outbox() []string
-	SetSubgrid(*SubGrid)
-	SetInitialized(bool)
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
 	SetEntityID(EntityID)
+	SetHealth(int)
+	SetInitialized(bool)
+	SetSubgrid(*SubGrid)
 	TickZero(GridProcessor) bool
 	WriteFor(Creature, *bytes.Buffer)
 }
 
 type Entity struct {
 	subgrid      *SubGrid
+	health       int
 	ID           EntityID
 	Init         bool
 	Location     Coord
@@ -56,11 +63,18 @@ type Entity struct {
 	TickOffset   uint64
 }
 
+func (ntt *Entity) AddMessage(msg string) {}
 func (ntt *Entity) CalcMove(grid GridKeeper) Coord {
 	return ntt.Location
 }
+func (ntt *Entity) CanDamage(c Creature) bool {
+	return false
+}
 func (ntt *Entity) CanSwapWith(c Creature) bool {
 	return false
+}
+func (ntt *Entity) ChangeHealth(delta int) {
+	ntt.health += delta
 }
 func (ntt *Entity) Collided() bool {
 	return false
@@ -77,17 +91,26 @@ func (ntt *Entity) DisplayString() string {
 func (ntt *Entity) GetSubgrid() *SubGrid {
 	return ntt.subgrid
 }
+func (ntt *Entity) Health() int {
+	return ntt.health
+}
+func (ntt *Entity) Inbox() []string {
+	return nil
+}
 func (ntt *Entity) Initialized() bool {
 	return ntt.Init
 }
 func (ntt *Entity) Outbox() []string {
 	return nil
 }
-func (ntt *Entity) SetInitialized(flag bool) {
-	ntt.Init = flag
-}
 func (ntt *Entity) SetCoord(coord Coord) {
 	ntt.Location = coord
+}
+func (ntt *Entity) SetHealth(x int) {
+	ntt.health = x
+}
+func (ntt *Entity) SetInitialized(flag bool) {
+	ntt.Init = flag
 }
 func (ntt *Entity) SetSubgrid(grid *SubGrid) {
 	ntt.subgrid = grid
@@ -99,6 +122,9 @@ func (ntt *Entity) SetEntityID(id EntityID) {
 	ntt.ID = id
 }
 func (ntt *Entity) HasMove(gproc GridProcessor) bool {
+	if ntt.health <= 0 {
+		return false
+	}
 	phase := uint8((gproc.TickNumber() + ntt.TickOffset) % 8)
 	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
@@ -126,6 +152,7 @@ type Player struct {
 	Entity
 	collided      bool
 	Connection    *connection
+	inbox         []string
 	LastUpdateLoc Coord
 	Moves         string
 	outbox        []string
@@ -133,6 +160,7 @@ type Player struct {
 
 func NewPlayer(c *connection) *Player {
 	entity := Entity{
+		health:       80,
 		ID:           c.id,
 		Symbol:       '@',
 		MoveSchedule: 0xFF,
@@ -141,11 +169,15 @@ func NewPlayer(c *connection) *Player {
 	return &Player{
 		Connection: c,
 		Entity:     entity,
+		inbox:      make([]string, 0, (subgrid_width * subgrid_height)),
 		Moves:      "",
 		outbox:     make([]string, 0, 20),
 	}
 }
 
+func (ntt *Player) AddMessage(msg string) {
+	ntt.inbox = append(ntt.inbox, msg)
+}
 func (ntt *Player) CalcMove(grid GridKeeper) Coord {
 	select {
 	case moves := <-ntt.Connection.moveQueue:
@@ -162,6 +194,9 @@ func (ntt *Player) CalcMove(grid GridKeeper) Coord {
 	}
 	return loc.MovedBy(move)
 }
+func (ntt *Player) CanDamage(other Creature) bool {
+	return !other.IsPlayer()
+}
 func (ntt *Player) CanSwapWith(other Creature) bool {
 	return other.IsPlayer()
 }
@@ -173,6 +208,10 @@ func (ntt *Player) CollideWall() {
 }
 func (ntt *Player) CollideWith(other Creature) {
 	ntt.collided = true
+	if ntt.CanDamage(other) {
+		other.ChangeHealth(-1)
+		ntt.AddMessage("hit monster")
+	}
 }
 func (ntt *Player) Detect(player Creature) {
 	//if player.IsPlayer() {
@@ -184,6 +223,9 @@ func (ntt *Player) Detect(player Creature) {
 func (ntt *Player) FormattedMessage(msg string) string {
 	s := []string{ntt.DisplayString(), `: `, msg}
 	return strings.Join(s, "")
+}
+func (ntt *Player) Inbox() []string {
+	return ntt.inbox
 }
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
@@ -203,6 +245,7 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	ntt.Connection.send <- buffer.Bytes()
 	ntt.LastUpdateLoc = ntt.Location
 	ntt.collided = false
+	ntt.inbox = ntt.inbox[:0]
 	ntt.outbox = ntt.outbox[:0]
 	LogTrace("End SendDisplay ", ntt.Location)
 }
@@ -220,6 +263,7 @@ type Monster struct {
 
 func NewMonster(id EntityID) Creature {
 	entity := Entity{
+		health:       10,
 		ID:           id,
 		Symbol:       '%',
 		MoveSchedule: 0x55,
@@ -258,6 +302,15 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 	}
 	return ntt.Location
 }
+func (ntt *Monster) CanDamage(other Creature) bool {
+	return other.IsPlayer()
+}
+func (ntt *Monster) CollideWith(other Creature) {
+	if ntt.CanDamage(other) {
+		other.ChangeHealth(-1)
+		other.AddMessage("hit by monster")
+	}
+}
 func (ntt *Monster) Detect(player Creature) {
 	loc1, loc2 := ntt.Coord(), player.Coord()
 	dist := distance(loc1, loc2)
@@ -269,4 +322,7 @@ func (ntt *Monster) Detect(player Creature) {
 		}
 		ntt.detections <- det
 	}
+}
+func (ntt *Monster) DisplayString() string {
+	return "Exo"
 }

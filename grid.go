@@ -22,6 +22,7 @@ type GridKeeper interface {
 	OutOfBounds(Coord) bool
 	PutEntityAt(Creature, Coord)
 	RemoveEntityID(EntityID)
+	Scavenge()
 	SendDisplays(GridProcessor)
 	SwapEntities(Creature, Creature)
 	UpdateMovers(GridProcessor)
@@ -209,6 +210,13 @@ func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 		}
 	}
 }
+func (self *SubGrid) Scavenge() {
+	for id, ntt := range self.Entities {
+		if !ntt.IsPlayer() && ntt.Health() <= 0 {
+			self.RemoveEntityID(id)
+		}
+	}
+}
 func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
 		ntt.SendDisplay(self, gproc)
@@ -220,11 +228,17 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	x, y := ntt.Coord().x, ntt.Coord().y
 	buffer.WriteString(`{"type":"update",`)
+
 	buffer.WriteString(`"location":[`)
 	buffer.WriteString(strconv.FormatInt(x, 10))
 	buffer.WriteRune(',')
 	buffer.WriteString(strconv.FormatInt(y, 10))
 	buffer.WriteString(`],`)
+
+	buffer.WriteString(`"health":`)
+	buffer.WriteString(strconv.FormatInt(int64(ntt.Health()), 10))
+	buffer.WriteRune(',')
+
 	self.dunGenCache.WriteMap(ntt, buffer)
 	buffer.WriteRune(',')
 	buffer.WriteString(`"entities":{`)
@@ -236,6 +250,14 @@ func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteString(`},`)
 	buffer.WriteString(`"collided":`)
 	buffer.WriteRune(bool2rune(ntt.Collided()))
+	buffer.WriteRune(',')
+	buffer.WriteString(`"messages":[`)
+	for _, msg := range ntt.Inbox() {
+		buffer.WriteRune('"')
+		buffer.WriteString(msg)
+		buffer.WriteString(`",`)
+	}
+	buffer.WriteString(`""]`)
 	buffer.WriteRune('}')
 }
 
@@ -292,6 +314,7 @@ func (self *WorldGrid) playerGrids() *(map[GridCoord]bool) {
 
 func (self *WorldGrid) discardEmpty() {
 	for gc, subgrid := range self.grid {
+		subgrid.Scavenge()
 		if subgrid.Count() == 0 {
 			delete(self.grid, gc)
 		}
@@ -488,6 +511,11 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 			}
 		}
 	}
+}
+func (self *WorldGrid) Scavenge() {
+	self.ParallelExec(func(subgrid *SubGrid) {
+		subgrid.Scavenge()
+	})
 }
 func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
 	self.ParallelExec(func(subgrid *SubGrid) {
