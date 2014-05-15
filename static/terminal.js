@@ -130,16 +130,15 @@ var Terminal = Terminal || function(containerId) {
   }, false);
 
   function setFocus_(value) {
-      if (value !== hasFocus_) {
+      if (!(value === hasFocus_)) {
+          console.log("term setting focus: ", value);
           hasFocus_ = value;
           if (hasFocus_ === "term") {
               cmdLine_.focus();
           } else {
               cmdLine_.blur();
           }
-      }
-      if (game_ && (game_.focusID() !== value)) {
-          game_.setFocus(value);
+          if ((value === "term") && game_) { game_.setFocus(value); }
       }
   }
 

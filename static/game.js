@@ -151,17 +151,21 @@ Game.focusID = function() {
 }
 
 Game.setFocus = function(value) {
-    if (value !== Game.hasFocus) {
-        Game.hasFocus = value;
-        if (Game.hasFocus === "game") {
-            Game.displayNode.borderColor = "green";
-            Game.displayNode.focus();
-        } else {
-            Game.displayNode.borderColor = "#000000";
+    if (!(value === Game.hasFocus)) {
+        var currentTime = (new Date).getTime();
+        if ((!Game.lastFocusTime) || (currentTime - Game.lastFocusTime > 100.0)) {
+            console.log("game setting focus: ", value);
+            Game.lastFocusTime = currentTime;
+            Game.hasFocus = value;
+            if (Game.hasFocus === "game") {
+                Game.displayNode.borderColor = "green";
+                Game.displayNode.focus();
+            } else {
+                Game.displayNode.borderColor = "#000000";
+                Game.displayNode.blur();
+            }
+            Game.term.setFocus(value); 
         }
-    }
-    if (Game.term && (Game.term.focusID() !== value)) {
-        Game.term.setFocus(value);
     }
 }
 

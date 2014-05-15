@@ -14,7 +14,7 @@
 
         <!--<div class="crt top"></div>-->
         <div class="interlace">&nbsp;</div>
-        <div id="container">&nbsp;</div>
+        <div id="container" tabindex="2">&nbsp;</div>
         <!--<div class="crt bottom"></div>-->
 
         <script src="terminal.js"></script>
@@ -24,7 +24,6 @@
           term.initFS(false, 1024 * 1024);
           Game.init(term);
           Game.setFocus("term");
-          Game.setFocus("game");
           })();
         </script>
     </body>
