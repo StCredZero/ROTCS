@@ -13,7 +13,7 @@ import (
 func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
 		isOpen:    true,
-		moveQueue: make(chan string, 10),
+		moveQueue: make(chan string, 20),
 		send:      make(chan []byte, 256),
 		ws:        ws,
 	}

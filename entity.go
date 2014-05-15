@@ -142,7 +142,7 @@ func NewPlayer(c *connection) *Player {
 		Connection: c,
 		Entity:     entity,
 		Moves:      "",
-		outbox:     make([]string, 0, 10),
+		outbox:     make([]string, 0, 20),
 	}
 }
 
