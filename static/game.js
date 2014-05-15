@@ -143,6 +143,7 @@ var Game = {
         if (this.term) {
             this.term.setGame(this);
         } 
+        this.health = 0;
     }
 };
 
@@ -243,7 +244,7 @@ Game.preMove = function(move) {
 
 Game.sendMove = function(data) {
     //Game.term.output("sending: "+data+"<br>");
-    if ((!Game.oldLocation) && Game.location) {
+    if ((!Game.oldLocation) && Game.location && Game.health > 0) {
         Game.preMove(data);
     }
     Game.sendQueue.enqueue("mv:" + data);
