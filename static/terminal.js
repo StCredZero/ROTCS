@@ -267,27 +267,28 @@ var Terminal = Terminal || function(containerId) {
       }
 
       switch (cmd) {
-        case 'clear':
+      case 'c':
+      case 'clear':
           clear_(this);
           return;
-        case 'date':
+      case 'date':
           output((new Date()).toLocaleString());
           break;
-        case 'exit':
+      case 'exit':
           output(cmd + ':  is under construction<br>');
           break;
-        case 'help':
+      case 'help':
           output('<div class="ls-files">' + CMDS_.join('<br>') + '</div>');
           output('<p>Toggle command mode using the ESC key.</p>');
           break;
-        case 'login':
+      case 'login':
           output(cmd + ':  is under construction<br>');
           break;
-        case 'mission':
+      case 'mission':
           output(cmd + ':  is under construction<br>');
           break;
-        case 's':
-        case 'say':
+      case 's':
+      case 'say':
           if (game_) {
               if (args.length == 0) {
                   output('you said nothing<br>');
@@ -296,16 +297,16 @@ var Terminal = Terminal || function(containerId) {
               }
           }
           break;
-        case 'version':
-        case 'ver':
+      case 'version':
+      case 'ver':
           output(VERSION_);
           break;
-        case 'who':
+      case 'who':
           output(cmd + ':  is under construction<br>');
           break;
-        default:
+      default:
           if (cmd) {
-            output(cmd + ': command not found');
+              output(cmd + ': command not found');
           }
       };
 
