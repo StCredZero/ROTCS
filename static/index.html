@@ -25,21 +25,6 @@
           Game.init(term);
           Game.setFocus("term");
           Game.setFocus("game");
-          
-          if (document.location.hash) {
-          var theme = document.location.hash.substring(1).split('=')[1];
-          term.setTheme(theme);
-          } else if (localStorage.theme) {
-          term.setTheme(localStorage.theme);
-          }
-          
-          document.body.addEventListener('keydown', function(e) {
-          if (e.keyCode == 27) { // Esc
-          toggleHelp();
-          e.stopPropagation();
-          e.preventDefault();
-          }
-          }, false);
           })();
         </script>
     </body>
