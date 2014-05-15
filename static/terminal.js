@@ -91,7 +91,7 @@ var Terminal = Terminal || function(containerId) {
 
   const VERSION_ = '0.1';
   const CMDS_ = [
-    'clear', 'date', 'exit', 'help', 'login', 'say', 'version', 'who'
+    'clear', 'date', 'exit', 'help', 'login', 'mission', 'say', 'version', 'who'
   ];
   const THEMES_ = ['default', 'cream'];
 
@@ -278,9 +278,12 @@ var Terminal = Terminal || function(containerId) {
           break;
         case 'help':
           output('<div class="ls-files">' + CMDS_.join('<br>') + '</div>');
-          //output('<p>Add files by dragging them from your desktop.</p>');
+          output('<p>Toggle command mode using the ESC key.</p>');
           break;
         case 'login':
+          output(cmd + ':  is under construction<br>');
+          break;
+        case 'mission':
           output(cmd + ':  is under construction<br>');
           break;
         case 's':
