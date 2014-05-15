@@ -50,7 +50,6 @@ readerLoop:
 		if strings.EqualFold(msgtype, "mv") {
 			c.moveQueue <- s
 		} else if strings.EqualFold(msgtype, "ch") {
-			fmt.Println("chat: ", s)
 			var buffer bytes.Buffer
 			buffer.WriteString(`{"type":"message","data":"`)
 			buffer.WriteString(c.player.FormattedMessage(s))
