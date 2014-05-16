@@ -144,6 +144,8 @@ var Game = {
             this.term.setGame(this);
         } 
         this.health = 0;
+        this.pop = 0;
+        this.load = 0;
     }
 };
 
@@ -348,6 +350,8 @@ Game.commitDisplay = function() {
 Game.renderDisplay = function(updateObj) {
     if (updateObj.entities) { Game.entities = updateObj.entities; }
     if (updateObj.health) { Game.health = updateObj.health; }
+    if (updateObj.pop) { Game.pop = updateObj.pop }
+    if (updateObj.load) { Game.load = updateObj.load }
     if (updateObj.messages) {
         var messages = updateObj.messages
         for (var i = 0; i < messages.length; i++) {
@@ -395,8 +399,10 @@ Game.renderDisplay = function(updateObj) {
     }
     if (Game.location) {
         document.getElementById("locationDisp").innerHTML = 
-            ["Health: ", Game.health, 
-             "  Location: " , Game.location[0],",",Game.location[1]].join("");
+            ["Health:", Game.health, 
+             " Location:" , Game.location[0],",",Game.location[1],
+             " Users:", Game.pop,
+             " Server Load:",Game.load].join("");
     }
 }
 

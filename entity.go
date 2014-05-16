@@ -241,7 +241,7 @@ func (ntt *Player) Outbox() []string {
 func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	LogTrace("Start SendDisplay ", ntt.Location)
 	var buffer bytes.Buffer
-	grid.WriteDisplay(ntt, &buffer)
+	grid.WriteDisplay(ntt, gproc, &buffer)
 	ntt.Connection.send <- buffer.Bytes()
 	ntt.LastUpdateLoc = ntt.Location
 	ntt.collided = false

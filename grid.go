@@ -9,6 +9,8 @@ import (
 )
 
 type GridProcessor interface {
+	ServerLoad() float64
+	ServerPopulation() int
 	TickNumber() uint64
 }
 
@@ -27,7 +29,7 @@ type GridKeeper interface {
 	SwapEntities(Creature, Creature)
 	UpdateMovers(GridProcessor)
 	WalkableAt(Coord) bool
-	WriteDisplay(Creature, *bytes.Buffer)
+	WriteDisplay(Creature, GridProcessor, *bytes.Buffer)
 	WriteEntities(Creature, *bytes.Buffer)
 }
 
@@ -229,9 +231,17 @@ func (self *SubGrid) SendDisplays(gproc GridProcessor) {
 
 // WriteDisplay can only be called on the SubGrid through ParallelExec()
 // It is not concurrent
-func (self *SubGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
+func (self *SubGrid) WriteDisplay(ntt Creature, gproc GridProcessor, buffer *bytes.Buffer) {
 	x, y := ntt.Coord().x, ntt.Coord().y
 	buffer.WriteString(`{"type":"update",`)
+
+	buffer.WriteString(`"pop":`)
+	buffer.WriteString(strconv.FormatInt(int64(gproc.ServerPopulation()), 10))
+	buffer.WriteRune(',')
+
+	buffer.WriteString(`"load":`)
+	buffer.WriteString(strconv.FormatFloat(gproc.ServerLoad(), 'f', 2, 64))
+	buffer.WriteRune(',')
 
 	buffer.WriteString(`"location":[`)
 	buffer.WriteString(strconv.FormatInt(x, 10))
@@ -535,6 +545,6 @@ func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
 		subgrid.SendDisplays(gproc)
 	})
 }
-func (self *WorldGrid) WriteDisplay(ntt Creature, buffer *bytes.Buffer) {
+func (self *WorldGrid) WriteDisplay(ntt Creature, gproc GridProcessor, buffer *bytes.Buffer) {
 	ERROR.Panic("Should not call on World!")
 }

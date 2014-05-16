@@ -12,8 +12,14 @@ type CstServer struct {
 	// Registered connections.
 	connections map[*connection]EntityID
 
+	load float64
+
+	population int
+
 	// Register requests from the connections.
 	register chan *connection
+
+	tickNumber uint64
 
 	// Unregister requests from connections.
 	unregister chan *connection
@@ -21,10 +27,6 @@ type CstServer struct {
 	//entityIdGen chan EntityID
 
 	world *WorldGrid
-
-	//dunGenCache *DunGenCache
-
-	tickNumber uint64
 }
 
 func NewCstServer() *CstServer {
@@ -36,6 +38,14 @@ func NewCstServer() *CstServer {
 	}
 	srv.world = NewWorldGrid()
 	return &srv
+}
+
+func (srv *CstServer) ServerLoad() float64 {
+	return srv.load
+}
+
+func (srv *CstServer) ServerPopulation() int {
+	return srv.population
 }
 
 func (srv *CstServer) TickNumber() uint64 {
@@ -104,10 +114,10 @@ func (srv *CstServer) runLoop() {
 			for i := 0; i < ticksPerSec; i++ {
 				sum += load[i]
 			}
-			avg := sum / ticksPerSec
-			pop := srv.world.playerCount()
+			srv.load = sum / ticksPerSec
+			srv.population = srv.world.playerCount()
 			//message := fmt.Sprintf("Load: %f", avg)
-			LogProfile("Players, Load: ", pop, avg)
+			LogProfile("Players, Load: ", srv.population, srv.load)
 		}
 
 		if tickDuration < tickSecs {
