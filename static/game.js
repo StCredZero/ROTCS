@@ -433,6 +433,7 @@ Game.handleKeyboardInput = function (e) {
         
     if (code === "0") { return; }
 
+    e.stopPropagation();
     Game.sendMove(action);
 
 };
