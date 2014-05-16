@@ -17,12 +17,12 @@ type GridKeeper interface {
 	DungeonAt(Coord) int8
 	EmptyAt(Coord) bool
 	EntityAt(Coord) (Creature, bool)
+	MarkDead(Creature)
 	MoveEntity(Creature, Coord)
 	NewEntity(Creature) (Creature, bool)
 	OutOfBounds(Coord) bool
 	PutEntityAt(Creature, Coord)
 	RemoveEntityID(EntityID)
-	Scavenge()
 	SendDisplays(GridProcessor)
 	SwapEntities(Creature, Creature)
 	UpdateMovers(GridProcessor)
@@ -34,7 +34,9 @@ type GridKeeper interface {
 func ExecuteMove(ntt Creature, grid GridKeeper, loc Coord) {
 	if grid.OutOfBounds(loc) {
 		grid.DeferMove(ntt, loc)
-	} else if grid.WalkableAt(loc) {
+		return
+	}
+	if grid.WalkableAt(loc) {
 		other, present := grid.EntityAt(loc)
 		if present {
 			if ntt.CanSwapWith(other) {
@@ -57,6 +59,7 @@ type DeferredMove struct {
 
 type SubGrid struct {
 	chatQueue   chan string
+	deaths      []EntityID
 	dunGenCache *DunGenCache
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityID
@@ -70,6 +73,7 @@ type SubGrid struct {
 func NewSubGrid(gcoord GridCoord) *SubGrid {
 	return &SubGrid{
 		chatQueue:   make(chan string, (subgrid_width * subgrid_height)),
+		deaths:      make([]EntityID, 0, 10),
 		dunGenCache: NewDunGenCache(10, DungeonEntropy, DungeonProto),
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
@@ -114,6 +118,10 @@ func (self *SubGrid) EntityAt(loc Coord) (Creature, bool) {
 	} else {
 		return nil, false
 	}
+}
+
+func (self *SubGrid) MarkDead(ntt Creature) {
+	self.deaths = append(self.deaths, ntt.EntityID())
 }
 
 const subgrid_placement_trys = 100
@@ -172,7 +180,7 @@ func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
 func (self *SubGrid) RemoveEntityID(id EntityID) {
 	ntt, present := self.Entities[id]
 	if !present {
-		ERROR.Panic("Removing nonexistent Entity")
+		return
 	}
 	if ntt.IsPlayer() {
 		self.PlayerCount--
@@ -208,12 +216,8 @@ func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 			loc := ntt.CalcMove(self)
 			ExecuteMove(ntt, self, loc)
 		}
-	}
-}
-func (self *SubGrid) Scavenge() {
-	for id, ntt := range self.Entities {
-		if !ntt.IsPlayer() && ntt.Health() <= 0 {
-			self.RemoveEntityID(id)
+		if ntt.Health() <= 0 {
+			self.MarkDead(ntt)
 		}
 	}
 }
@@ -266,6 +270,7 @@ func (self *SubGrid) SendMessages() {
 }
 
 type WorldGrid struct {
+	deaths      []EntityID
 	dunGenCache *DunGenCache
 	grid        map[GridCoord]*SubGrid
 	entityGrid  map[EntityID]GridCoord
@@ -314,11 +319,18 @@ func (self *WorldGrid) playerGrids() *(map[GridCoord]bool) {
 
 func (self *WorldGrid) discardEmpty() {
 	for gc, subgrid := range self.grid {
-		subgrid.Scavenge()
+		for _, id := range subgrid.deaths {
+			self.RemoveEntityID(id)
+		}
+		subgrid.deaths = subgrid.deaths[:0]
 		if subgrid.Count() == 0 {
 			delete(self.grid, gc)
 		}
 	}
+	for _, id := range self.deaths {
+		self.RemoveEntityID(id)
+	}
+	self.deaths = self.deaths[:0]
 }
 
 func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
@@ -411,6 +423,9 @@ func (self *WorldGrid) EntityAt(loc Coord) (Creature, bool) {
 		return ntt, present
 	}
 }
+func (self *WorldGrid) MarkDead(ntt Creature) {
+	self.deaths = append(self.deaths, ntt.EntityID())
+}
 func (self *WorldGrid) MoveEntity(ntt Creature, loc Coord) {
 	gc1, present := self.entityGrid[ntt.EntityID()]
 	if !present {
@@ -469,7 +484,7 @@ func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
 func (self *WorldGrid) RemoveEntityID(id EntityID) {
 	gridCoord, present := self.entityGrid[id]
 	if !present {
-		ERROR.Panic("Removing nonexistent Entity")
+		return
 	}
 	delete(self.entityGrid, id)
 	subgrid := self.subgridAtGrid(gridCoord)
@@ -506,16 +521,14 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 			case deferred := <-subgrid.ParentQueue:
 				ntt := subgrid.Entities[deferred.id]
 				ExecuteMove(ntt, self, deferred.loc)
+				if ntt.Health() <= 0 {
+					self.MarkDead(ntt)
+				}
 			default:
 				done = true
 			}
 		}
 	}
-}
-func (self *WorldGrid) Scavenge() {
-	self.ParallelExec(func(subgrid *SubGrid) {
-		subgrid.Scavenge()
-	})
 }
 func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
 	self.ParallelExec(func(subgrid *SubGrid) {
