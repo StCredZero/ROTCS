@@ -220,7 +220,7 @@ func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 			loc := ntt.CalcMove(self)
 			ExecuteMove(ntt, self, loc)
 		}
-		if ntt.Health() <= 0 {
+		if ntt.IsDead() {
 			self.MarkDead(ntt)
 		}
 	}
@@ -539,7 +539,7 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 			case deferred := <-subgrid.ParentQueue:
 				ntt := subgrid.Entities[deferred.id]
 				ExecuteMove(ntt, self, deferred.loc)
-				if ntt.Health() <= 0 {
+				if ntt.IsDead() {
 					self.MarkDead(ntt)
 				}
 			default:

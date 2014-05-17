@@ -38,6 +38,7 @@ type Creature interface {
 	Health() int
 	Inbox() []string
 	Initialized() bool
+	IsDead() bool
 	IsPlayer() bool
 	IsTransient() bool
 	LastDispCoord() Coord
@@ -112,6 +113,7 @@ func (ntt *Entity) Inbox() []string {
 func (ntt *Entity) Initialized() bool {
 	return ntt.Init
 }
+func (ntt *Entity) IsDead() bool      { return true }
 func (ntt *Entity) IsPlayer() bool    { return false }
 func (ntt *Entity) IsTransient() bool { return true }
 func (ntt *Entity) LastDispCoord() Coord {
@@ -125,6 +127,10 @@ func (ntt *Entity) LocLeft() Coord {
 }
 func (ntt *Entity) LocRight() Coord {
 	return ntt.Location.MovedBy(rightOf(ntt.direction))
+}
+func (ntt *Entity) LocRightRear() Coord {
+	right := rightOf(ntt.direction)
+	return ntt.Location.MovedBy(right).MovedBy(rightOf(right))
 }
 func (ntt *Entity) Outbox() []string {
 	return nil
@@ -244,6 +250,9 @@ func (ntt *Player) FormattedMessage(msg string) string {
 func (ntt *Player) Inbox() []string {
 	return ntt.inbox
 }
+func (ntt *Player) IsDead() bool {
+	return ntt.Health() <= -10
+}
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
@@ -327,7 +336,7 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 			ntt.state = mstToWall
 		case mstToWall:
 			ahead := ntt.LocAhead()
-			if !grid.WalkableAt(ahead) {
+			if !grid.PassableAt(ahead) {
 				ntt.TurnLeft()
 				ntt.state = mstFollow
 				return stay
@@ -349,9 +358,12 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 			} else if !grid.PassableAt(right) && !grid.PassableAt(ahead) && grid.PassableAt(left) {
 				ntt.TurnLeft()
 				return stay
-			} else {
+			} else if grid.PassableAt(right) && !grid.PassableAt(ntt.LocRightRear()) {
 				ntt.TurnRight()
 				return stay
+			} else {
+				ntt.direction = int2dir(grid.RNG().Intn(4))
+				ntt.state = mstToWall
 			}
 		}
 	}
@@ -380,4 +392,7 @@ func (ntt *Monster) Detect(player Creature) {
 }
 func (ntt *Monster) DisplayString() string {
 	return "Exo"
+}
+func (ntt *Monster) IsDead() bool {
+	return ntt.Health() <= 0
 }
