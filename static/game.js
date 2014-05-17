@@ -67,6 +67,7 @@ var Game = {
                     Game.initialized = true;
                 } else {
                     Game.showMessage("Server full. Try again later.");
+                    Game.showMessage("Pop:" + jsonObj.pop + " Load:" + jsonObj.load);
                 }
             }
             //if (Game.initialized && (jsonObj.type === "update")) {

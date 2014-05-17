@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -57,7 +58,14 @@ func (srv *CstServer) registerConnection(c *connection) {
 	LogTrace("starting register")
 	var buffer bytes.Buffer
 	if srv.load > 0.95 {
-		buffer.WriteString(`{"type":"init"}`)
+		buffer.WriteString(`{"type":"init",`)
+		buffer.WriteString(`"pop":`)
+		buffer.WriteString(strconv.FormatInt(int64(srv.population), 10))
+		buffer.WriteRune(',')
+
+		buffer.WriteString(`"load":`)
+		buffer.WriteString(strconv.FormatFloat(srv.load, 'f', 2, 64))
+		buffer.WriteString(`}`)
 		LogTrace("refused registration")
 	} else {
 		player := NewPlayer(c)
