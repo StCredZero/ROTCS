@@ -336,9 +336,12 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 			ntt.state = mstToWall
 		case mstToWall:
 			ahead := ntt.LocAhead()
-			if !grid.PassableAt(ahead) {
+			if !grid.WalkableAt(ahead) {
 				ntt.TurnLeft()
 				ntt.state = mstFollow
+				return stay
+			} else if !grid.PassableAt(ahead) {
+				ntt.TurnLeft()
 				return stay
 			}
 			return ahead
