@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"net/http"
 	"runtime"
 	"time"
@@ -54,12 +55,21 @@ func (srv *CstServer) TickNumber() uint64 {
 
 func (srv *CstServer) registerConnection(c *connection) {
 	LogTrace("starting register")
-	player := NewPlayer(c)
-	entity, _ := srv.world.NewEntity(player)
-	c.id = entity.EntityID()
-	c.player = player
-	srv.connections[c] = c.id
-	LogTrace("Initialized entity: ", entity)
+	var buffer bytes.Buffer
+	if srv.load > 0.95 {
+		buffer.WriteString(`{"type":"init"}`)
+		LogTrace("refused registration")
+	} else {
+		player := NewPlayer(c)
+		entity, _ := srv.world.NewEntity(player)
+		c.id = entity.EntityID()
+		c.player = player
+		srv.connections[c] = c.id
+		buffer.WriteString(`{"type":"init","approved":1}`)
+		LogTrace("Initialized entity: ", entity)
+	}
+	c.send <- buffer.Bytes()
+
 }
 
 func (srv *CstServer) unregisterConnection(c *connection) {

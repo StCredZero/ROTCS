@@ -63,11 +63,14 @@ var Game = {
             var jsonObj = JSON.parse(event.data);
             if (jsonObj.type === "init") {
                 Game.uuid = jsonObj.uuid; 
-                Game.renderDisplay(jsonObj);
-                Game.initialized = true;
+                if (jsonObj.approved) {
+                    Game.initialized = true;
+                } else {
+                    Game.showMessage("Server full. Try again later.");
+                }
             }
             //if (Game.initialized && (jsonObj.type === "update")) {
-            if (jsonObj.type === "update") {
+            if (Game.initialized && (jsonObj.type === "update")) {
                 Game.mapUpdateQueue.enqueue(jsonObj);
             }
             if (jsonObj.type === "message") {
