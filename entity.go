@@ -275,11 +275,11 @@ type Monster struct {
 }
 
 const mstStart int = 0
-const mstFollow int = 1
+const mstToWall int = 1
+const mstFollow int = 2
 
 func NewMonster(id EntityID) Creature {
 	entity := Entity{
-		direction:    int2dir(offsetRNG.Intn(4)),
 		health:       10,
 		ID:           id,
 		Symbol:       '%',
@@ -323,6 +323,9 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 		stay := ntt.Location
 		switch ntt.state {
 		case mstStart:
+			ntt.direction = int2dir(grid.RNG().Intn(4))
+			ntt.state = mstToWall
+		case mstToWall:
 			ahead := ntt.LocAhead()
 			if !grid.WalkableAt(ahead) {
 				ntt.TurnLeft()

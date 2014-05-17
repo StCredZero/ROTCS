@@ -26,6 +26,7 @@ type GridKeeper interface {
 	PassableAt(Coord) bool
 	PutEntityAt(Creature, Coord)
 	RemoveEntityID(EntityID)
+	RNG() *rand.Rand
 	SendDisplays(GridProcessor)
 	SwapEntities(Creature, Creature)
 	UpdateMovers(GridProcessor)
@@ -70,7 +71,7 @@ type SubGrid struct {
 	parent      *WorldGrid
 	ParentQueue chan DeferredMove
 	PlayerCount int
-	RNG         *rand.Rand
+	rng         *rand.Rand
 }
 
 func NewSubGrid(gcoord GridCoord) *SubGrid {
@@ -82,7 +83,7 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 		Grid:        make(map[Coord]EntityID),
 		Entities:    make(map[EntityID]Creature),
 		ParentQueue: make(chan DeferredMove, ((2 * subgrid_width) + (2 * subgrid_height))),
-		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -135,8 +136,8 @@ func (self *SubGrid) MoveEntity(ntt Creature, loc Coord) {
 	}
 }
 func (self *SubGrid) RandomCoord() Coord {
-	lx := self.RNG.Intn(subgrid_width)
-	ly := self.RNG.Intn(subgrid_height)
+	lx := self.rng.Intn(subgrid_width)
+	ly := self.rng.Intn(subgrid_height)
 	x := (self.GridCoord.x * subgrid_width) + int64(lx)
 	y := (self.GridCoord.y * subgrid_height) + int64(ly)
 	return Coord{x, y}
@@ -188,6 +189,9 @@ func (self *SubGrid) RemoveEntityID(id EntityID) {
 	ntt.SetSubgrid(nil)
 	delete(self.Grid, ntt.Coord())
 	delete(self.Entities, id)
+}
+func (self *SubGrid) RNG() *rand.Rand {
+	return self.rng
 }
 func (self *SubGrid) SwapEntities(ntt, other Creature) {
 	nttLoc, otherLoc := ntt.Coord(), other.Coord()
@@ -282,7 +286,7 @@ type WorldGrid struct {
 	dunGenCache *DunGenCache
 	grid        map[GridCoord]*SubGrid
 	entityGrid  map[EntityID]GridCoord
-	RNG         *rand.Rand
+	rng         *rand.Rand
 	spawnGrids  []GridCoord
 }
 
@@ -292,7 +296,7 @@ func NewWorldGrid() *WorldGrid {
 		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
 		grid:        make(map[GridCoord]*SubGrid),
 		entityGrid:  make(map[EntityID]GridCoord),
-		RNG:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		spawnGrids:  spawnGrids,
 	}
 }
@@ -367,7 +371,7 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 	if len(*grids) <= 0 {
 		return
 	}
-	n := self.RNG.Intn(len(*grids))
+	n := self.rng.Intn(len(*grids))
 	i := 0
 	for gcoord, _ := range *grids {
 		if i == n {
@@ -455,7 +459,7 @@ func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 	ntt.SetEntityID(NewEntityID())
 	ok := false
 	for !ok {
-		i := self.RNG.Intn(len(self.spawnGrids))
+		i := self.rng.Intn(len(self.spawnGrids))
 		gridCoord := self.spawnGrids[i]
 		subgrid := self.subgridAtGrid(gridCoord)
 		newEntity, ok = subgrid.NewEntity(ntt)
@@ -491,6 +495,9 @@ func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
 	self.entityGrid[ntt.EntityID()] = gridCoord
 	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.PutEntityAt(ntt, loc)
+}
+func (self *WorldGrid) RNG() *rand.Rand {
+	return self.rng
 }
 func (self *WorldGrid) RemoveEntityID(id EntityID) {
 	gridCoord, present := self.entityGrid[id]
