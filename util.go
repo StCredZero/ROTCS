@@ -80,3 +80,45 @@ func printGrids(grids *(map[GridCoord]bool)) {
 	sort.Sort(sorted)
 	fmt.Println(sorted)
 }
+
+func leftOf(dir rune) rune {
+	switch dir {
+	case 'n':
+		return 'w'
+	case 'w':
+		return 's'
+	case 's':
+		return 'e'
+	case 'e':
+		return 'n'
+	}
+	return dir
+}
+
+func rightOf(dir rune) rune {
+	switch dir {
+	case 'n':
+		return 'e'
+	case 'e':
+		return 's'
+	case 's':
+		return 'w'
+	case 'w':
+		return 'n'
+	}
+	return dir
+}
+
+func int2dir(n int) rune {
+	switch n {
+	case 0:
+		return 'n'
+	case 1:
+		return 'e'
+	case 2:
+		return 's'
+	case 3:
+		return 'w'
+	}
+	return '0'
+}

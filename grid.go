@@ -23,6 +23,7 @@ type GridKeeper interface {
 	MoveEntity(Creature, Coord)
 	NewEntity(Creature) (Creature, bool)
 	OutOfBounds(Coord) bool
+	PassableAt(Coord) bool
 	PutEntityAt(Creature, Coord)
 	RemoveEntityID(EntityID)
 	SendDisplays(GridProcessor)
@@ -104,16 +105,10 @@ func (self *SubGrid) DeferMove(ntt Creature, loc Coord) {
 	self.ParentQueue <- deferredMove
 }
 func (self *SubGrid) EmptyAt(loc Coord) bool {
-	if loc.Grid() != self.GridCoord {
-		ERROR.Panic(`Should not be asked about outside coord!`)
-	}
 	_, present := self.Grid[loc]
 	return !present
 }
 func (self *SubGrid) EntityAt(loc Coord) (Creature, bool) {
-	if loc.Grid() != self.GridCoord {
-		ERROR.Panic(`Cannot get outside coord!`)
-	}
 	id, present := self.Grid[loc]
 	if present {
 		return self.Entities[id], true
@@ -166,6 +161,9 @@ func (self *SubGrid) NewEntity(ntt Creature) (Creature, bool) {
 }
 func (self *SubGrid) OutOfBounds(coord Coord) bool {
 	return (coord.Grid() != self.GridCoord)
+}
+func (self *SubGrid) PassableAt(loc Coord) bool {
+	return self.EmptyAt(loc) && self.WalkableAt(loc)
 }
 func (self *SubGrid) PutEntityAt(ntt Creature, loc Coord) {
 	if loc.Grid() != self.GridCoord {
@@ -481,6 +479,9 @@ func (self *WorldGrid) NewEntityInGrid(ntt Creature, gridCoord GridCoord) (Creat
 	return newEntity, done
 }
 func (self *WorldGrid) OutOfBounds(coord Coord) bool { return false }
+func (self *WorldGrid) PassableAt(loc Coord) bool {
+	return self.EmptyAt(loc) && self.WalkableAt(loc)
+}
 func (self *WorldGrid) PutEntityAt(ntt Creature, loc Coord) {
 	_, present := self.entityGrid[ntt.EntityID()]
 	if present {

@@ -53,13 +53,15 @@ type Creature interface {
 }
 
 type Entity struct {
-	subgrid      *SubGrid
+	ID EntityID
+
+	direction    rune
 	health       int
-	ID           EntityID
 	Init         bool
 	Location     Coord
-	Symbol       rune
 	MoveSchedule uint8
+	subgrid      *SubGrid
+	Symbol       rune
 	TickOffset   uint64
 }
 
@@ -88,8 +90,18 @@ func (ntt *Entity) Detect(player Creature) {}
 func (ntt *Entity) DisplayString() string {
 	return fmt.Sprintf("%X%X%X%X", ntt.ID[0], ntt.ID[1], ntt.ID[2], ntt.ID[3])
 }
+func (ntt *Entity) EntityID() EntityID {
+	return ntt.ID
+}
 func (ntt *Entity) GetSubgrid() *SubGrid {
 	return ntt.subgrid
+}
+func (ntt *Entity) HasMove(gproc GridProcessor) bool {
+	if ntt.health <= 0 {
+		return false
+	}
+	phase := uint8((gproc.TickNumber() + ntt.TickOffset) % 8)
+	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
 func (ntt *Entity) Health() int {
 	return ntt.health
@@ -100,11 +112,29 @@ func (ntt *Entity) Inbox() []string {
 func (ntt *Entity) Initialized() bool {
 	return ntt.Init
 }
+func (ntt *Entity) IsPlayer() bool    { return false }
+func (ntt *Entity) IsTransient() bool { return true }
+func (ntt *Entity) LastDispCoord() Coord {
+	return ntt.Location
+}
+func (ntt *Entity) LocAhead() Coord {
+	return ntt.Location.MovedBy(ntt.direction)
+}
+func (ntt *Entity) LocLeft() Coord {
+	return ntt.Location.MovedBy(leftOf(ntt.direction))
+}
+func (ntt *Entity) LocRight() Coord {
+	return ntt.Location.MovedBy(rightOf(ntt.direction))
+}
 func (ntt *Entity) Outbox() []string {
 	return nil
 }
+func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
 func (ntt *Entity) SetCoord(coord Coord) {
 	ntt.Location = coord
+}
+func (ntt *Entity) SetEntityID(id EntityID) {
+	ntt.ID = id
 }
 func (ntt *Entity) SetHealth(x int) {
 	ntt.health = x
@@ -115,32 +145,16 @@ func (ntt *Entity) SetInitialized(flag bool) {
 func (ntt *Entity) SetSubgrid(grid *SubGrid) {
 	ntt.subgrid = grid
 }
-func (ntt *Entity) EntityID() EntityID {
-	return ntt.ID
-}
-func (ntt *Entity) SetEntityID(id EntityID) {
-	ntt.ID = id
-}
-func (ntt *Entity) HasMove(gproc GridProcessor) bool {
-	if ntt.health <= 0 {
-		return false
-	}
-	phase := uint8((gproc.TickNumber() + ntt.TickOffset) % 8)
-	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
-}
-func (ntt *Entity) IsPlayer() bool    { return false }
-func (ntt *Entity) IsTransient() bool { return true }
-func (ntt *Entity) LastDispCoord() Coord {
-	return ntt.Location
-}
-
-//func (ntt *Entity) Move(grid GridKeeper, gproc GridProcessor)        {}
-func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
 func (ntt *Entity) TickZero(gproc GridProcessor) bool {
 	phase := (gproc.TickNumber() + ntt.TickOffset) % 23
 	return phase == 0
 }
-
+func (ntt *Entity) TurnLeft() {
+	ntt.direction = leftOf(ntt.direction)
+}
+func (ntt *Entity) TurnRight() {
+	ntt.direction = rightOf(ntt.direction)
+}
 func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
 	buffer.WriteString(`:{"symbol":"`)
@@ -192,6 +206,9 @@ func (ntt *Player) CalcMove(grid GridKeeper) Coord {
 	if len(ntt.Moves) > 0 {
 		ntt.Moves = ntt.Moves[1:]
 	}
+	if move != '0' {
+		ntt.direction = move
+	}
 	return loc.MovedBy(move)
 }
 func (ntt *Player) CanDamage(other Creature) bool {
@@ -230,11 +247,6 @@ func (ntt *Player) Inbox() []string {
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
-func (ntt *Player) MoveCommit() {
-	if len(ntt.Moves) > 0 {
-		ntt.Moves = ntt.Moves[1:]
-	}
-}
 func (ntt *Player) Outbox() []string {
 	return ntt.outbox
 }
@@ -259,10 +271,15 @@ type detection struct {
 type Monster struct {
 	Entity
 	detections chan detection
+	state      int
 }
+
+const mstStart int = 0
+const mstFollow int = 1
 
 func NewMonster(id EntityID) Creature {
 	entity := Entity{
+		direction:    int2dir(offsetRNG.Intn(4)),
 		health:       10,
 		ID:           id,
 		Symbol:       '%',
@@ -272,8 +289,10 @@ func NewMonster(id EntityID) Creature {
 	return &Monster{
 		Entity:     entity,
 		detections: make(chan detection, (subgrid_width * subgrid_height)),
+		state:      mstStart,
 	}
 }
+
 func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 	var min, det detection
 	min = detection{
@@ -292,12 +311,45 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 		}
 	}
 	if minFound {
+		ntt.state = mstStart
 		openAt := func(coord Coord) bool {
 			return grid.WalkableAt(coord)
 		}
 		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
 		if pathFound {
 			return path[0]
+		}
+	} else {
+		stay := ntt.Location
+		switch ntt.state {
+		case mstStart:
+			ahead := ntt.LocAhead()
+			if !grid.WalkableAt(ahead) {
+				ntt.TurnLeft()
+				ntt.state = mstFollow
+				return stay
+			}
+			return ahead
+		case mstFollow:
+			ahead := ntt.LocAhead()
+			right := ntt.LocRight()
+			left := ntt.LocLeft()
+			if grid.PassableAt(ahead) && !grid.PassableAt(right) {
+				return ahead
+			} else if grid.PassableAt(right) {
+				ntt.TurnRight()
+				return ntt.LocAhead()
+			} else if !grid.PassableAt(right) && !grid.PassableAt(ahead) && !grid.PassableAt(left) {
+				ntt.TurnRight()
+				ntt.TurnRight()
+				return stay
+			} else if !grid.PassableAt(right) && !grid.PassableAt(ahead) && grid.PassableAt(left) {
+				ntt.TurnLeft()
+				return stay
+			} else {
+				ntt.TurnRight()
+				return stay
+			}
 		}
 	}
 	return ntt.Location
