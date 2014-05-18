@@ -260,6 +260,7 @@ Game.sendMove = function(data) {
 
 Game.sendMessage = function(data) {
     Game.sendQueue.enqueue("ch:" + data);
+    Game.showMessage("You say: '" + data + "'");
 };
 
 Game.showMessage = function(message) {
@@ -442,7 +443,7 @@ Game.handleKeyboardInput = function (e) {
     if (code == 39) { action = "e"; } 
         
     if (code === "0") { return; }
-
+    e.preventDefault();
     e.stopPropagation();
     Game.sendMove(action);
 
