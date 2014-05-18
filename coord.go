@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"math"
 	"math/big"
 	//"math/rand"
+	"sort"
 	"strconv"
 )
 
@@ -14,6 +16,8 @@ type Coord struct {
 	x int64
 	y int64
 }
+
+var NullGCoord = GridCoord{math.MaxInt64, math.MaxInt64}
 
 func (self Coord) Grid() GridCoord {
 	return GridCoord{
@@ -74,23 +78,23 @@ func neighbors4(coord Coord) []Coord {
 	}
 }
 
-func (self Coord) VisibleGrids(xdist int64, ydist int64) []GridCoord {
-	set := make(map[GridCoord]bool)
-	var c1 = Coord{self.x - xdist, self.y - ydist}
-	var c2 = Coord{self.x - xdist, self.y + ydist}
-	var c3 = Coord{self.x + xdist, self.y - ydist}
-	var c4 = Coord{self.x + xdist, self.y + ydist}
-	set[c1.Grid()] = true
-	set[c2.Grid()] = true
-	set[c3.Grid()] = true
-	set[c4.Grid()] = true
-	grids := make([]GridCoord, 4, 4)
-	var i int = 0
-	for coord, _ := range set {
-		grids[i] = coord
-		i++
+func (self Coord) VisibleGrids(xdist int64, ydist int64, gcoords []GridCoord) []GridCoord {
+	var c0, c1 = Coord{self.x - xdist, self.y - ydist}, Coord{self.x - xdist, self.y + ydist}
+	var c2, c3 = Coord{self.x + xdist, self.y - ydist}, Coord{self.x + xdist, self.y + ydist}
+	gcoords[0], gcoords[1], gcoords[2], gcoords[3] = c0.Grid(), c1.Grid(), c2.Grid(), c3.Grid()
+	sort.Sort(SortableGCoords(gcoords))
+	var count int = 4
+	prev := NullGCoord
+	for i := 0; i < 4; i++ {
+		if gcoords[i] == prev {
+			count--
+			gcoords[i] = NullGCoord
+		} else {
+			prev = gcoords[i]
+		}
 	}
-	return grids[:len(set)]
+	sort.Sort(SortableGCoords(gcoords))
+	return gcoords[:count]
 }
 
 func (self Coord) WriteDisplay(player Creature, buffer *bytes.Buffer) {

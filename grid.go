@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	//"fmt"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -400,7 +400,9 @@ func (self *WorldGrid) cullGrids(grids *(map[GridCoord]bool)) {
 
 func (self *WorldGrid) WriteEntities(player Creature, buffer *bytes.Buffer) {
 	coord := player.Coord()
-	visibleGrids := coord.VisibleGrids(39, 12)
+	var gcoords [4]GridCoord
+	visibleGrids := coord.VisibleGrids(39, 12, gcoords[:])
+	fmt.Println(visibleGrids)
 	for _, gcoord := range visibleGrids {
 		subgrid, present := self.grid[gcoord]
 		if present {
