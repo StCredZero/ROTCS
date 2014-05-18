@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"runtime"
 	"strings"
 	"time"
@@ -49,11 +48,7 @@ readerLoop:
 		if strings.EqualFold(msgtype, "mv") {
 			c.moveQueue <- s
 		} else if strings.EqualFold(msgtype, "ch") {
-			var buffer bytes.Buffer
-			buffer.WriteString(`{"type":"message","data":"`)
-			buffer.WriteString(c.player.FormattedMessage(s))
-			buffer.WriteString(`"}`)
-			c.player.outbox = append(c.player.outbox, buffer.String())
+			c.player.outbox = append(c.player.outbox, s)
 		}
 		runtime.Gosched()
 	}

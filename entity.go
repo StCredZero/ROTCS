@@ -33,6 +33,7 @@ type Creature interface {
 	Coord() Coord
 	Detect(Creature)
 	DisplayString() string
+	FormattedMessage(string) string
 	GetSubgrid() *SubGrid
 	HasMove(GridProcessor) bool
 	Health() int
@@ -93,6 +94,9 @@ func (ntt *Entity) DisplayString() string {
 }
 func (ntt *Entity) EntityID() EntityID {
 	return ntt.ID
+}
+func (ntt *Entity) FormattedMessage(s string) string {
+	return s
 }
 func (ntt *Entity) GetSubgrid() *SubGrid {
 	return ntt.subgrid
@@ -238,8 +242,14 @@ func (ntt *Player) CollideWith(other Creature) {
 }
 func (ntt *Player) Detect(player Creature) {
 	//if player.IsPlayer() {
+	var buffer bytes.Buffer
 	for _, message := range player.Outbox() {
-		ntt.Connection.send <- []byte(message)
+		escaped := strings.Replace(message, `"`, `&quot;`, -1)
+		buffer.WriteString(`{"type":"message","data":"`)
+		buffer.WriteString(player.FormattedMessage(escaped))
+		buffer.WriteString(`"}`)
+		ntt.Connection.send <- []byte(buffer.Bytes())
+		buffer.Truncate(0)
 	}
 	//}
 }
