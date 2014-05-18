@@ -359,7 +359,12 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 			ahead := ntt.LocAhead()
 			right := ntt.LocRight()
 			left := ntt.LocLeft()
-			if grid.PassableAt(ahead) && !grid.PassableAt(right) {
+			rightRear := ntt.LocRightRear()
+			if grid.WalkableAt(right) && grid.WalkableAt(ahead) &&
+				grid.WalkableAt(left) && grid.WalkableAt(rightRear) {
+				ntt.direction = int2dir(grid.RNG().Intn(4))
+				ntt.state = mstToWall
+			} else if grid.PassableAt(ahead) && !grid.PassableAt(right) {
 				return ahead
 			} else if grid.PassableAt(right) {
 				ntt.TurnRight()
@@ -371,7 +376,7 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 			} else if !grid.PassableAt(right) && !grid.PassableAt(ahead) && grid.PassableAt(left) {
 				ntt.TurnLeft()
 				return stay
-			} else if grid.PassableAt(right) && !grid.PassableAt(ntt.LocRightRear()) {
+			} else if grid.PassableAt(right) && !grid.PassableAt(rightRear) {
 				ntt.TurnRight()
 				return stay
 			} else {
