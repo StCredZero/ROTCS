@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha1"
 	"math/rand"
+	"os"
 	"sort"
 )
 
@@ -468,4 +470,30 @@ func (self *DunGen) makePassagesWest(westDg *DunGen) {
 
 func (self *DunGen) TileAt(lcoord LCoord) int8 {
 	return self.dungeon_map[lcoord.x+(lcoord.y*self.xsize)]
+}
+
+func (self *DunGen) readFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	j := 0
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		for i, c := range line {
+			if i >= subgrid_width {
+				break
+			}
+			if c == '0' {
+				self.setCell(i, j, TileWall)
+			} else {
+				self.setCell(i, j, TileFloor)
+			}
+		}
+		j++
+	}
+	return scanner.Err()
 }

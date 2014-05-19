@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"os"
 	"strconv"
 
 	"github.com/golang/groupcache/lru"
@@ -21,7 +19,6 @@ func NewDunGenCache(maxEntries int, entropy DunGenEntropy, proto DunGen) *DunGen
 		cache:   lru.New(maxEntries),
 		proto:   proto,
 	}
-	dgc.readFile("resources/shipmap0", GridCoord{0, 0})
 	return &dgc
 }
 
@@ -35,6 +32,9 @@ func (self *DunGenCache) basicDungeonAt(gcoord GridCoord) *DunGen {
 	} else {
 		newdg := NewDunGen(&self.proto)
 		newdg.createDungeon(gcoord, self.entropy)
+		if gcoord == (GridCoord{0, 0}) {
+			newdg.readFile("resources/shipmap0")
+		}
 		self.cache.Add(lru.Key(gcoord), newdg)
 		return newdg
 	}
@@ -71,33 +71,6 @@ func (self *DunGenCache) WalkableAt(coord Coord) bool {
 	dgrid := self.DungeonAtGrid(coord.Grid())
 	lcoord := coord.LCoord()
 	return dgrid.isWalkable(lcoord.x, lcoord.y)
-}
-
-func (self *DunGenCache) readFile(path string, gcoord GridCoord) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	dunGen := self.basicDungeonAt(gcoord)
-	j := 0
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		for i, c := range line {
-			if i >= subgrid_width {
-				break
-			}
-			if c == '0' {
-				dunGen.setCell(i, j, TileWall)
-			} else {
-				dunGen.setCell(i, j, TileFloor)
-			}
-		}
-		j++
-	}
-	return scanner.Err()
 }
 
 func (self *DunGenCache) WriteMap(ntt Creature, buffer *bytes.Buffer) {
