@@ -49,17 +49,26 @@ type DunGen struct {
 
 	numRooms   int
 	chanceRoom int
-	passaged   bool
+
+	passagedNorth bool
+	passagedSouth bool
+	passagedEast  bool
+	passagedWest  bool
 
 	dungeon_map [subgrid_width * subgrid_height]int8
 
 	walls [4](map[LCoord]bool)
 	rooms []DRect
 
-	passageSouth    LCoord
-	passageEast     LCoord
-	passageNorthEnd int
-	passageWestEnd  int
+	passageSouth     LCoord
+	passageEast      LCoord
+	passageSouthTrys [8]LCoord
+	passageEastTrys  [8]LCoord
+	passageNorthEnd  int
+	passageWestEnd   int
+
+	columns [subgrid_width]bool
+	rows    [subgrid_height]bool
 
 	rng *rand.Rand
 }
@@ -179,6 +188,8 @@ func (self *DunGen) setRect(rect DRect) bool {
 	for y := rect.y; y < rect.bottom(); y++ {
 		for x := rect.x; x < rect.right(); x++ {
 			self.setCell(x, y, TileFloor)
+			self.columns[x] = true
+			self.rows[y] = true
 		}
 	}
 	if rect.y > 1 {
@@ -368,8 +379,11 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 		}
 	}
 
-	self.passageSouth = self.pickStartDir(South)
-	self.passageEast = self.pickStartDir(East)
+	for i := 0; i < 8; i++ {
+		self.passageSouthTrys[i] = self.pickStartDir(South)
+		self.passageEastTrys[i] = self.pickStartDir(East)
+	}
+
 	self.passageNorthEnd = self.getRand(1, self.ysize-2)
 	self.passageWestEnd = self.getRand(1, self.xsize-2)
 
@@ -382,23 +396,73 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 	self.rng = nil
 }
 
-func (self *DunGen) makePassages(northDg *DunGen, westDg *DunGen) {
-	if !self.passaged {
+func (self *DunGen) makePassagesEast(eastDg *DunGen) {
+	if !self.passagedEast {
+		for i := 0; i < 7; i++ {
+			eastStart := self.passageEastTrys[i]
+			if eastDg.rows[eastStart.y] {
+				self.passageEast = eastStart
+				self.passagedEast = true
+				break
+			}
+		}
+		if !self.passagedEast {
+			self.passageEast = self.passageEastTrys[7]
+		}
+		for x := self.passageEast.x; x < subgrid_width; x++ {
+			self.setCell(x, self.passageEast.y, TileCorridor)
+		}
+		self.passagedEast = true
+	}
+}
+
+func (self *DunGen) makePassagesSouth(southDg *DunGen) {
+	if !self.passagedSouth {
+		for i := 0; i < 7; i++ {
+			southStart := self.passageSouthTrys[i]
+			if southDg.columns[southStart.x] {
+				self.passageSouth = southStart
+				self.passagedSouth = true
+				break
+			}
+		}
+		if !self.passagedSouth {
+			self.passageSouth = self.passageSouthTrys[7]
+		}
+		for y := self.passageSouth.y; y < subgrid_height; y++ {
+			self.setCell(self.passageSouth.x, y, TileCorridor)
+		}
+		self.passagedSouth = true
+	}
+}
+
+func (self *DunGen) makePassagesNorth(northDg *DunGen) {
+	if !self.passagedNorth {
+		northDg.makePassagesSouth(self)
 		nx := northDg.passageSouth.x
-		for y := 0; y <= self.passageNorthEnd; y++ {
-			self.setCell(nx, y, TileFloor)
+		for y := 0; y < subgrid_height-2; y++ {
+			if self.isWalkable(nx, y) {
+				break
+			} else {
+				self.setCell(nx, y, TileCorridor)
+			}
 		}
-		for y1 := self.passageSouth.y; y1 < self.ysize; y1++ {
-			self.setCell(self.passageSouth.x, y1, TileFloor)
+		self.passagedNorth = true
+	}
+}
+
+func (self *DunGen) makePassagesWest(westDg *DunGen) {
+	if !self.passagedWest {
+		westDg.makePassagesEast(self)
+		ny := westDg.passageEast.y
+		for x := 0; x < subgrid_width-2; x++ {
+			if self.isWalkable(x, ny) {
+				break
+			} else {
+				self.setCell(x, ny, TileCorridor)
+			}
+			self.passagedWest = true
 		}
-		wy := westDg.passageEast.y
-		for x := 0; x <= self.passageWestEnd; x++ {
-			self.setCell(x, wy, TileFloor)
-		}
-		for x1 := self.passageEast.x; x1 < self.xsize; x1++ {
-			self.setCell(x1, self.passageEast.y, TileFloor)
-		}
-		self.passaged = true
 	}
 }
 
