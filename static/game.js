@@ -53,7 +53,7 @@ var Game = {
         initReq.send();
         var wsaddr = (initReq.responseText).trim();
 
-        var wsocket = new WebSocket("ws://"+wsaddr+"/ws");
+        var wsocket = new WebSocket(wsaddr);
         this.ws = wsocket;
         /*this.ws.onopen = function() {
             var initMsg = JSON.stringify({"type":"init"});
