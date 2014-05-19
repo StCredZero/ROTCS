@@ -97,7 +97,7 @@ func (self Coord) VisibleGrids(xdist int64, ydist int64, gcoords []GridCoord) []
 	return gcoords[:count]
 }
 
-func (self Coord) WriteDisplay(player Creature, buffer *bytes.Buffer) {
+func (self Coord) WriteDisplay(player Entity, buffer *bytes.Buffer) {
 	buffer.WriteString(`"`)
 	buffer.WriteString(strconv.FormatInt(self.x, 10))
 	buffer.WriteString(`,`)

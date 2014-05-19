@@ -19,19 +19,19 @@ func NewEntityID() EntityID {
 	return EntityID(uuid.NewV1())
 }
 
-type Creature interface {
+type Entity interface {
 	EntityID() EntityID
 
 	AddMessage(string)
 	CalcMove(GridKeeper) Coord
-	CanDamage(Creature) bool
-	CanSwapWith(Creature) bool
+	CanDamage(Entity) bool
+	CanSwapWith(Entity) bool
 	ChangeHealth(int)
 	Collided() bool
 	CollideWall()
-	CollisionFrom(other Creature)
+	CollisionFrom(other Entity)
 	Coord() Coord
-	Detect(Creature)
+	Detect(Entity)
 	DisplayString() string
 	FormattedMessage(string) string
 	GetSubgrid() *SubGrid
@@ -52,10 +52,10 @@ type Creature interface {
 	SetInitialized(bool)
 	SetSubgrid(*SubGrid)
 	TickZero(GridProcessor) bool
-	WriteFor(Creature, *bytes.Buffer)
+	WriteFor(Entity, *bytes.Buffer)
 }
 
-type Entity struct {
+type EntityT struct {
 	ID EntityID
 
 	direction    rune
@@ -68,106 +68,106 @@ type Entity struct {
 	TickOffset   uint64
 }
 
-func (ntt *Entity) AddMessage(msg string) {}
-func (ntt *Entity) CalcMove(grid GridKeeper) Coord {
+func (ntt *EntityT) AddMessage(msg string) {}
+func (ntt *EntityT) CalcMove(grid GridKeeper) Coord {
 	return ntt.Location
 }
-func (ntt *Entity) CanDamage(c Creature) bool {
+func (ntt *EntityT) CanDamage(c Entity) bool {
 	return false
 }
-func (ntt *Entity) CanSwapWith(c Creature) bool {
+func (ntt *EntityT) CanSwapWith(c Entity) bool {
 	return false
 }
-func (ntt *Entity) ChangeHealth(delta int) {
+func (ntt *EntityT) ChangeHealth(delta int) {
 	ntt.health += delta
 }
-func (ntt *Entity) Collided() bool {
+func (ntt *EntityT) Collided() bool {
 	return false
 }
-func (ntt *Entity) CollideWall()           {}
-func (ntt *Entity) CollisionFrom(Creature) {}
-func (ntt *Entity) Coord() Coord {
+func (ntt *EntityT) CollideWall()           {}
+func (ntt *EntityT) CollisionFrom(Entity) {}
+func (ntt *EntityT) Coord() Coord {
 	return ntt.Location
 }
-func (ntt *Entity) Detect(player Creature) {}
-func (ntt *Entity) DisplayString() string {
+func (ntt *EntityT) Detect(player Entity) {}
+func (ntt *EntityT) DisplayString() string {
 	return fmt.Sprintf("%X%X%X%X", ntt.ID[0], ntt.ID[1], ntt.ID[2], ntt.ID[3])
 }
-func (ntt *Entity) EntityID() EntityID {
+func (ntt *EntityT) EntityID() EntityID {
 	return ntt.ID
 }
-func (ntt *Entity) FormattedMessage(s string) string {
+func (ntt *EntityT) FormattedMessage(s string) string {
 	return s
 }
-func (ntt *Entity) GetSubgrid() *SubGrid {
+func (ntt *EntityT) GetSubgrid() *SubGrid {
 	return ntt.subgrid
 }
-func (ntt *Entity) HasMove(gproc GridProcessor) bool {
+func (ntt *EntityT) HasMove(gproc GridProcessor) bool {
 	if ntt.health <= 0 {
 		return false
 	}
 	phase := uint8((gproc.TickNumber() + ntt.TickOffset) % 8)
 	return ((ntt.MoveSchedule >> phase) & 0x01) != 0x00
 }
-func (ntt *Entity) Health() int {
+func (ntt *EntityT) Health() int {
 	return ntt.health
 }
-func (ntt *Entity) Inbox() []string {
+func (ntt *EntityT) Inbox() []string {
 	return nil
 }
-func (ntt *Entity) Initialized() bool {
+func (ntt *EntityT) Initialized() bool {
 	return ntt.Init
 }
-func (ntt *Entity) IsDead() bool      { return true }
-func (ntt *Entity) IsPlayer() bool    { return false }
-func (ntt *Entity) IsTransient() bool { return true }
-func (ntt *Entity) LastDispCoord() Coord {
+func (ntt *EntityT) IsDead() bool      { return true }
+func (ntt *EntityT) IsPlayer() bool    { return false }
+func (ntt *EntityT) IsTransient() bool { return true }
+func (ntt *EntityT) LastDispCoord() Coord {
 	return ntt.Location
 }
-func (ntt *Entity) LocAhead() Coord {
+func (ntt *EntityT) LocAhead() Coord {
 	return ntt.Location.MovedBy(ntt.direction)
 }
-func (ntt *Entity) LocLeft() Coord {
+func (ntt *EntityT) LocLeft() Coord {
 	return ntt.Location.MovedBy(leftOf(ntt.direction))
 }
-func (ntt *Entity) LocRight() Coord {
+func (ntt *EntityT) LocRight() Coord {
 	return ntt.Location.MovedBy(rightOf(ntt.direction))
 }
-func (ntt *Entity) LocRightRear() Coord {
+func (ntt *EntityT) LocRightRear() Coord {
 	right := rightOf(ntt.direction)
 	return ntt.Location.MovedBy(right).MovedBy(rightOf(right))
 }
-func (ntt *Entity) Outbox() []string {
+func (ntt *EntityT) Outbox() []string {
 	return nil
 }
-func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
-func (ntt *Entity) SetCollided()                                     {}
-func (ntt *Entity) SetCoord(coord Coord) {
+func (ntt *EntityT) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
+func (ntt *EntityT) SetCollided()                                     {}
+func (ntt *EntityT) SetCoord(coord Coord) {
 	ntt.Location = coord
 }
-func (ntt *Entity) SetEntityID(id EntityID) {
+func (ntt *EntityT) SetEntityID(id EntityID) {
 	ntt.ID = id
 }
-func (ntt *Entity) SetHealth(x int) {
+func (ntt *EntityT) SetHealth(x int) {
 	ntt.health = x
 }
-func (ntt *Entity) SetInitialized(flag bool) {
+func (ntt *EntityT) SetInitialized(flag bool) {
 	ntt.Init = flag
 }
-func (ntt *Entity) SetSubgrid(grid *SubGrid) {
+func (ntt *EntityT) SetSubgrid(grid *SubGrid) {
 	ntt.subgrid = grid
 }
-func (ntt *Entity) TickZero(gproc GridProcessor) bool {
+func (ntt *EntityT) TickZero(gproc GridProcessor) bool {
 	phase := (gproc.TickNumber() + ntt.TickOffset) % 23
 	return phase == 0
 }
-func (ntt *Entity) TurnLeft() {
+func (ntt *EntityT) TurnLeft() {
 	ntt.direction = leftOf(ntt.direction)
 }
-func (ntt *Entity) TurnRight() {
+func (ntt *EntityT) TurnRight() {
 	ntt.direction = rightOf(ntt.direction)
 }
-func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
+func (self *EntityT) WriteFor(player Entity, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
 	buffer.WriteString(`:{"symbol":"`)
 	buffer.WriteRune(self.Symbol)
@@ -175,7 +175,7 @@ func (self *Entity) WriteFor(player Creature, buffer *bytes.Buffer) {
 }
 
 type Player struct {
-	Entity
+	EntityT
 	collided      bool
 	Connection    *connection
 	inbox         []string
@@ -185,7 +185,7 @@ type Player struct {
 }
 
 func NewPlayer(c *connection) *Player {
-	entity := Entity{
+	entity := EntityT{
 		health:       80,
 		ID:           c.id,
 		Symbol:       '@',
@@ -194,7 +194,7 @@ func NewPlayer(c *connection) *Player {
 	}
 	return &Player{
 		Connection: c,
-		Entity:     entity,
+		EntityT:    entity,
 		inbox:      make([]string, 0, (subgrid_width * subgrid_height)),
 		Moves:      "",
 		outbox:     make([]string, 0, 20),
@@ -223,10 +223,10 @@ func (ntt *Player) CalcMove(grid GridKeeper) Coord {
 	}
 	return loc.MovedBy(move)
 }
-func (ntt *Player) CanDamage(other Creature) bool {
+func (ntt *Player) CanDamage(other Entity) bool {
 	return !other.IsPlayer()
 }
-func (ntt *Player) CanSwapWith(other Creature) bool {
+func (ntt *Player) CanSwapWith(other Entity) bool {
 	return other.IsPlayer()
 }
 func (ntt *Player) Collided() bool {
@@ -235,14 +235,14 @@ func (ntt *Player) Collided() bool {
 func (ntt *Player) CollideWall() {
 	ntt.collided = true
 }
-func (ntt *Player) CollisionFrom(other Creature) {
+func (ntt *Player) CollisionFrom(other Entity) {
 	other.SetCollided()
 	if other.CanDamage(ntt) {
 		ntt.ChangeHealth(-1)
 		ntt.AddMessage("hit by monster")
 	}
 }
-func (ntt *Player) Detect(player Creature) {
+func (ntt *Player) Detect(player Entity) {
 	//if player.IsPlayer() {
 	var buffer bytes.Buffer
 	for _, message := range player.Outbox() {
@@ -290,7 +290,7 @@ type detection struct {
 }
 
 type Monster struct {
-	Entity
+	EntityT
 	detections chan detection
 	state      int
 }
@@ -299,8 +299,8 @@ const mstStart int = 0
 const mstToWall int = 1
 const mstFollow int = 2
 
-func NewMonster(id EntityID) Creature {
-	entity := Entity{
+func NewMonster(id EntityID) Entity {
+	entity := EntityT{
 		health:       10,
 		ID:           id,
 		Symbol:       '%',
@@ -308,7 +308,7 @@ func NewMonster(id EntityID) Creature {
 		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
 	return &Monster{
-		Entity:     entity,
+		EntityT:    entity,
 		detections: make(chan detection, (subgrid_width * subgrid_height)),
 		state:      mstStart,
 	}
@@ -389,16 +389,16 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 	}
 	return ntt.Location
 }
-func (ntt *Monster) CanDamage(other Creature) bool {
+func (ntt *Monster) CanDamage(other Entity) bool {
 	return other.IsPlayer()
 }
-func (ntt *Monster) CollisionFrom(other Creature) {
+func (ntt *Monster) CollisionFrom(other Entity) {
 	if other.CanDamage(ntt) {
 		ntt.ChangeHealth(-1)
 		other.AddMessage("hit monster")
 	}
 }
-func (ntt *Monster) Detect(player Creature) {
+func (ntt *Monster) Detect(player Entity) {
 	loc1, loc2 := ntt.Coord(), player.Coord()
 	dist := distance(loc1, loc2)
 	if dist <= 7 {

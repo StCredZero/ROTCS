@@ -73,7 +73,7 @@ func (self *DunGenCache) WalkableAt(coord Coord) bool {
 	return dgrid.isWalkable(lcoord.x, lcoord.y)
 }
 
-func (self *DunGenCache) WriteMap(ntt Creature, buffer *bytes.Buffer) {
+func (self *DunGenCache) WriteMap(ntt Entity, buffer *bytes.Buffer) {
 	if ntt.Initialized() && manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 0 {
 		self.WriteEntityMap(ntt, buffer)
 	} else if ntt.Initialized() && manhattanDist(ntt.Coord(), ntt.LastDispCoord()) == 1 {
@@ -83,11 +83,11 @@ func (self *DunGenCache) WriteMap(ntt Creature, buffer *bytes.Buffer) {
 	}
 }
 
-func (self *DunGenCache) WriteEntityMap(ntt Creature, buffer *bytes.Buffer) {
+func (self *DunGenCache) WriteEntityMap(ntt Entity, buffer *bytes.Buffer) {
 	buffer.WriteString(`"maptype":"entity"`)
 }
 
-func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
+func (self *DunGenCache) WriteLineMap(ntt Entity, buffer *bytes.Buffer) {
 	corner := ntt.Coord().Corner()
 	move := ntt.LastDispCoord().AsMoveTo(ntt.Coord())
 	var start Coord
@@ -134,7 +134,7 @@ func (self *DunGenCache) WriteLineMap(ntt Creature, buffer *bytes.Buffer) {
 	buffer.WriteRune('"')
 }
 
-func (self *DunGenCache) WriteBasicMap(ntt Creature, buffer *bytes.Buffer) {
+func (self *DunGenCache) WriteBasicMap(ntt Entity, buffer *bytes.Buffer) {
 	buffer.WriteString(`"maptype":"basic",`)
 	buffer.WriteString(`"map":`)
 
