@@ -292,8 +292,10 @@ type WorldGrid struct {
 
 func NewWorldGrid() *WorldGrid {
 	spawnGrids := []GridCoord{{0, 0}, {0, 1}, {1, 0}, {1, 1}, {-1, -1}, {-1, 0}, {0, -1}}
+	dgCache := NewDunGenCache(1000, DungeonEntropy, DungeonProto)
+
 	return &WorldGrid{
-		dunGenCache: NewDunGenCache(1000, DungeonEntropy, DungeonProto),
+		dunGenCache: dgCache,
 		grid:        make(map[GridCoord]*SubGrid),
 		entityGrid:  make(map[EntityID]GridCoord),
 		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
