@@ -478,6 +478,8 @@ Game.handleMouseEvent = function (e) {
 
     var coords = Game.display.eventToPosition(e);
     //console.log(coords);
+    if (!Game.walkableAt(coords[0],coords[1]) { return; }
+
     var pathCoords = Game.findPath(coords[0],coords[1]);
     //console.log(pathCoords);
     var moves = [];
