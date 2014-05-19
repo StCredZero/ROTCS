@@ -29,7 +29,7 @@ type Creature interface {
 	ChangeHealth(int)
 	Collided() bool
 	CollideWall()
-	CollideWith(Creature)
+	CollisionFrom(other Creature)
 	Coord() Coord
 	Detect(Creature)
 	DisplayString() string
@@ -46,6 +46,7 @@ type Creature interface {
 	Outbox() []string
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
+	SetCollided()
 	SetEntityID(EntityID)
 	SetHealth(int)
 	SetInitialized(bool)
@@ -83,8 +84,8 @@ func (ntt *Entity) ChangeHealth(delta int) {
 func (ntt *Entity) Collided() bool {
 	return false
 }
-func (ntt *Entity) CollideWall()               {}
-func (ntt *Entity) CollideWith(other Creature) {}
+func (ntt *Entity) CollideWall()           {}
+func (ntt *Entity) CollisionFrom(Creature) {}
 func (ntt *Entity) Coord() Coord {
 	return ntt.Location
 }
@@ -140,6 +141,7 @@ func (ntt *Entity) Outbox() []string {
 	return nil
 }
 func (ntt *Entity) SendDisplay(grid GridKeeper, gproc GridProcessor) {}
+func (ntt *Entity) SetCollided()                                     {}
 func (ntt *Entity) SetCoord(coord Coord) {
 	ntt.Location = coord
 }
@@ -233,11 +235,11 @@ func (ntt *Player) Collided() bool {
 func (ntt *Player) CollideWall() {
 	ntt.collided = true
 }
-func (ntt *Player) CollideWith(other Creature) {
-	ntt.collided = true
-	if ntt.CanDamage(other) {
-		other.ChangeHealth(-1)
-		ntt.AddMessage("hit monster")
+func (ntt *Player) CollisionFrom(other Creature) {
+	other.SetCollided()
+	if other.CanDamage(ntt) {
+		ntt.ChangeHealth(-1)
+		ntt.AddMessage("hit by monster")
 	}
 }
 func (ntt *Player) Detect(player Creature) {
@@ -390,10 +392,10 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 func (ntt *Monster) CanDamage(other Creature) bool {
 	return other.IsPlayer()
 }
-func (ntt *Monster) CollideWith(other Creature) {
-	if ntt.CanDamage(other) {
-		other.ChangeHealth(-1)
-		other.AddMessage("hit by monster")
+func (ntt *Monster) CollisionFrom(other Creature) {
+	if other.CanDamage(ntt) {
+		ntt.ChangeHealth(-1)
+		other.AddMessage("hit monster")
 	}
 }
 func (ntt *Monster) Detect(player Creature) {

@@ -46,7 +46,7 @@ func ExecuteMove(ntt Creature, grid GridKeeper, loc Coord) {
 			if ntt.CanSwapWith(other) {
 				grid.SwapEntities(ntt, other)
 			} else {
-				ntt.CollideWith(other)
+				other.CollisionFrom(ntt)
 			}
 		} else {
 			grid.MoveEntity(ntt, loc)
