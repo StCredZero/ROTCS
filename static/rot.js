@@ -4846,7 +4846,10 @@ ROT.Path.AStar.prototype._add = function(x, y, prev) {
 ROT.Path.AStar.prototype._distance = function(x, y) {
 	switch (this._options.topology) {
 		case 4:
-			return (Math.abs(x-this._fromX) + Math.abs(y-this._fromY));
+                        var dx = x - this._fromX;
+                        var dy = y - this._fromY;
+                        return Math.sqrt(dx*dx + dy*dy);
+			/*return (Math.abs(x-this._fromX) + Math.abs(y-this._fromY));*/
 		break;
 
 		case 6:
