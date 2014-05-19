@@ -405,7 +405,8 @@ var Terminal = Terminal || function(containerId) {
       output('<div>Welcome to ' + document.title +
              '! (v' + VERSION_ + ')</div>');
       output((new Date()).toLocaleString());
-      output('<p>Documentation: type "help"</p>');
+      output('<p>Documentation: ESC to toggle move/command mode</p>');
+      output('<p>        Command "help" for more</p>');
     },
     output: output,
     setTheme: setTheme_,
