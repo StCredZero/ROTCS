@@ -144,6 +144,6 @@ func main() {
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(htmlPath))))
 
 	if err := http.ListenAndServeTLS(*port, "etc/cert/certificate", "etc/cert/server.key", nil); err != nil {
-		log.Fatal("ListenAndServe:", err)
+		log.Fatal("ListenAndServeTLS:", err)
 	}
 }
