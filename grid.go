@@ -460,12 +460,13 @@ func (self *WorldGrid) NewEntity(ntt Creature) (Creature, bool) {
 	ntt.SetEntityID(NewEntityID())
 	ok := false
 	for !ok {
-		i := self.rng.Intn(len(self.spawnGrids))
-		gridCoord := self.spawnGrids[i]
-		subgrid := self.subgridAtGrid(gridCoord)
-		newEntity, ok = subgrid.NewEntity(ntt)
-		if ok {
-			self.entityGrid[ntt.EntityID()] = gridCoord
+		for i := 0; !ok && i < len(self.spawnGrids); i++ {
+			gridCoord := self.spawnGrids[i]
+			subgrid := self.subgridAtGrid(gridCoord)
+			newEntity, ok = subgrid.NewEntity(ntt)
+			if ok {
+				self.entityGrid[ntt.EntityID()] = gridCoord
+			}
 		}
 	}
 	return newEntity, ok
