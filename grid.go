@@ -357,15 +357,20 @@ func (self *WorldGrid) actualGridCoord() *(map[GridCoord]bool) {
 
 func (self *WorldGrid) prepopCullGrids() (*(map[GridCoord]bool), *(map[GridCoord]bool)) {
 	pgrids := self.playerGrids()
+	(*pgrids)[GridCoord{0, 0}] = true
 	expand1 := expandGrids(pgrids)
 	prepop := expandGrids(expand1)
 	actual := self.actualGridCoord()
 	cull := copyGrids(actual)
+
 	subtractGrids(cull, pgrids)
 	subtractGrids(cull, prepop)
+	subtractGridList(cull, self.spawnGrids)
+
 	subtractGrids(prepop, actual)
 	subtractGrids(prepop, expand1)
 	subtractGridList(prepop, self.spawnGrids)
+
 	return prepop, cull
 }
 
