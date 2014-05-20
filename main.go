@@ -146,4 +146,7 @@ func main() {
 	if err := http.ListenAndServeTLS(*port, "etc/cert/certificate", "etc/cert/server.key", nil); err != nil {
 		log.Fatal("ListenAndServeTLS:", err)
 	}
+	/*if err := http.ListenAndServe(*port, nil); err != nil {
+		log.Fatal("ListenAndServe:", err)
+	}*/
 }

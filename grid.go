@@ -19,6 +19,7 @@ type GridKeeper interface {
 	DungeonAt(Coord) int8
 	EmptyAt(Coord) bool
 	EntityAt(Coord) (Entity, bool)
+	EntityByID(EntityID) Entity
 	MarkDead(Entity)
 	MoveEntity(Entity, Coord)
 	NewEntity(Entity) (Entity, bool)
@@ -26,6 +27,7 @@ type GridKeeper interface {
 	PassableAt(Coord) bool
 	PutEntityAt(Entity, Coord)
 	RemoveEntityID(EntityID)
+	ReplaceEntity(Entity, Entity)
 	RNG() *rand.Rand
 	SendDisplays(GridProcessor)
 	SwapEntities(Entity, Entity)
@@ -45,6 +47,9 @@ func ExecuteMove(ntt Entity, grid GridKeeper, loc Coord) {
 		if present {
 			if ntt.CanSwapWith(other) {
 				grid.SwapEntities(ntt, other)
+			} else if other.IsWalkable() {
+				other.CollisionFrom(ntt)
+				grid.ReplaceEntity(other, ntt)
 			} else {
 				other.CollisionFrom(ntt)
 			}
@@ -117,7 +122,14 @@ func (self *SubGrid) EntityAt(loc Coord) (Entity, bool) {
 		return nil, false
 	}
 }
-
+func (self *SubGrid) EntityByID(id EntityID) Entity {
+	ntt, present := self.Entities[id]
+	if present {
+		return ntt
+	} else {
+		return nil
+	}
+}
 func (self *SubGrid) MarkDead(ntt Entity) {
 	self.deaths = append(self.deaths, ntt.EntityID())
 }
@@ -189,6 +201,11 @@ func (self *SubGrid) RemoveEntityID(id EntityID) {
 	ntt.SetSubgrid(nil)
 	delete(self.Grid, ntt.Coord())
 	delete(self.Entities, id)
+}
+func (self *SubGrid) ReplaceEntity(ntt, replacement Entity) {
+	loc := ntt.Coord()
+	self.RemoveEntityID(ntt.EntityID())
+	self.MoveEntity(replacement, loc)
 }
 func (self *SubGrid) RNG() *rand.Rand {
 	return self.rng
@@ -334,7 +351,13 @@ func (self *WorldGrid) playerGrids() *(map[GridCoord]bool) {
 func (self *WorldGrid) discardEmpty() {
 	for gc, subgrid := range self.grid {
 		for _, id := range subgrid.deaths {
+			dead := self.EntityByID(id)
+			loc := dead.Coord()
+			spawn, spawned := dead.DeathSpawn()
 			self.RemoveEntityID(id)
+			if spawned {
+				self.PutEntityAt(spawn, loc)
+			}
 		}
 		subgrid.deaths = subgrid.deaths[:0]
 		if subgrid.Count() == 0 {
@@ -342,7 +365,13 @@ func (self *WorldGrid) discardEmpty() {
 		}
 	}
 	for _, id := range self.deaths {
+		dead := self.EntityByID(id)
+		loc := dead.Coord()
+		spawn, spawned := dead.DeathSpawn()
 		self.RemoveEntityID(id)
+		if spawned {
+			self.PutEntityAt(spawn, loc)
+		}
 	}
 	self.deaths = self.deaths[:0]
 }
@@ -443,6 +472,16 @@ func (self *WorldGrid) EntityAt(loc Coord) (Entity, bool) {
 		return ntt, present
 	}
 }
+func (self *WorldGrid) EntityByID(id EntityID) Entity {
+	gc, present := self.entityGrid[id]
+	if present {
+		sg := self.subgridAtGrid(gc)
+		return sg.EntityByID(id)
+	} else {
+		return nil
+	}
+}
+
 func (self *WorldGrid) MarkDead(ntt Entity) {
 	self.deaths = append(self.deaths, ntt.EntityID())
 }
@@ -516,6 +555,11 @@ func (self *WorldGrid) RemoveEntityID(id EntityID) {
 	delete(self.entityGrid, id)
 	subgrid := self.subgridAtGrid(gridCoord)
 	subgrid.RemoveEntityID(id)
+}
+func (self *WorldGrid) ReplaceEntity(ntt, replacement Entity) {
+	loc := ntt.Coord()
+	self.RemoveEntityID(ntt.EntityID())
+	self.MoveEntity(replacement, loc)
 }
 func (self *WorldGrid) SwapEntities(ntt, other Entity) {
 	nttLoc, otherLoc := ntt.Coord(), other.Coord()

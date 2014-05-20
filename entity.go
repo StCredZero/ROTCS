@@ -31,6 +31,7 @@ type Entity interface {
 	CollideWall()
 	CollisionFrom(other Entity)
 	Coord() Coord
+	DeathSpawn() (Entity, bool)
 	Detect(Entity)
 	DisplayString() string
 	FormattedMessage(string) string
@@ -42,6 +43,7 @@ type Entity interface {
 	IsDead() bool
 	IsPlayer() bool
 	IsTransient() bool
+	IsWalkable() bool
 	LastDispCoord() Coord
 	Outbox() []string
 	SendDisplay(GridKeeper, GridProcessor)
@@ -84,10 +86,13 @@ func (ntt *EntityT) ChangeHealth(delta int) {
 func (ntt *EntityT) Collided() bool {
 	return false
 }
-func (ntt *EntityT) CollideWall()           {}
+func (ntt *EntityT) CollideWall()         {}
 func (ntt *EntityT) CollisionFrom(Entity) {}
 func (ntt *EntityT) Coord() Coord {
 	return ntt.Location
+}
+func (ntt *EntityT) DeathSpawn() (Entity, bool) {
+	return nil, false
 }
 func (ntt *EntityT) Detect(player Entity) {}
 func (ntt *EntityT) DisplayString() string {
@@ -121,6 +126,7 @@ func (ntt *EntityT) Initialized() bool {
 func (ntt *EntityT) IsDead() bool      { return true }
 func (ntt *EntityT) IsPlayer() bool    { return false }
 func (ntt *EntityT) IsTransient() bool { return true }
+func (ntt *EntityT) IsWalkable() bool  { return false }
 func (ntt *EntityT) LastDispCoord() Coord {
 	return ntt.Location
 }
@@ -238,8 +244,13 @@ func (ntt *Player) CollideWall() {
 func (ntt *Player) CollisionFrom(other Entity) {
 	other.SetCollided()
 	if other.CanDamage(ntt) {
-		ntt.ChangeHealth(-1)
-		ntt.AddMessage("hit by monster")
+		if other.Coord() == ntt.LocAhead() {
+			ntt.ChangeHealth(-1)
+			ntt.AddMessage("shield hit, damage -1")
+		} else {
+			ntt.ChangeHealth(-2)
+			ntt.AddMessage("flank hit, damage -2")
+		}
 	}
 }
 func (ntt *Player) Detect(player Entity) {
@@ -301,7 +312,7 @@ const mstFollow int = 2
 
 func NewMonster(id EntityID) Entity {
 	entity := EntityT{
-		health:       10,
+		health:       8,
 		ID:           id,
 		Symbol:       '%',
 		MoveSchedule: 0x55,
@@ -393,10 +404,14 @@ func (ntt *Monster) CanDamage(other Entity) bool {
 	return other.IsPlayer()
 }
 func (ntt *Monster) CollisionFrom(other Entity) {
+	other.SetCollided()
 	if other.CanDamage(ntt) {
-		ntt.ChangeHealth(-1)
-		other.AddMessage("hit monster")
+		ntt.ChangeHealth(-2)
+		other.AddMessage("hit monster, 2 damage")
 	}
+}
+func (ntt *Monster) DeathSpawn() (Entity, bool) {
+	return NewLoot(), true
 }
 func (ntt *Monster) Detect(player Entity) {
 	loc1, loc2 := ntt.Coord(), player.Coord()
@@ -415,4 +430,34 @@ func (ntt *Monster) DisplayString() string {
 }
 func (ntt *Monster) IsDead() bool {
 	return ntt.Health() <= 0
+}
+
+type Loot struct {
+	EntityT
+}
+
+func NewLoot() Entity {
+	ntt := EntityT{
+		ID:     NewEntityID(),
+		Symbol: '+',
+	}
+	newLoot := Loot{
+		EntityT: ntt,
+	}
+	return &newLoot
+}
+
+func (ntt *Loot) CollisionFrom(other Entity) {
+	if other.IsPlayer() {
+		other.ChangeHealth(6)
+		other.AddMessage("heal +6")
+	}
+}
+
+func (ntt *Loot) IsDead() bool {
+	return false
+}
+
+func (ntt *Loot) IsWalkable() bool {
+	return true
 }

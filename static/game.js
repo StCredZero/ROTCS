@@ -285,6 +285,10 @@ Game.displayScheme = {
     "%":{ "disp":"%",
           "fg":"#FFF",
           "bg":"#000"
+        },
+    "+":{ "disp":"+",
+          "fg":"#FFF",
+          "bg":"#000"
         }
 };
 
