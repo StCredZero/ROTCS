@@ -367,28 +367,33 @@ Game.renderDisplay = function(updateObj) {
     }
 
     if (updateObj.maptype === "basic") {
-        Game.oldLocation = null;
-        var loc = updateObj.location;
-        if (loc) {
-            Game.scrollTo(loc);
-        }
-        for (var j = 0; j < Game.dheight; j++) {
-            for (var i = 0; i < Game.dwidth; i++) {
-                var cellValue = updateObj.map[j].charAt(i);
-                Game.setBufferCell(i, j, cellValue);
-            }
-        }
-        Game.commitDisplay();
-    } else if (updateObj.maptype === "line") {
-        if (Game.oldLocation) {
+        if (Game.oldLocation && updateObj.collided) {
             if (((Game.location)[0] != (updateObj.location)[0]) ||
                 ((Game.location)[1] != (updateObj.location)[1])) {
                 Game.scrollTo(Game.oldLocation);
                 Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
             }
-        } 
+        } else {
+            Game.scrollTo(updateObj.location);
+        }
         Game.oldLocation = null;
-        Game.scrollTo(updateObj.location);
+        var cx = Game.location[0] - 39;
+        var cy = Game.location[1] - 12;
+        for (var j = 0; j < Game.dheight; j++) {
+            Game.drawLine([cx, cy + j], "n", updateObj.map[j]);
+        }
+        Game.commitDisplay();
+    } else if (updateObj.maptype === "line") {
+        if (Game.oldLocation && updateObj.collided) {
+            if (((Game.location)[0] != (updateObj.location)[0]) ||
+                ((Game.location)[1] != (updateObj.location)[1])) {
+                Game.scrollTo(Game.oldLocation);
+                Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
+            }
+        } else {
+            Game.scrollTo(updateObj.location);
+        }
+        Game.oldLocation = null;
         Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);
         Game.commitDisplay();
     } else if (updateObj.maptype === "entity") {
