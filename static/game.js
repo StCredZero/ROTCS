@@ -279,7 +279,7 @@ Game.displayScheme = {
           "bg":"#B0B0B0"
         },
     "@":{ "disp":"@",
-          "fg":"#00FF00",
+          "fg":"#FF9E00",
           "bg":"#000"
         },
     "%":{ "disp":"%",
@@ -291,7 +291,7 @@ Game.displayScheme = {
           "bg":"#000"
         },
     "G":{ "disp":"G",
-          "fg":"#0000FF",
+          "fg":"#0E51A7",
           "bg":"#000"
         }
 };
@@ -300,7 +300,7 @@ Game.draw = function(aMapToDraw) {
     var mapToDraw = Game.drawQueue.dequeue();
     Game.display.drawEntire(mapToDraw);
     // Draw the player 
-    Game.display.draw(Game.centerx, Game.centery, "@", "#1283B2", "#000");
+    Game.display.draw(Game.centerx, Game.centery, "@", "#0E51A7", "#000");
 }
 
 Game.walkableAt = function (i,j) {
@@ -315,9 +315,15 @@ Game.commitCell = function (drawMap,i, j, cellValue) {
         anArray[1] = j;
         if (cellValue.length === 1) {
             var scheme = Game.displayScheme[cellValue]; 
-            anArray[2] = scheme.disp;
-            anArray[3] = scheme.fg;
-            anArray[4] = scheme.bg;
+            if (scheme) {
+                anArray[2] = scheme.disp;
+                anArray[3] = scheme.fg;
+                anArray[4] = scheme.bg;
+            } else {
+                anArray[2] = cellValue;
+                anArray[3] = "#FFF";
+                anArray[4] = "#000";
+            }
         } else if (cellValue.length > 1) {
             var dispChar = cellValue.substr(0,1);
             var scheme = Game.displayScheme[dispChar]; 
