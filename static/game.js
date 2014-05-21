@@ -16,7 +16,8 @@ var Game = {
         this.displayNode.appendChild(this.canvas);
         this.displayNode.tabIndex = 1;
 
-        this.lastMoveTime = 0;
+        this.lastMoveTimestamp = 0;
+        this.lineStash = [];
         this.loadTestMode = false;
 
         this.mapUpdateQueue = new Queue();
@@ -187,6 +188,11 @@ Game.entityUnsafeAt = function(newLoc) {
 }
 //Game.bufferCell(i,j)
 Game.preMove = function(move) {
+    var now = (new Date).getTime();
+    if (now < Game.lastMoveTimestamp + Game.requestInterval) {
+        return
+    }
+
     var newLoc = false
     var line = []
     if ((move == "n") && Game.walkableAt(39,11)) {
@@ -196,9 +202,8 @@ Game.preMove = function(move) {
                 line.push(Game.bufferCell(i, Game.dheight - 1));
                 Game.setBufferCell(i, Game.dheight - 1, Game.bufferCell(i, 0));
             }
-            Game.stashedLine = line.join("");
-            Game.stashStart = [Game.location[0] - 39, Game.location[1] + 12];
-            Game.stashOrient = move;
+            var stashStart = [Game.location[0] - 39, Game.location[1] + 12];
+            Game.lineStash.push([stashStart, move, line.join("")]);
             Game.lastMoveTimestamp = (new Date).getTime();
         }
     } else if ((move == "s") && Game.walkableAt(39,13)) {
@@ -208,9 +213,8 @@ Game.preMove = function(move) {
                 line.push(Game.bufferCell(i, 0));
                 Game.setBufferCell(i, 0, Game.bufferCell(i, Game.dheight - 1));
             }
-            Game.stashedLine = line.join("");
-            Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
-            Game.stashOrient = move;
+            var stashStart = [Game.location[0] - 39, Game.location[1] - 12];
+            Game.lineStash.push([stashStart, move, line.join("")]);
             Game.lastMoveTimestamp = (new Date).getTime();
         }
     } else if ((move == "e") && Game.walkableAt(40,12)) {
@@ -220,9 +224,8 @@ Game.preMove = function(move) {
                 line.push(Game.bufferCell(0, j));
                 Game.setBufferCell(0, j, Game.bufferCell(Game.dwidth - 1, j));
             }
-            Game.stashedLine = line.join("");
-            Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
-            Game.stashOrient = move;
+            var stashStart = [Game.location[0] - 39, Game.location[1] - 12];
+            Game.lineStash.push([stashStart, move, line.join("")]);
             Game.lastMoveTimestamp = (new Date).getTime();
         }
     } else if ((move == "w") && Game.walkableAt(38,12)) {
@@ -232,9 +235,8 @@ Game.preMove = function(move) {
                 line.push(Game.bufferCell(Game.dwidth - 1, j));
                 Game.setBufferCell(Game.dwidth - 1, j, Game.bufferCell(0, j));
             }
-            Game.stashedLine = line.join("");
-            Game.stashStart = [Game.location[0] + 39, Game.location[1] - 12];
-            Game.stashOrient = move;
+            var stashStart = [Game.location[0] + 39, Game.location[1] - 12];
+            Game.lineStash.push([stashStart, move, line.join("")]);
             Game.lastMoveTimestamp = (new Date).getTime();
         }
     }
@@ -378,53 +380,47 @@ Game.renderDisplay = function(updateObj) {
     }
 
     if (updateObj.maptype === "basic") {
-        /*if (Game.oldLocation && updateObj.collided) {
-            if (((Game.location)[0] != (updateObj.location)[0]) ||
-                ((Game.location)[1] != (updateObj.location)[1])) {
-                Game.scrollTo(Game.oldLocation);
-                Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
-            }
-        } else {
-            Game.scrollTo(updateObj.location);
-        }*/
         if (Game.lastMoveTimestamp <= updateObj.timestamp) {
-            Game.scrollTo(updateObj.location);
+            if (Game.scrollTo(updateObj.location)) {
+                for (var i = 0; i < Game.lineStash.length; i++) {
+                    var stash = Game.lineStash[i];
+                    Game.drawLine(stash[0], stash[1], stash[2]);
+                }
+            }
             Game.lastMoveTimestamp = updateObj.timestamp;
+            Game.oldLocation = null;
         }
-        Game.oldLocation = null;
         if (!Game.location) {
             Game.location = updateObj.location;
         }
-        var cx = Game.location[0] - 39;
-        var cy = Game.location[1] - 12;
+        var cx = updateObj.location[0] - 39;
+        var cy = updateObj.location[1] - 12;
         for (var j = 0; j < Game.dheight; j++) {
             Game.drawLine([cx, cy + j], "n", updateObj.map[j]);
         }
         Game.commitDisplay();
     } else if (updateObj.maptype === "line") {
-        /*if (Game.oldLocation && updateObj.collided) {
-            if (((Game.location)[0] != (updateObj.location)[0]) ||
-                ((Game.location)[1] != (updateObj.location)[1])) {
-                Game.scrollTo(Game.oldLocation);
-                Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
-            }
-        } else {
-            Game.scrollTo(updateObj.location);
-        }*/
         if (Game.lastMoveTimestamp <= updateObj.timestamp) {
-            Game.scrollTo(updateObj.location);
+            if (Game.scrollTo(updateObj.location)) {
+                for (var i = 0; i < Game.lineStash.length; i++) {
+                    var stash = Game.lineStash[i];
+                    Game.drawLine(stash[0], stash[1], stash[2]);
+                }
+            }
             Game.lastMoveTimestamp = updateObj.timestamp;
+            Game.oldLocation = null;
         }
-        Game.oldLocation = null;
         Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);
         Game.commitDisplay();
     } else if (updateObj.maptype === "entity") {
-        if (Game.oldLocation && updateObj.collided) {
-            var loc = updateObj.location;
-            if (loc) {
-                Game.scrollTo(loc);
-                Game.drawLine(Game.stashStart, Game.stashOrient, Game.stashedLine);
+        if (Game.lastMoveTimestamp <= updateObj.timestamp) {
+            if (Game.scrollTo(updateObj.location)) {
+                for (var i = 0; i < Game.lineStash.length; i++) {
+                    var stash = Game.lineStash[i];
+                    Game.drawLine(stash[0], stash[1], stash[2]);
+                }
             }
+            Game.lastMoveTimestamp = updateObj.timestamp;
             Game.oldLocation = null;
         }
         Game.commitDisplay();
@@ -435,6 +431,9 @@ Game.renderDisplay = function(updateObj) {
              " Location:" , Game.location[0],",",Game.location[1],
              " Users:", Game.pop,
              " Server Load:",Game.load].join("");
+    }
+    if (Game.lineStash.length > 0) {
+        Game.lineStash.shift();
     }
 }
 
@@ -576,9 +575,11 @@ Game.scrollTo = function(newloc) {
         //console.log("scrollto: ", xvec, yvec);
         Game.scrollMapX(xvec);
         Game.scrollMapY(yvec);
-
+        Game.location = newloc;
+        return (xvec !== 0 || yvec !== 0);
     } 
     Game.location = newloc;
+    return false;
     //console.log("scrollto-end: ", Game.location);
 }
 
