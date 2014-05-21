@@ -39,6 +39,13 @@ func NewCstServer() *CstServer {
 		connections: make(map[*connection]EntityID),
 	}
 	srv.world = NewWorldGrid()
+
+	srv.world.PutEntityAt(NewShipGuard(), Coord{10, 12})
+	srv.world.PutEntityAt(NewShipGuard(), Coord{19, 9})
+	srv.world.PutEntityAt(NewShipGuard(), Coord{19, 15})
+	srv.world.PutEntityAt(NewShipGuard(), Coord{33, 9})
+	srv.world.PutEntityAt(NewShipGuard(), Coord{33, 15})
+
 	return &srv
 }
 

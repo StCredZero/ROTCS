@@ -449,8 +449,8 @@ func NewLoot() Entity {
 
 func (ntt *Loot) CollisionFrom(other Entity) {
 	if other.IsPlayer() {
-		other.ChangeHealth(6)
-		other.AddMessage("heal +6")
+		other.ChangeHealth(5)
+		other.AddMessage("heal +5")
 	}
 }
 
@@ -460,4 +460,37 @@ func (ntt *Loot) IsDead() bool {
 
 func (ntt *Loot) IsWalkable() bool {
 	return true
+}
+
+type ShipGuard struct {
+	EntityT
+}
+
+func NewShipGuard() Entity {
+	ntt := EntityT{
+		ID:     NewEntityID(),
+		Symbol: 'G',
+	}
+	newNtt := ShipGuard{
+		EntityT: ntt,
+	}
+	return &newNtt
+}
+
+func (ntt *ShipGuard) CollisionFrom(other Entity) {
+	if other.IsPlayer() {
+		loc1 := ntt.Coord()
+		loc2 := other.Coord()
+		loc3 := Coord{loc1.x + (loc1.x - loc2.x), loc1.y + (loc1.y - loc2.y)}
+		if loc2.Grid() == loc3.Grid() {
+			ntt.subgrid.MoveEntity(other, loc3)
+		}
+	}
+}
+
+func (ntt *ShipGuard) IsDead() bool {
+	return false
+}
+func (ntt *ShipGuard) IsTransient() bool {
+	return false
 }

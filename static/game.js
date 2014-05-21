@@ -279,7 +279,7 @@ Game.displayScheme = {
           "bg":"#B0B0B0"
         },
     "@":{ "disp":"@",
-          "fg":"#FFF419",
+          "fg":"#00FF00",
           "bg":"#000"
         },
     "%":{ "disp":"%",
@@ -288,6 +288,10 @@ Game.displayScheme = {
         },
     "+":{ "disp":"+",
           "fg":"#FFF",
+          "bg":"#000"
+        },
+    "G":{ "disp":"G",
+          "fg":"#0000FF",
           "bg":"#000"
         }
 };
