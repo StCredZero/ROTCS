@@ -45,6 +45,7 @@ type Entity interface {
 	IsTransient() bool
 	IsWalkable() bool
 	LastDispCoord() Coord
+	MoveTimestamp() uint64
 	Outbox() []string
 	SendDisplay(GridKeeper, GridProcessor)
 	SetCoord(Coord)
@@ -143,6 +144,9 @@ func (ntt *EntityT) LocRightRear() Coord {
 	right := rightOf(ntt.direction)
 	return ntt.Location.MovedBy(right).MovedBy(rightOf(right))
 }
+func (ntt *EntityT) MoveTimestamp() uint64 {
+	return 0
+}
 func (ntt *EntityT) Outbox() []string {
 	return nil
 }
@@ -186,7 +190,7 @@ type Player struct {
 	Connection    *connection
 	inbox         []string
 	LastUpdateLoc Coord
-	Moves         string
+	moveTimestamp uint64
 	outbox        []string
 }
 
@@ -202,7 +206,6 @@ func NewPlayer(c *connection) *Player {
 		Connection: c,
 		EntityT:    entity,
 		inbox:      make([]string, 0, (subgrid_width * subgrid_height)),
-		Moves:      "",
 		outbox:     make([]string, 0, 20),
 	}
 }
@@ -211,23 +214,19 @@ func (ntt *Player) AddMessage(msg string) {
 	ntt.inbox = append(ntt.inbox, msg)
 }
 func (ntt *Player) CalcMove(grid GridKeeper) Coord {
+	var move moveRequest
+	hasMove := false
 	select {
-	case moves := <-ntt.Connection.moveQueue:
-		ntt.Moves = moves
+	case move = <-ntt.Connection.moveQueue:
+		hasMove = true
 	default:
 	}
 	loc := ntt.Location
-	move := '0'
-	for _, move = range ntt.Moves {
-		break
+	if hasMove {
+		ntt.moveTimestamp = move.timestamp
+		return loc.MovedBy(move.direction)
 	}
-	if len(ntt.Moves) > 0 {
-		ntt.Moves = ntt.Moves[1:]
-	}
-	if move != '0' {
-		ntt.direction = move
-	}
-	return loc.MovedBy(move)
+	return loc
 }
 func (ntt *Player) CanDamage(other Entity) bool {
 	return !other.IsPlayer()
@@ -279,6 +278,9 @@ func (ntt *Player) IsDead() bool {
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
+func (ntt *Player) MoveTimestamp() uint64 {
+	return ntt.moveTimestamp
+}
 func (ntt *Player) Outbox() []string {
 	return ntt.outbox
 }

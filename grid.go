@@ -290,7 +290,10 @@ func (self *SubGrid) WriteDisplay(ntt Entity, gproc GridProcessor, buffer *bytes
 		buffer.WriteString(msg)
 		buffer.WriteString(`",`)
 	}
-	buffer.WriteString(`""]`)
+	buffer.WriteString(`""],`)
+
+	buffer.WriteString(`"timestamp":`)
+	buffer.WriteString(strconv.FormatUint(ntt.MoveTimestamp(), 10))
 	buffer.WriteRune('}')
 }
 

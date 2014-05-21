@@ -99,25 +99,18 @@ var Game = {
         }
 
         var updateGame = function() {
-            var currentTime = (new Date).getTime();
             if (! Game.drawQueue.isEmpty()) {
                 var mapToDraw = Game.drawQueue.dequeue();
                 Game.display.drawEntire(mapToDraw);
             } else if (! Game.mapUpdateQueue.isEmpty()) {
                 var updateObj = Game.mapUpdateQueue.dequeue();
                 Game.renderDisplay(updateObj);
-            } else if (((currentTime - Game.lastMoveTime) > Game.requestInterval) && (! Game.sendQueue.isEmpty())) {
-                var actions = Game.sendQueue.dequeue();
-                Game.lastMoveTime = currentTime;
-                //console.log("sending ", actions);
-                Game.ws.send(actions);
-            } else if (Game.loadTestMode && 
-                       ((currentTime - Game.lastMoveTime) > Game.requestInterval * 9) && 
-                       Game.sendQueue.isEmpty()) 
-            {
-                Game.sendMove("nneessww");
-            }
-            //console.log("poll: "+currentTime);
+            } else if (! Game.sendQueue.isEmpty()) {
+                var actions = null;
+                for (actions = Game.sendQueue.dequeue(); actions; actions = Game.sendQueue.dequeue()) {
+                    Game.ws.send([(new Date).getTime(),actions].join(":"));
+                }
+            } 
         };
 
         if ( animFrame !== null ) {
@@ -206,6 +199,7 @@ Game.preMove = function(move) {
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] - 39, Game.location[1] + 12];
             Game.stashOrient = move;
+            Game.lastMoveTimestamp = (new Date).getTime();
         }
     } else if ((move == "s") && Game.walkableAt(39,13)) {
         newLoc = [Game.location[0], Game.location[1] + 1];
@@ -217,6 +211,7 @@ Game.preMove = function(move) {
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
             Game.stashOrient = move;
+            Game.lastMoveTimestamp = (new Date).getTime();
         }
     } else if ((move == "e") && Game.walkableAt(40,12)) {
         newLoc = [Game.location[0] + 1, Game.location[1]];
@@ -228,6 +223,7 @@ Game.preMove = function(move) {
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] - 39, Game.location[1] - 12];
             Game.stashOrient = move;
+            Game.lastMoveTimestamp = (new Date).getTime();
         }
     } else if ((move == "w") && Game.walkableAt(38,12)) {
         newLoc = [Game.location[0] - 1, Game.location[1]];
@@ -239,6 +235,7 @@ Game.preMove = function(move) {
             Game.stashedLine = line.join("");
             Game.stashStart = [Game.location[0] + 39, Game.location[1] - 12];
             Game.stashOrient = move;
+            Game.lastMoveTimestamp = (new Date).getTime();
         }
     }
     if (line.length > 0) {
@@ -279,7 +276,7 @@ Game.displayScheme = {
           "bg":"#B0B0B0"
         },
     "@":{ "disp":"@",
-          "fg":"#FF9E00",
+          "fg":"#004DFF",
           "bg":"#000"
         },
     "%":{ "disp":"%",
@@ -291,7 +288,7 @@ Game.displayScheme = {
           "bg":"#000"
         },
     "G":{ "disp":"G",
-          "fg":"#0E51A7",
+          "fg":"#004DFF",
           "bg":"#000"
         }
 };
@@ -300,7 +297,7 @@ Game.draw = function(aMapToDraw) {
     var mapToDraw = Game.drawQueue.dequeue();
     Game.display.drawEntire(mapToDraw);
     // Draw the player 
-    Game.display.draw(Game.centerx, Game.centery, "@", "#0E51A7", "#000");
+    Game.display.draw(Game.centerx, Game.centery, "@", "#FFAA00", "#000");
 }
 
 Game.walkableAt = function (i,j) {
@@ -362,7 +359,7 @@ Game.commitDisplay = function() {
         }
     }
     // ensure you draw the player differently
-    drawMap[Game.coord(Game.centerx,Game.centery)] = [Game.centerx,Game.centery,"@","#1283B2", "#000"];
+    drawMap[Game.coord(Game.centerx,Game.centery)] = [Game.centerx,Game.centery,"@","#FFAA00", "#000"];
     Game.drawQueue.enqueue(drawMap);
 };
  
@@ -381,7 +378,7 @@ Game.renderDisplay = function(updateObj) {
     }
 
     if (updateObj.maptype === "basic") {
-        if (Game.oldLocation && updateObj.collided) {
+        /*if (Game.oldLocation && updateObj.collided) {
             if (((Game.location)[0] != (updateObj.location)[0]) ||
                 ((Game.location)[1] != (updateObj.location)[1])) {
                 Game.scrollTo(Game.oldLocation);
@@ -389,8 +386,15 @@ Game.renderDisplay = function(updateObj) {
             }
         } else {
             Game.scrollTo(updateObj.location);
+        }*/
+        if (Game.lastMoveTimestamp <= updateObj.timestamp) {
+            Game.scrollTo(updateObj.location);
+            Game.lastMoveTimestamp = updateObj.timestamp;
         }
         Game.oldLocation = null;
+        if (!Game.location) {
+            Game.location = updateObj.location;
+        }
         var cx = Game.location[0] - 39;
         var cy = Game.location[1] - 12;
         for (var j = 0; j < Game.dheight; j++) {
@@ -398,7 +402,7 @@ Game.renderDisplay = function(updateObj) {
         }
         Game.commitDisplay();
     } else if (updateObj.maptype === "line") {
-        if (Game.oldLocation && updateObj.collided) {
+        /*if (Game.oldLocation && updateObj.collided) {
             if (((Game.location)[0] != (updateObj.location)[0]) ||
                 ((Game.location)[1] != (updateObj.location)[1])) {
                 Game.scrollTo(Game.oldLocation);
@@ -406,6 +410,10 @@ Game.renderDisplay = function(updateObj) {
             }
         } else {
             Game.scrollTo(updateObj.location);
+        }*/
+        if (Game.lastMoveTimestamp <= updateObj.timestamp) {
+            Game.scrollTo(updateObj.location);
+            Game.lastMoveTimestamp = updateObj.timestamp;
         }
         Game.oldLocation = null;
         Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);

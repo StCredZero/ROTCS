@@ -1,17 +1,24 @@
 package main
 
 import (
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+type moveRequest struct {
+	direction rune
+	timestamp uint64
+}
+
 func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
 		isOpen:    true,
-		moveQueue: make(chan string, 20),
+		moveQueue: make(chan moveRequest, 256),
 		send:      make(chan []byte, 256),
 		ws:        ws,
 	}
@@ -22,7 +29,7 @@ type connection struct {
 
 	isOpen bool
 
-	moveQueue chan string
+	moveQueue chan moveRequest
 
 	outbox []string
 
@@ -42,13 +49,19 @@ readerLoop:
 		if err != nil {
 			break readerLoop
 		}
-		msgtype := string(message[0:2])
-		s := string(message[3:])
-		LogTrace("Got:", s)
-		if strings.EqualFold(msgtype, "mv") {
-			c.moveQueue <- s
-		} else if strings.EqualFold(msgtype, "ch") {
-			c.player.outbox = append(c.player.outbox, s)
+		tokens := regexp.MustCompile(":").Split(string(message[:]), 3)
+		timestamp, err := strconv.ParseUint(tokens[0], 10, 64)
+		if err != nil {
+			break readerLoop
+		}
+		cmdType, data := tokens[1], tokens[2]
+		LogTrace("Got:", data, timestamp)
+		if strings.EqualFold(cmdType, "mv") {
+			for _, mv := range data {
+				c.moveQueue <- moveRequest{mv, timestamp}
+			}
+		} else if strings.EqualFold(cmdType, "ch") {
+			c.player.outbox = append(c.player.outbox, data)
 		}
 		runtime.Gosched()
 	}
