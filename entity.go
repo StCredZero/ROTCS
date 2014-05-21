@@ -483,7 +483,14 @@ func (ntt *ShipGuard) CollisionFrom(other Entity) {
 		loc2 := other.Coord()
 		loc3 := Coord{loc1.x + (loc1.x - loc2.x), loc1.y + (loc1.y - loc2.y)}
 		if loc2.Grid() == loc3.Grid() {
-			ntt.subgrid.MoveEntity(other, loc3)
+			atLoc3, present := ntt.subgrid.EntityAt(loc3)
+			if present {
+				if atLoc3.IsPlayer() {
+					ntt.subgrid.SwapEntities(other, atLoc3)
+				}
+			} else {
+				ntt.subgrid.MoveEntity(other, loc3)
+			}
 		}
 	}
 }
