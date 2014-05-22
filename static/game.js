@@ -384,7 +384,7 @@ Game.renderDisplay = function(updateObj) {
             if (Game.scrollTo(updateObj.location)) {
                 for (var i = 0; i < Game.lineStash.length; i++) {
                     var stash = Game.lineStash[i];
-                    Game.drawLine(stash[0], stash[1], stash[2]);
+                    Game.drawStash(stash[0], stash[1], stash[2]);
                 }
             }
             Game.lastMoveTimestamp = updateObj.timestamp;
@@ -395,16 +395,17 @@ Game.renderDisplay = function(updateObj) {
         }
         var cx = updateObj.location[0] - 39;
         var cy = updateObj.location[1] - 12;
-        for (var j = 0; j < Game.dheight; j++) {
+        Game.drawBase64Map(cx, cy, 79, 25, updateObj.map);
+        /*for (var j = 0; j < Game.dheight; j++) {
             Game.drawLine([cx, cy + j], "n", updateObj.map[j]);
-        }
+        }*/
         Game.commitDisplay();
     } else if (updateObj.maptype === "line") {
         if (Game.lastMoveTimestamp <= updateObj.timestamp) {
             if (Game.scrollTo(updateObj.location)) {
                 for (var i = 0; i < Game.lineStash.length; i++) {
                     var stash = Game.lineStash[i];
-                    Game.drawLine(stash[0], stash[1], stash[2]);
+                    Game.drawStash(stash[0], stash[1], stash[2]);
                 }
             }
             Game.lastMoveTimestamp = updateObj.timestamp;
@@ -417,7 +418,7 @@ Game.renderDisplay = function(updateObj) {
             if (Game.scrollTo(updateObj.location)) {
                 for (var i = 0; i < Game.lineStash.length; i++) {
                     var stash = Game.lineStash[i];
-                    Game.drawLine(stash[0], stash[1], stash[2]);
+                    Game.drawStash(stash[0], stash[1], stash[2]);
                 }
             }
             Game.lastMoveTimestamp = updateObj.timestamp;
@@ -587,6 +588,17 @@ Game.drawLine = function(start, orientation, line) {
     var x1 = start[0];
     var y1 = start[1];
     if (orientation == "n" || orientation == "s") {
+        Game.drawBase64Map(x1, y1, Game.dwidth, 1, line);
+    }
+    if (orientation == "w" || orientation == "e") {
+        Game.drawBase64Map(x1, y1, 1, Game.dheight, line);
+    }
+};
+
+Game.drawStash = function(start, orientation, line) {
+    var x1 = start[0];
+    var y1 = start[1];
+    if (orientation == "n" || orientation == "s") {
         for (var x = x1; x < (x1 + Game.dwidth); x++) {
             var cellValue = line.charAt(x - x1);
             Game.setLocationCell(x, y1, cellValue);
@@ -600,6 +612,30 @@ Game.drawLine = function(start, orientation, line) {
     }
 };
 
+Game.drawBase64Map = function(x0, y0, xsize, ysize, data) {
+    var x = 0;
+    var y = 0;
+    for (var di = 0; di < data.length; di++) {
+        var c = data.charAt(di);
+        var v = Game.base64Table[c];
+        for (var i = 0; i < 6; i++) {
+            var cellValue = " ";
+            
+            if (v[i] == 1) {
+                cellValue = ".";
+            }
+            if (x < xsize && y < ysize) {
+                Game.setLocationCell(x + x0, y + y0, cellValue);
+            }
+            x += 1;
+            if (x == xsize) {
+                x = 0;
+                y += 1;
+            }
+        }
+    }
+};
+
 Game.scrollMapX = function(vec) {
     Game.xboffset = (Game.xboffset + vec + Game.dwidth) % Game.dwidth;
 };
@@ -608,4 +644,68 @@ Game.scrollMapY = function(vec) {
     Game.yboffset = (Game.yboffset + vec + Game.dheight) % Game.dheight;
 };
 
-
+Game.base64Table = {
+"A":[0,0,0,0,0,0],
+"B":[1,0,0,0,0,0],
+"C":[0,1,0,0,0,0],
+"D":[1,1,0,0,0,0],
+"E":[0,0,1,0,0,0],
+"F":[1,0,1,0,0,0],
+"G":[0,1,1,0,0,0],
+"H":[1,1,1,0,0,0],
+"I":[0,0,0,1,0,0],
+"J":[1,0,0,1,0,0],
+"K":[0,1,0,1,0,0],
+"L":[1,1,0,1,0,0],
+"M":[0,0,1,1,0,0],
+"N":[1,0,1,1,0,0],
+"O":[0,1,1,1,0,0],
+"P":[1,1,1,1,0,0],
+"Q":[0,0,0,0,1,0],
+"R":[1,0,0,0,1,0],
+"S":[0,1,0,0,1,0],
+"T":[1,1,0,0,1,0],
+"U":[0,0,1,0,1,0],
+"V":[1,0,1,0,1,0],
+"W":[0,1,1,0,1,0],
+"X":[1,1,1,0,1,0],
+"Y":[0,0,0,1,1,0],
+"Z":[1,0,0,1,1,0],
+"a":[0,1,0,1,1,0],
+"b":[1,1,0,1,1,0],
+"c":[0,0,1,1,1,0],
+"d":[1,0,1,1,1,0],
+"e":[0,1,1,1,1,0],
+"f":[1,1,1,1,1,0],
+"g":[0,0,0,0,0,1],
+"h":[1,0,0,0,0,1],
+"i":[0,1,0,0,0,1],
+"j":[1,1,0,0,0,1],
+"k":[0,0,1,0,0,1],
+"l":[1,0,1,0,0,1],
+"m":[0,1,1,0,0,1],
+"n":[1,1,1,0,0,1],
+"o":[0,0,0,1,0,1],
+"p":[1,0,0,1,0,1],
+"q":[0,1,0,1,0,1],
+"r":[1,1,0,1,0,1],
+"s":[0,0,1,1,0,1],
+"t":[1,0,1,1,0,1],
+"u":[0,1,1,1,0,1],
+"v":[1,1,1,1,0,1],
+"w":[0,0,0,0,1,1],
+"x":[1,0,0,0,1,1],
+"y":[0,1,0,0,1,1],
+"z":[1,1,0,0,1,1],
+"0":[0,0,1,0,1,1],
+"1":[1,0,1,0,1,1],
+"2":[0,1,1,0,1,1],
+"3":[1,1,1,0,1,1],
+"4":[0,0,0,1,1,1],
+"5":[1,0,0,1,1,1],
+"6":[0,1,0,1,1,1],
+"7":[1,1,0,1,1,1],
+"8":[0,0,1,1,1,1],
+"9":[1,0,1,1,1,1],
+"+":[0,1,1,1,1,1],
+"/":[1,1,1,1,1,1]};

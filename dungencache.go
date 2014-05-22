@@ -111,51 +111,41 @@ func (self *DunGenCache) WriteLineMap(ntt Entity, buffer *bytes.Buffer) {
 	buffer.WriteString(`"line":"`)
 	switch move {
 	case 'n', 's':
-		for x := start.x; x < (start.x + subgrid_width); x++ {
-			cell := self.DungeonAt(Coord{x, start.y})
-			switch cell {
-			case TileFloor, TileCorridor:
-				buffer.WriteRune('.')
-			default:
-				buffer.WriteRune(' ')
-			}
-		}
+		WriteBase64Map(start, subgrid_width, 1, self, buffer)
 	case 'w', 'e':
-		for y := start.y; y < (start.y + subgrid_height); y++ {
-			cell := self.DungeonAt(Coord{start.x, y})
-			switch cell {
-			case TileFloor, TileCorridor:
-				buffer.WriteRune('.')
-			default:
-				buffer.WriteRune(' ')
-			}
-		}
+		WriteBase64Map(start, 1, subgrid_height, self, buffer)
 	}
 	buffer.WriteRune('"')
 }
 
 func (self *DunGenCache) WriteBasicMap(ntt Entity, buffer *bytes.Buffer) {
 	buffer.WriteString(`"maptype":"basic",`)
-	buffer.WriteString(`"map":`)
-
-	var x, y, xstart, ystart, xend, yend int64
-	xstart = ntt.Coord().x - (subgrid_width / 2)
-	ystart = ntt.Coord().y - (subgrid_height / 2)
-	xend, yend = xstart+subgrid_width, ystart+subgrid_height
-	buffer.WriteRune('[')
-	for y = ystart; y < yend; y++ {
-		buffer.WriteRune('"')
-		for x = xstart; x < xend; x++ {
-			cell := self.DungeonAt(Coord{x, y})
-			switch cell {
-			case TileFloor, TileCorridor:
-				buffer.WriteRune('.')
-			default:
-				buffer.WriteRune(' ')
-			}
-		}
-		buffer.WriteString(`",`)
-	}
-	buffer.WriteString(`"e"]`)
+	buffer.WriteString(`"map":"`)
+	xstart := ntt.Coord().x - (subgrid_width / 2)
+	ystart := ntt.Coord().y - (subgrid_height / 2)
+	WriteBase64Map(Coord{xstart, ystart}, subgrid_width, subgrid_height, self, buffer)
+	buffer.WriteRune('"')
 	ntt.SetInitialized(true)
+}
+
+var Base64Runes = []rune{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'}
+
+func WriteBase64Map(corner Coord, xsize int, ysize int, dungeon *DunGenCache, buffer *bytes.Buffer) {
+	var v int = 0
+	i := 0
+	for y := corner.y; y < corner.y+int64(ysize); y++ {
+		for x := corner.x; x < corner.x+int64(xsize); x++ {
+			if dungeon.WalkableAt(Coord{x, y}) {
+				v += int(1 << uint32(i%6))
+			}
+			if (i+1)%6 == 0 {
+				buffer.WriteRune(Base64Runes[v])
+				v = 0
+			}
+			i += 1
+		}
+	}
+	if i%6 != 0 {
+		buffer.WriteRune(Base64Runes[v])
+	}
 }
