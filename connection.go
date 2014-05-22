@@ -17,10 +17,9 @@ type moveRequest struct {
 
 func newConnection(ws *websocket.Conn) *connection {
 	return &connection{
-		isOpen:    true,
-		moveQueue: make(chan moveRequest, 256),
-		send:      make(chan []byte, 256),
-		ws:        ws,
+		isOpen: true,
+		send:   make(chan []byte, 256),
+		ws:     ws,
 	}
 }
 
@@ -28,8 +27,6 @@ type connection struct {
 	id EntityID
 
 	isOpen bool
-
-	moveQueue chan moveRequest
 
 	outbox []string
 
@@ -57,8 +54,9 @@ readerLoop:
 		cmdType, data := tokens[1], tokens[2]
 		LogTrace("Got:", data, timestamp)
 		if strings.EqualFold(cmdType, "mv") {
+			c.player.moveQueue = make([]moveRequest, 0, 10)
 			for _, mv := range data {
-				c.moveQueue <- moveRequest{mv, timestamp}
+				c.player.moveQueue = append(c.player.moveQueue, moveRequest{mv, timestamp})
 			}
 		} else if strings.EqualFold(cmdType, "ch") {
 			c.player.outbox = append(c.player.outbox, data)

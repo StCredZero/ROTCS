@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	//"fmt"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -59,6 +59,7 @@ func ExecuteMove(ntt Entity, grid GridKeeper, loc Coord) {
 	} else {
 		ntt.CollideWall()
 	}
+	ntt.MoveCommit()
 }
 
 type DeferredMove struct {
@@ -599,7 +600,8 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 			select {
 			case deferred := <-subgrid.ParentQueue:
 				ntt := subgrid.Entities[deferred.id]
-				ExecuteMove(ntt, self, deferred.loc)
+				loc := ntt.CalcMove(self)
+				ExecuteMove(ntt, self, loc)
 				if ntt.IsDead() {
 					self.MarkDead(ntt)
 				}

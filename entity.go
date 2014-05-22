@@ -45,6 +45,7 @@ type Entity interface {
 	IsTransient() bool
 	IsWalkable() bool
 	LastDispCoord() Coord
+	MoveCommit()
 	MoveTimestamp() uint64
 	Outbox() []string
 	SendDisplay(GridKeeper, GridProcessor)
@@ -144,6 +145,7 @@ func (ntt *EntityT) LocRightRear() Coord {
 	right := rightOf(ntt.direction)
 	return ntt.Location.MovedBy(right).MovedBy(rightOf(right))
 }
+func (ntt *EntityT) MoveCommit() {}
 func (ntt *EntityT) MoveTimestamp() uint64 {
 	return 0
 }
@@ -190,6 +192,7 @@ type Player struct {
 	Connection    *connection
 	inbox         []string
 	LastUpdateLoc Coord
+	moveQueue     []moveRequest
 	moveTimestamp uint64
 	outbox        []string
 }
@@ -206,6 +209,7 @@ func NewPlayer(c *connection) *Player {
 		Connection: c,
 		EntityT:    entity,
 		inbox:      make([]string, 0, (subgrid_width * subgrid_height)),
+		moveQueue:  make([]moveRequest, 0, 20),
 		outbox:     make([]string, 0, 20),
 	}
 }
@@ -214,19 +218,12 @@ func (ntt *Player) AddMessage(msg string) {
 	ntt.inbox = append(ntt.inbox, msg)
 }
 func (ntt *Player) CalcMove(grid GridKeeper) Coord {
-	var move moveRequest
-	hasMove := false
-	select {
-	case move = <-ntt.Connection.moveQueue:
-		hasMove = true
-	default:
-	}
-	loc := ntt.Location
-	if hasMove {
+	if len(ntt.moveQueue) > 0 {
+		move := ntt.moveQueue[0]
 		ntt.moveTimestamp = move.timestamp
-		return loc.MovedBy(move.direction)
+		return ntt.Location.MovedBy(move.direction)
 	}
-	return loc
+	return ntt.Location
 }
 func (ntt *Player) CanDamage(other Entity) bool {
 	return !other.IsPlayer()
@@ -278,6 +275,12 @@ func (ntt *Player) IsDead() bool {
 func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
+func (ntt *Player) MoveCommit() {
+	if len(ntt.moveQueue) > 0 {
+		ntt.direction = (ntt.moveQueue[0]).direction
+		ntt.moveQueue = ntt.moveQueue[1:]
+	}
+}
 func (ntt *Player) MoveTimestamp() uint64 {
 	return ntt.moveTimestamp
 }
@@ -361,15 +364,12 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 			ntt.state = mstToWall
 		case mstToWall:
 			ahead := ntt.LocAhead()
-			if grid.OutOfBounds(ahead) {
-				ntt.TurnLeft()
-				return stay
-			} else if !grid.WalkableAt(ahead) {
+			if !grid.WalkableAt(ahead) {
 				ntt.TurnLeft()
 				ntt.state = mstFollow
 				return stay
 			} else if !grid.PassableAt(ahead) {
-				ntt.TurnLeft()
+				ntt.state = mstStart
 				return stay
 			}
 			return ahead
