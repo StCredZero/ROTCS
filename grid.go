@@ -273,7 +273,7 @@ func (self *SubGrid) WriteDisplay(ntt Entity, gproc GridProcessor, buffer *bytes
 	buffer.WriteString(strconv.FormatInt(int64(ntt.Health()), 10))
 	buffer.WriteRune(',')
 
-	if gproc.TickNumber()%23 == 0 {
+	if gproc.TickNumber()%7 == 0 {
 		self.dunGenCache.WriteBasicMap(ntt, buffer)
 	} else {
 		self.dunGenCache.WriteMap(ntt, buffer)
