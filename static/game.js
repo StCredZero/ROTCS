@@ -131,7 +131,7 @@ Game.setFocus = function(value) {
 }
 
 Game.sendMove = function(data) {
-    Game.preMove(data);
+    Game.display.preMove(data);
     Game.sendQueue.enqueue("mv:" + data);
 };
 
