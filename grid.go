@@ -421,7 +421,8 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 	for gcoord, _ := range *grids {
 		if i == n {
 			ok := true
-			for tries := 0; ok && tries < 10; tries++ {
+			// monster population
+			for tries := 0; ok && tries < 20; tries++ {
 				monster := NewMonster(NewEntityID())
 				_, ok = self.NewEntityInGrid(monster, gcoord)
 			}
