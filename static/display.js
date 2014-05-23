@@ -243,14 +243,6 @@ var ADisplay = {
             if (updateObj.health) { health_ = updateObj.health; }
             if (updateObj.pop) { pop_ = updateObj.pop }
             if (updateObj.load) { load_ = updateObj.load }
-            /*if (updateObj.messages) {
-                var messages = updateObj.messages
-                for (var i = 0; i < messages.length; i++) {
-                    if (messages[i].length > 0) {
-                        showMessage_(messages[i]);
-                    }
-                }
-            }*/
             
             if (updateObj.maptype === "basic") {
                 if (lastUpdateTimestamp_ <= updateObj.timestamp) {

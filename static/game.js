@@ -43,6 +43,14 @@ var Game = {
                 }
             }
             if (Game.initialized && (jsonObj.type === "update")) {
+                if (jsonObj.messages) {
+                    var messages = jsonObj.messages
+                    for (var i = 0; i < messages.length; i++) {
+                        if (messages[i].length > 0) {
+                            Game.showMessage(messages[i]);
+                        }
+                    }
+                }
                 Game.display.mapUpdateQueue.enqueue(jsonObj);
             }
             if (jsonObj.type === "message") {
