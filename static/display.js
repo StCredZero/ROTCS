@@ -503,12 +503,8 @@ var ADisplay = {
         
         return {
             canvas: canvas_,
-            coord: coord_,
-            displayScheme: displayScheme_,
             eventToPosition: eventToPosition_,
             findPath: findPath_,
-            mapAt: mapAt_, 
-            mapUpdateQueue: mapUpdateQueue_,
             preMove: preMove_,
             queueUpdate: queueUpdate_,
             rotDisp: display_,
