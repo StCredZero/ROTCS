@@ -192,7 +192,8 @@ type Player struct {
 	Connection    *connection
 	inbox         []string
 	LastUpdateLoc Coord
-	moveQueue     []moveRequest
+	moveBuffer    []moveRequest
+	moveQueue     chan moveRequest
 	moveTimestamp uint64
 	outbox        []string
 }
@@ -209,7 +210,8 @@ func NewPlayer(c *connection) *Player {
 		Connection: c,
 		EntityT:    entity,
 		inbox:      make([]string, 0, (subgrid_width * subgrid_height)),
-		moveQueue:  make([]moveRequest, 0, 20),
+		moveBuffer: make([]moveRequest, 0, 4),
+		moveQueue:  make(chan moveRequest, 64),
 		outbox:     make([]string, 0, 20),
 	}
 }
@@ -218,8 +220,22 @@ func (ntt *Player) AddMessage(msg string) {
 	ntt.inbox = append(ntt.inbox, msg)
 }
 func (ntt *Player) CalcMove(grid GridKeeper) Coord {
-	if len(ntt.moveQueue) > 0 {
-		move := ntt.moveQueue[0]
+	select {
+	case mv := <-ntt.moveQueue:
+		ntt.moveBuffer = append(make([]moveRequest, 0, 4), mv)
+	default:
+	}
+moveqloop:
+	for {
+		select {
+		case mv := <-ntt.moveQueue:
+			ntt.moveBuffer = append(ntt.moveBuffer, mv)
+		default:
+			break moveqloop
+		}
+	}
+	if len(ntt.moveBuffer) > 0 {
+		move := ntt.moveBuffer[0]
 		ntt.moveTimestamp = move.timestamp
 		return ntt.Location.MovedBy(move.direction)
 	}
@@ -276,9 +292,9 @@ func (ntt *Player) IsPlayer() bool       { return true }
 func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
 func (ntt *Player) MoveCommit() {
-	if len(ntt.moveQueue) > 0 {
-		ntt.direction = (ntt.moveQueue[0]).direction
-		ntt.moveQueue = ntt.moveQueue[1:]
+	if len(ntt.moveBuffer) > 0 {
+		ntt.direction = (ntt.moveBuffer[0]).direction
+		ntt.moveBuffer = ntt.moveBuffer[1:]
 	}
 }
 func (ntt *Player) MoveTimestamp() uint64 {

@@ -54,9 +54,8 @@ readerLoop:
 		cmdType, data := tokens[1], tokens[2]
 		LogTrace("Got:", data, timestamp)
 		if strings.EqualFold(cmdType, "mv") {
-			c.player.moveQueue = make([]moveRequest, 0, 10)
 			for _, mv := range data {
-				c.player.moveQueue = append(c.player.moveQueue, moveRequest{mv, timestamp})
+				c.player.moveQueue <- moveRequest{mv, timestamp}
 			}
 		} else if strings.EqualFold(cmdType, "ch") {
 			c.player.outbox = append(c.player.outbox, data)
