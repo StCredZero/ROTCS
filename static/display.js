@@ -1,17 +1,18 @@
-var ADisplay.init = function(dw,dh) {
+var ADisplay = {
+    init: function(dw,dh) {
     var dwidth_ = dw; 
     var dheight_ = dh;
     var centerx_ = Math.floor(dwidth_ / 2);
     var centery_ = Math.floor(dheight_ / 2);
+    var location_ = null;
+    var oldLocation_ = null;
+
     var display_ = new ROT.Display({
-        "width":dwidth,
-        "height":dheight,
+        "width":dwidth_,
+        "height":dheight_,
         "fontFamily":"courier"
     });
-    var canvas_ = this.display.getContainer();
-    var displayNode_ = document.getElementById('displayArea');
-    displayNode_.appendChild(this.canvas);
-    displayNode_.tabIndex = 1;
+    var canvas_ = display_.getContainer();
     
     var lastUpdateTimestamp_ = 0;
     var lastMoveTimestamp_ = 0;
@@ -24,25 +25,25 @@ var ADisplay.init = function(dw,dh) {
     var requestInterval_ = (1000.0 / 8.0);
     
     var initBuffer_ = function(anArray, cellFunc) {
-        for (var j = 0; j < dheight; j++) {
+        for (var j = 0; j < dheight_; j++) {
             anArray[j] = [];
-            for (var i = 0; i < dwidth; i++) {
+            for (var i = 0; i < dwidth_; i++) {
                 anArray[j][i] = cellFunc(i,j); 
             }
         }
     }
     var coordCache_ = [];
-    initBuffer_(this.coordCache, function(x,y){return x+","+y});
+    initBuffer_(coordCache_, function(x,y){return x+","+y});
     display_.setCoordCache(coordCache_);
     var drawBuffer_ = [];
-    initBuffer_(this.drawBuffer, function(x,y){ return " "; });
+    initBuffer_(drawBuffer_, function(x,y){ return " "; });
     var xboffset_ = 0;
     var yboffset_ = 0;
     var previousBuffer_ = [];
-    initBuffer_(this.previousBuffer, function(x,y){ return 0; });
+    initBuffer_(previousBuffer_, function(x,y){ return 0; });
     var arrayCache_ = new Queue();
-    for (var n = 0; n < (2 * (dwidth * dheight)); n++) {
-        this.arrayCache.enqueue(new Array());
+    for (var n = 0; n < (2 * (dwidth_ * dheight_)); n++) {
+        arrayCache_.enqueue(new Array());
     }
 
     var tick_ = function() {
@@ -55,9 +56,9 @@ var ADisplay.init = function(dw,dh) {
         } 
     };
 
-    var health = 0;
-    var pop = 0;
-    var load = 0;
+    var health_ = 0;
+    var pop_ = 0;
+    var load_ = 0;
     
     var coord_ = function(x, y) {
         return coordCache_[y][x];
@@ -78,15 +79,17 @@ var ADisplay.init = function(dw,dh) {
 
 
     var preMove_ = function(move) {
+
+        if (oldLocation_ || (!location_) || health_ <= 0) { return; }
         var now = (new Date).getTime();
-        if (now < lastUpdateTimestamp + requestInterval) {
+        if (now < lastUpdateTimestamp_ + requestInterval_) {
             return
         }
 
         var newLoc = false
         var line = []
         if ((move == "n") && walkableAt(39,11)) {
-            newLoc = [location[0], location[1] - 1];
+            newLoc = [location_[0], location_[1] - 1];
             if (!entityUnsafeAt_(newLoc)) {
                 for (var i = 0; i < dwidth_; i++) {
                     line.push(bufferCell_(i, dheight_ - 1));
@@ -265,7 +268,7 @@ var ADisplay.init = function(dw,dh) {
             }
             var cx = updateObj.location[0] - 39;
             var cy = updateObj.location[1] - 12;
-            drawBase_64Map(cx, cy, 79, 25, updateObj.map);
+            drawBase64Map_(cx, cy, 79, 25, updateObj.map);
             commitDisplay_();
         } else if (updateObj.maptype === "line") {
             if (lastUpdateTimestamp_ <= updateObj.timestamp) {
@@ -499,14 +502,17 @@ var ADisplay.init = function(dw,dh) {
         "/":[1,1,1,1,1,1]};
 
     return {
+        canvas: canvas_,
         coord: coord_,
         displayScheme: displayScheme_,
         findPath: findPath_,
         mapAt: mapAt_, 
-        preMove: premove_,
+        mapUpdateQueue: mapUpdateQueue_,
+        preMove: preMove_,
         tick: tick_,
         walkableAt: walkableAt_
     }
+}
 };
 
 
