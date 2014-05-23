@@ -106,11 +106,8 @@ func main() {
 		log.Fatalln("Failed to open log file:", err)
 	}
 	var writer, profWriter io.Writer
-	if *daemon {
-		writer = logfile
-	} else {
-		writer = io.MultiWriter(logfile, os.Stdout)
-	}
+	writer = io.MultiWriter(logfile, os.Stdout)
+
 	profile, err := os.OpenFile(profPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("Failed to open profile log:", err)
