@@ -16,9 +16,11 @@ var Game = {
         this.displayNode.appendChild(this.canvas);
         this.displayNode.tabIndex = 1;
 
+        this.lastUpdateTimestamp = 0;
         this.lastMoveTimestamp = 0;
         this.lineStash = [];
         this.loadTestMode = false;
+        this.moveKeyDown = false;
 
         this.mapUpdateQueue = new Queue();
         this.drawQueue = new Queue();
@@ -81,23 +83,24 @@ var Game = {
         };
 
         window.addEventListener("keydown", Game.handleKeyboardInput);
+        window.addEventListener("keyup", Game.handleKeyboardUp);
         this.canvas.addEventListener("mouseup", Game.handleMouseEvent);
 
         var animFrame = null;
 
         //navigator.platform === "Win32"
         //if (typeof WebSocket != 'undefined') { /*supported*/ } 
-        if ((navigator.userAgent.indexOf("Firefox") > -1) &&
-            (navigator.platform == "Win32")) {
-            animFrame = null;
-        } else {
+        //if ((navigator.userAgent.indexOf("Firefox") > -1) &&
+        //    (navigator.platform == "Win32")) {
+        //    animFrame = null;
+        //} else {
             animFrame = window.requestAnimationFrame ||
                 window.webkitRequestAnimationFrame ||
                 window.mozRequestAnimationFrame    ||
                 window.oRequestAnimationFrame      ||
                 window.msRequestAnimationFrame     ||
                 null ;
-        }
+        //}
 
         var updateGame = function() {
             if (! Game.drawQueue.isEmpty()) {
@@ -189,7 +192,7 @@ Game.entityUnsafeAt = function(newLoc) {
 //Game.bufferCell(i,j)
 Game.preMove = function(move) {
     var now = (new Date).getTime();
-    if (now < Game.lastMoveTimestamp + Game.requestInterval) {
+    if (now < Game.lastUpdateTimestamp + Game.requestInterval) {
         return
     }
 
@@ -204,7 +207,7 @@ Game.preMove = function(move) {
             }
             var stashStart = [Game.location[0] - 39, Game.location[1] + 12];
             Game.lineStash.push([stashStart, move, line.join("")]);
-            Game.lastMoveTimestamp = (new Date).getTime();
+            Game.lastUpdateTimestamp = (new Date).getTime();
         }
     } else if ((move == "s") && Game.walkableAt(39,13)) {
         newLoc = [Game.location[0], Game.location[1] + 1];
@@ -215,7 +218,7 @@ Game.preMove = function(move) {
             }
             var stashStart = [Game.location[0] - 39, Game.location[1] - 12];
             Game.lineStash.push([stashStart, move, line.join("")]);
-            Game.lastMoveTimestamp = (new Date).getTime();
+            Game.lastUpdateTimestamp = (new Date).getTime();
         }
     } else if ((move == "e") && Game.walkableAt(40,12)) {
         newLoc = [Game.location[0] + 1, Game.location[1]];
@@ -226,7 +229,7 @@ Game.preMove = function(move) {
             }
             var stashStart = [Game.location[0] - 39, Game.location[1] - 12];
             Game.lineStash.push([stashStart, move, line.join("")]);
-            Game.lastMoveTimestamp = (new Date).getTime();
+            Game.lastUpdateTimestamp = (new Date).getTime();
         }
     } else if ((move == "w") && Game.walkableAt(38,12)) {
         newLoc = [Game.location[0] - 1, Game.location[1]];
@@ -237,12 +240,13 @@ Game.preMove = function(move) {
             }
             var stashStart = [Game.location[0] + 39, Game.location[1] - 12];
             Game.lineStash.push([stashStart, move, line.join("")]);
-            Game.lastMoveTimestamp = (new Date).getTime();
+            Game.lastUpdateTimestamp = (new Date).getTime();
         }
     }
     if (line.length > 0) {
         Game.oldLocation = Game.location;
         Game.scrollTo(newLoc);
+        Game.lastMoveTimestamp = (new Date).getTime();
         Game.commitDisplay();
     }
 }
@@ -380,14 +384,14 @@ Game.renderDisplay = function(updateObj) {
     }
 
     if (updateObj.maptype === "basic") {
-        if (Game.lastMoveTimestamp <= updateObj.timestamp) {
+        if (Game.lastUpdateTimestamp <= updateObj.timestamp) {
             if (Game.scrollTo(updateObj.location)) {
                 for (var i = 0; i < Game.lineStash.length; i++) {
                     var stash = Game.lineStash[i];
                     Game.drawStash(stash[0], stash[1], stash[2]);
                 }
             }
-            Game.lastMoveTimestamp = updateObj.timestamp;
+            Game.lastUpdateTimestamp = updateObj.timestamp;
             Game.oldLocation = null;
         }
         if (!Game.location) {
@@ -396,32 +400,29 @@ Game.renderDisplay = function(updateObj) {
         var cx = updateObj.location[0] - 39;
         var cy = updateObj.location[1] - 12;
         Game.drawBase64Map(cx, cy, 79, 25, updateObj.map);
-        /*for (var j = 0; j < Game.dheight; j++) {
-            Game.drawLine([cx, cy + j], "n", updateObj.map[j]);
-        }*/
         Game.commitDisplay();
     } else if (updateObj.maptype === "line") {
-        if (Game.lastMoveTimestamp <= updateObj.timestamp) {
+        if (Game.lastUpdateTimestamp <= updateObj.timestamp) {
             if (Game.scrollTo(updateObj.location)) {
                 for (var i = 0; i < Game.lineStash.length; i++) {
                     var stash = Game.lineStash[i];
                     Game.drawStash(stash[0], stash[1], stash[2]);
                 }
             }
-            Game.lastMoveTimestamp = updateObj.timestamp;
+            Game.lastUpdateTimestamp = updateObj.timestamp;
             Game.oldLocation = null;
         }
         Game.drawLine(updateObj.start, updateObj.orientation, updateObj.line);
         Game.commitDisplay();
     } else if (updateObj.maptype === "entity") {
-        if (Game.lastMoveTimestamp <= updateObj.timestamp) {
+        if (Game.lastUpdateTimestamp <= updateObj.timestamp) {
             if (Game.scrollTo(updateObj.location)) {
                 for (var i = 0; i < Game.lineStash.length; i++) {
                     var stash = Game.lineStash[i];
                     Game.drawStash(stash[0], stash[1], stash[2]);
                 }
             }
-            Game.lastMoveTimestamp = updateObj.timestamp;
+            Game.lastUpdateTimestamp = updateObj.timestamp;
             Game.oldLocation = null;
         }
         Game.commitDisplay();
@@ -474,6 +475,10 @@ Game.handleKeyboardInput = function (e) {
     e.stopPropagation();
     Game.sendMove(action);
 
+};
+
+Game.handleKeyboardUp = function (e) {
+    if (! (Game.hasFocus === "game")) { return; }
 };
 
 Game.mapAt = function(x, y) {
