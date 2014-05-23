@@ -94,7 +94,7 @@ func main() {
 	warnFlag = flag.Bool("warn", true, "log warnings")
 	errFlag = flag.Bool("error", true, "log errors")
 
-	daemon := flag.Bool("daemon", false, "run as daemon")
+	dev := flag.Bool("dev", false, "develop - run without TLS")
 
 	flag.Parse()
 
@@ -143,10 +143,13 @@ func main() {
 
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(htmlPath))))
 
-	if err := http.ListenAndServeTLS(*port, "etc/cert/certificate", "etc/cert/server.key", nil); err != nil {
-		log.Fatal("ListenAndServeTLS:", err)
+	if *dev {
+		if err := http.ListenAndServe(*port, nil); err != nil {
+			log.Fatal("ListenAndServe:", err)
+		}
+	} else {
+		if err := http.ListenAndServeTLS(*port, "etc/cert/certificate", "etc/cert/server.key", nil); err != nil {
+			log.Fatal("ListenAndServeTLS:", err)
+		}
 	}
-	/*if err := http.ListenAndServe(*port, nil); err != nil {
-		log.Fatal("ListenAndServe:", err)
-	}*/
 }
