@@ -49,7 +49,6 @@ type DunGen struct {
 	objects   int
 	targetObj int
 
-	numRooms   int
 	chanceRoom int
 
 	passagedNorth bool
@@ -222,8 +221,7 @@ func (self *DunGen) setRoom(room DRect) bool {
 	if !self.setRect(room) {
 		return false
 	}
-	self.rooms[self.numRooms] = room
-	self.numRooms = self.numRooms + 1
+	self.rooms = append(self.rooms, room)
 	return true
 }
 
@@ -353,8 +351,7 @@ func (bytes DunGenEntropy) WriteTo(b *bytes.Buffer) {
 	b.Write(bytes)
 }
 
-func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
-
+func (self *DunGen) seedRNG(gridCoord GridCoord, entropy DunGenEntropy) {
 	var buffer bytes.Buffer
 	gridCoord.WriteTo(&buffer)
 	entropy.WriteTo(&buffer)
@@ -365,8 +362,13 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 		newSeed ^= uint64(bs[i]) << (i % 8)
 	}
 	self.rng = rand.New(rand.NewSource(int64(newSeed)))
+}
 
-	self.rooms = make([]DRect, self.targetObj, self.targetObj)
+func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
+
+	self.seedRNG(gridCoord, entropy)
+
+	self.rooms = make([]DRect, 0, 1)
 	for i := 0; i < 4; i++ {
 		self.walls[i] = make(map[LCoord]bool)
 	}
@@ -389,9 +391,6 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 	self.passageNorthEnd = self.getRand(1, self.ysize-2)
 	self.passageWestEnd = self.getRand(1, self.xsize-2)
 
-	newRooms := make([]DRect, self.numRooms)
-	copy(newRooms, self.rooms[:self.numRooms])
-	self.rooms = newRooms
 	for i := 0; i < 4; i++ {
 		self.walls[i] = nil
 	}
