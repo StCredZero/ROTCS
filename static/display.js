@@ -419,6 +419,10 @@ var ADisplay = {
             }
         };
 
+        var queueUpdate_ = function(mapUpdate) {
+            mapUpdateQueue_.enqueue(mapUpdate);
+        };
+
         var scrollMapX_ = function(vec) {
             xboffset_ = (xboffset_ + vec + dwidth_) % dwidth_;
         };
@@ -506,6 +510,7 @@ var ADisplay = {
             mapAt: mapAt_, 
             mapUpdateQueue: mapUpdateQueue_,
             preMove: preMove_,
+            queueUpdate: queueUpdate_,
             rotDisp: display_,
             tick: tick_,
             walkableAt: walkableAt_

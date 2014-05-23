@@ -1,16 +1,11 @@
 var Game = {
     init: function(term) {
-        var dwidth = 79;  this.dwidth = dwidth;
-        var dheight = 25; this.dheight = dheight;
-        this.centerx = 39;
-        this.centery = 12;
+
         this.display = ADisplay.init(79,25);
 
         this.displayNode = document.getElementById('displayArea');
         this.displayNode.appendChild(this.display.canvas);
         this.displayNode.tabIndex = 1;
-
-        this.lastMoveTimestamp = 0;
 
         this.loadTestMode = false;
         this.moveKeyDown = false;
@@ -51,7 +46,7 @@ var Game = {
                         }
                     }
                 }
-                Game.display.mapUpdateQueue.enqueue(jsonObj);
+                Game.display.queueUpdate(jsonObj);
             }
             if (jsonObj.type === "message") {
                 Game.showMessage(jsonObj.data);
