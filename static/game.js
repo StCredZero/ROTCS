@@ -1,223 +1,213 @@
-var Game = {
-    init: function(term) {
+var CreateGame = function(term) {
 
-        this.display = ADisplay.init(79,25);
+    var display_ = ADisplay.init(79,25);
 
-        this.displayNode = document.getElementById('displayArea');
-        this.displayNode.appendChild(this.display.canvas);
-        this.displayNode.tabIndex = 1;
+    var displayNode_ = document.getElementById('displayArea');
+    displayNode_.appendChild(display_.canvas);
+    displayNode_.tabIndex = 1;
 
-        this.loadTestMode = false;
-        this.moveKeyDown = false;
+    var loadTestMode_ = false;
+    var moveKeyDown_ = false;
 
-        this.sendQueue = new Queue();
-        this.initialized = false;
+    var sendQueue_ = new Queue();
+    var initialized_ = false;
 
-        this.requestInterval = (1000.0 / 8.0);
+    var requestInterval_ = (1000.0 / 8.0);
 
-        var initReq = new XMLHttpRequest();
-        initReq.open("get", "/wsaddr", false);
-        initReq.send();
-        var wsaddr = (initReq.responseText).trim();
+    var initReq = new XMLHttpRequest();
+    initReq.open("get", "/wsaddr", false);
+    initReq.send();
 
-        var wsocket = new WebSocket(wsaddr);
-        this.ws = wsocket;
-        /*this.ws.onopen = function() {
-            var initMsg = JSON.stringify({"type":"init"});
-            wsocket.send(initMsg);
-        };*/
-        this.ws.onmessage = function(event) {
-            var jsonObj = JSON.parse(event.data);
-            if (jsonObj.type === "init") {
-                Game.uuid = jsonObj.uuid; 
-                if (jsonObj.approved) {
-                    Game.initialized = true;
-                } else {
-                    Game.showMessage("Server full. Try again later.");
-                    Game.showMessage("Pop:" + jsonObj.pop + " Load:" + jsonObj.load);
-                }
-            }
-            if (Game.initialized && (jsonObj.type === "update")) {
-                if (jsonObj.messages) {
-                    var messages = jsonObj.messages
-                    for (var i = 0; i < messages.length; i++) {
-                        if (messages[i].length > 0) {
-                            Game.showMessage(messages[i]);
-                        }
-                    }
-                }
-                Game.display.queueUpdate(jsonObj);
-            }
-            if (jsonObj.type === "message") {
-                Game.showMessage(jsonObj.data);
-            }
-        };
+    var uuid_ = null;
 
-        window.addEventListener("keydown", Game.handleKeyboardInput);
-        window.addEventListener("keyup", Game.handleKeyboardUp);
-        this.display.canvas.addEventListener("mouseup", Game.handleMouseEvent);
-
-        var animFrame = null;
-
-
-        animFrame = window.requestAnimationFrame ||
-            window.webkitRequestAnimationFrame ||
-            window.mozRequestAnimationFrame    ||
-            window.oRequestAnimationFrame      ||
-            window.msRequestAnimationFrame     ||
-            null ;
-
-        var updateGame = function() {
-            if (Game.sendQueue.isEmpty()) {
-                Game.display.tick()
-            } else {
-                var actions = null;
-                for (actions = Game.sendQueue.dequeue(); actions; actions = Game.sendQueue.dequeue()) {
-                    Game.ws.send([(new Date).getTime(),actions].join(":"));
-                }
-            } 
-        };
-
-        if ( animFrame !== null ) {
-            var recursiveAnim = function() {
-                updateGame();
-                animFrame(recursiveAnim);
-            };
-            // start the mainloop
-            animFrame( recursiveAnim );
-        } else {
-            //setInterval( updateGame, 1000.0 / 24.0 );
-            var updateTimer = -1
-            var step = 1000.0 / 32.0;
-            var nextUpdate = function() {
-                updateTimer = setTimeout(function() {
-                    clearTimeout(updateTimer);    
-                    updateGame();    
-                    nextUpdate();
-                }, step);
-            };
-            // start the mainloop
-            nextUpdate();
-        }
-
-        this.term = term
-        if (this.term) {
-            this.term.setGame(this);
-        } 
-        this.health = 0;
-        this.pop = 0;
-        this.load = 0;
-    }
-};
-
-Game.focusID = function() {
-    return Game.hasFocus;
-}
-
-Game.setFocus = function(value) {
-    if (!(value === Game.hasFocus)) {
-        var currentTime = (new Date).getTime();
-        if ((!Game.lastFocusTime) || (currentTime - Game.lastFocusTime > 100.0)) {
-            console.log("game setting focus: ", value);
-            Game.lastFocusTime = currentTime;
-            Game.hasFocus = value;
-            if (Game.hasFocus === "game") {
-                Game.displayNode.borderColor = "green";
-                Game.displayNode.focus();
-            } else {
-                Game.displayNode.borderColor = "#000000";
-                Game.displayNode.blur();
-            }
-            Game.term.setFocus(value); 
-        }
-    }
-}
-
-Game.sendMove = function(data) {
-    Game.display.preMove(data);
-    Game.sendQueue.enqueue("mv:" + data);
-};
-
-Game.sendMessage = function(data) {
-    Game.sendQueue.enqueue("ch:" + data);
-    Game.showMessage("You say: '" + data + "'");
-};
-
-Game.showMessage = function(message) {
-    if (Game.term) {
-        Game.term.output(message+"<br>");
-    }
-}
-
-Game.handleKeyboardInput = function (e) {
-
-    var code = e.keyCode; 
-
-    if (code == 13 && (Game.hasFocus === "game")) {
-        Game.setFocus("term");
-        return;
-    }
-    if (code == 27) {
-        if (Game.hasFocus === "game") {
-            Game.setFocus("term");
-            return;
-        } else if (Game.hasFocus === "term") {
-            Game.setFocus("game");
-        }
-    }
-    if (! (Game.hasFocus === "game")) { return; }
-
-    if (code == 85) {
-        // keyCode for "u"
-        Game.loadTestMode = ! Game.loadTestMode;
-        return;
+    var wsaddr = (initReq.responseText).trim();
+    var wsocket_ = new WebSocket(wsaddr);
+    wsocket_.onmessage = function(event) {
+	var jsonObj = JSON.parse(event.data);
+	if (jsonObj.type === "init") {
+	    uuid_ = jsonObj.uuid; 
+	    if (jsonObj.approved) {
+		initialized_ = true;
+	    } else {
+		Game.showMessage("Server full. Try again later.");
+		Game.showMessage("Pop:" + jsonObj.pop + " Load:" + jsonObj.load);
+	    }
+	}
+	if (initialized_ && (jsonObj.type === "update")) {
+	    if (jsonObj.messages) {
+		var messages = jsonObj.messages
+		for (var i = 0; i < messages.length; i++) {
+		    if (messages[i].length > 0) {
+			showMessage_(messages[i]);
+		    }
+		}
+	    }
+	    display_.queueUpdate(jsonObj);
+	}
+	if (jsonObj.type === "message") {
+	    showMessage_(jsonObj.data);
+	}
     };
 
-    var action = "0";
+    var animFrame = null;
 
-    if (code == 38) { action = "n"; }
-    if (code == 40) { action = "s"; }
-    if (code == 37) { action = "w"; }
-    if (code == 39) { action = "e"; } 
-        
-    if (code === "0") { return; }
-    e.preventDefault();
-    e.stopPropagation();
-    Game.sendMove(action);
+    animFrame = window.requestAnimationFrame ||
+	window.webkitRequestAnimationFrame ||
+	window.mozRequestAnimationFrame    ||
+	window.oRequestAnimationFrame      ||
+	window.msRequestAnimationFrame     ||
+	null ;
 
-};
-
-Game.handleKeyboardUp = function (e) {
-    if (! (Game.hasFocus === "game")) { return; }
-};
-
-Game.handleMouseEvent = function (e) {
-    Game.setFocus("game");
-    var arrays_equal = function(a,b) { return !(a<b || b<a); };
-    var moveToLetter = function(aMove) {
-        if (arrays_equal(aMove,[-1,0])) { return "w"; }
-        if (arrays_equal(aMove,[1,0]))  { return "e"; }
-        if (arrays_equal(aMove,[0,-1])) { return "n"; }
-        if (arrays_equal(aMove,[0,1]))  { return "s"; }
+    var updateGame = function() {
+	if (sendQueue_.isEmpty()) {
+	    display_.tick()
+	} else {
+	    var actions = null;
+	    for (actions = sendQueue_.dequeue(); actions; actions = sendQueue_.dequeue()) {
+		wsocket_.send([(new Date).getTime(),actions].join(":"));
+	    }
+	} 
     };
 
-    var coords = Game.display.eventToPosition(e);
-    //console.log(coords);
-    if (!Game.display.walkableAt(coords[0],coords[1])) { return; }
-
-    var pathCoords = Game.display.findPath(coords[0],coords[1]);
-    //console.log(pathCoords);
-    var moves = [];
-    if (pathCoords) {
-        var coord = pathCoords.pop();
-        while (pathCoords.length > 0) {
-            var newc = pathCoords.pop();
-            var move = [(newc[0]-coord[0]),(newc[1] - coord[1])]; 
-            moves.push(moveToLetter(move));
-            coord = newc;
-        }
+    if ( animFrame !== null ) {
+	var recursiveAnim = function() {
+	    updateGame();
+	    animFrame(recursiveAnim);
+	};
+	animFrame( recursiveAnim );
+    } else {
+	var updateTimer = -1
+	var step = 1000.0 / 32.0;
+	var nextUpdate = function() {
+	    updateTimer = setTimeout(function() {
+		clearTimeout(updateTimer);    
+		updateGame();    
+		nextUpdate();
+	    }, step);
+	};
+	// start the mainloop
+	nextUpdate();
     }
-    var actions = moves.join("");
-    Game.sendMove(actions);
-    //console.log(moves.join(""));
+
+    var term_ = term;
+    var hasFocus_ = null;
+    var lastFocusTime_ = 0;
+    var setFocus_ = function(value) {
+	if (!(value === hasFocus_)) {
+	    var currentTime = (new Date).getTime();
+	    if ((!lastFocusTime_) || (currentTime - lastFocusTime_ > 100.0)) {
+		console.log("game setting focus: ", value);
+		lastFocusTime_ = currentTime;
+		hasFocus_ = value;
+		if (hasFocus_ === "game") {
+		    displayNode_.borderColor = "green";
+		    displayNode_.focus();
+		} else {
+		    displayNode_.borderColor = "#000000";
+		    displayNode_.blur();
+		}
+		term_.setFocus(value); 
+	    }
+	}
+    };
+
+    var sendMove_ = function(data) {
+	display_.preMove(data);
+	sendQueue_.enqueue("mv:" + data);
+    };
+
+    var sendMessage_ = function(data) {
+	sendQueue_.enqueue("ch:" + data);
+	showMessage_("You say: '" + data + "'");
+    };
+
+    var showMessage_ = function(message) {
+	if (term_) {
+	    term_.output(message+"<br>");
+	}
+    };
+
+    var handleKeyboardInput_ = function (e) {
+
+	var code = e.keyCode; 
+
+	if (code == 13 && (hasFocus_ === "game")) {
+	    setFocus_("term");
+	    return;
+	}
+	if (code == 27) {
+	    if (hasFocus_ === "game") {
+		setFocus_("term");
+		return;
+	    } else if (hasFocus_ === "term") {
+		setFocus_("game");
+	    }
+	}
+	if (! (hasFocus_ === "game")) { return; }
+
+	if (code == 85) {
+	    // keyCode for "u"
+	    loadTestMode_ = ! loadTestMode_;
+	    return;
+	};
+
+	var action = "0";
+
+	if (code == 38) { action = "n"; }
+	if (code == 40) { action = "s"; }
+	if (code == 37) { action = "w"; }
+	if (code == 39) { action = "e"; } 
+
+	if (code === "0") { return; }
+	e.preventDefault();
+	e.stopPropagation();
+	sendMove_(action);
+
+    };
+
+    var handleKeyboardUp_ = function (e) {
+	if (! (hasFocus_ === "game")) { return; }
+    };
+
+    var handleMouseEvent_ = function (e) {
+	setFocus_("game");
+	var arrays_equal = function(a,b) { return !(a<b || b<a); };
+	var moveToLetter = function(aMove) {
+	    if (arrays_equal(aMove,[-1,0])) { return "w"; }
+	    if (arrays_equal(aMove,[1,0]))  { return "e"; }
+	    if (arrays_equal(aMove,[0,-1])) { return "n"; }
+	    if (arrays_equal(aMove,[0,1]))  { return "s"; }
+	};
+
+	var coords = display_.eventToPosition(e);
+	//console.log(coords);
+	if (!display_.walkableAt(coords[0],coords[1])) { return; }
+
+	var pathCoords = display_.findPath(coords[0],coords[1]);
+	//console.log(pathCoords);
+	var moves = [];
+	if (pathCoords) {
+	    var coord = pathCoords.pop();
+	    while (pathCoords.length > 0) {
+		var newc = pathCoords.pop();
+		var move = [(newc[0]-coord[0]),(newc[1] - coord[1])]; 
+		moves.push(moveToLetter(move));
+		coord = newc;
+	    }
+	}
+	var actions = moves.join("");
+	sendMove_(actions);
+	//console.log(moves.join(""));
+    };
+
+    window.addEventListener("keydown", handleKeyboardInput_);
+    window.addEventListener("keyup", handleKeyboardUp_);
+    display_.canvas.addEventListener("mouseup", handleMouseEvent_);
+
+    return {
+	focusID: (function() {return hasFocus_}),
+	setFocus: setFocus_
+    }
+    
 };
+

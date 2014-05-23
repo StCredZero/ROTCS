@@ -22,8 +22,9 @@
           (function() {
           var term = new Terminal('container');
           term.initFS(false, 1024 * 1024);
-          Game.init(term);
-          Game.setFocus("term");
+          var game = CreateGame(term);
+          term.setGame(game);
+          game.setFocus("term");
           })();
         </script>
     </body>
