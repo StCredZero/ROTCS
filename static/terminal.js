@@ -44,28 +44,6 @@ function Sound(opt_loop) {
     context_ = new window.AudioContext();
   }
 
-  /*this.load = function(url, mixToMono, opt_callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = function() {
-      if (context_) {
-        /*self_.sample = context_.createBuffer(this.response, mixToMono);
-        if (opt_callback) {
-          opt_callback();
-        }
-        *//*
-        context_.decodeAudioData(this.response, function(audioBuffer) {
-          self_.sample = audioBuffer;
-          opt_callback && opt_callback();
-        }, function(e) {
-          console.log(e);
-        });
-      }
-    };
-    xhr.send();
-  };*/
-
   this.play = function() {
     if (context_) {
       source_ = context_.createBufferSource();
