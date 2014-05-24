@@ -233,6 +233,7 @@ var CreateGame = function(term) {
 
     return {
 	focusID: (function() {return hasFocus_}),
+        sendMessage: sendMessage_,
 	setFocus: setFocus_
     }
     
