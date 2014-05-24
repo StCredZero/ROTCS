@@ -7,12 +7,14 @@ var CreateGame = function(term) {
     displayNode_.tabIndex = 1;
 
     var loadTestMode_ = false;
-    var moveKeyDown_ = false;
+    var requestInterval_ = (1000.0 / 8.0);
+    var lastMoveTime_ = 0;
+    var moveKeyDown_ = null;
 
     var sendQueue_ = new Queue();
     var initialized_ = false;
 
-    var requestInterval_ = (1000.0 / 8.0);
+
 
     var initReq = new XMLHttpRequest();
     initReq.open("get", "/wsaddr", false);
@@ -59,9 +61,12 @@ var CreateGame = function(term) {
 	null ;
 
     var updateGame = function() {
-	if (sendQueue_.isEmpty()) {
-	    display_.tick()
-	} else {
+	display_.tick()
+        if (((lastMoveTime_ + requestInterval_) < (new Date).getTime()) && 
+            sendQueue_.isEmpty() && moveKeyDown_) {
+            sendMove_(moveKeyDown_);
+        }
+	if (!sendQueue_.isEmpty()) {
 	    var actions = null;
 	    for (actions = sendQueue_.dequeue(); actions; actions = sendQueue_.dequeue()) {
 		wsocket_.send([(new Date).getTime(),actions].join(":"));
@@ -103,6 +108,8 @@ var CreateGame = function(term) {
 		    displayNode_.borderColor = "green";
 		    displayNode_.focus();
 		} else {
+                    moveKeyDown_ = null;
+                    sendQueue_ = new Queue();
 		    displayNode_.borderColor = "#000000";
 		    displayNode_.blur();
 		}
@@ -113,6 +120,7 @@ var CreateGame = function(term) {
 
     var sendMove_ = function(data) {
 	display_.preMove(data);
+        lastMoveTime_ = (new Date).getTime();
 	sendQueue_.enqueue("mv:" + data);
     };
 
@@ -132,10 +140,14 @@ var CreateGame = function(term) {
 	var code = e.keyCode; 
 
 	if (code == 13 && (hasFocus_ === "game")) {
+	    e.preventDefault();
+	    e.stopPropagation();
 	    setFocus_("term");
 	    return;
 	}
 	if (code == 27) {
+	    e.preventDefault();
+	    e.stopPropagation();
 	    if (hasFocus_ === "game") {
 		setFocus_("term");
 		return;
@@ -147,6 +159,8 @@ var CreateGame = function(term) {
 
 	if (code == 85) {
 	    // keyCode for "u"
+	    e.preventDefault();
+	    e.stopPropagation();
 	    loadTestMode_ = ! loadTestMode_;
 	    return;
 	};
@@ -159,14 +173,27 @@ var CreateGame = function(term) {
 	if (code == 39) { action = "e"; } 
 
 	if (code === "0") { return; }
+        if (moveKeyDown_ === action) { return; }
+
 	e.preventDefault();
 	e.stopPropagation();
+        moveKeyDown_ = action;
 	sendMove_(action);
-
     };
 
     var handleKeyboardUp_ = function (e) {
 	if (! (hasFocus_ === "game")) { return; }
+	var code = e.keyCode; 
+	var action = "0";
+	if (code == 38) { action = "n"; }
+	if (code == 40) { action = "s"; }
+	if (code == 37) { action = "w"; }
+	if (code == 39) { action = "e"; } 
+	if (code === "0") { return; }
+        if (moveKeyDown_ === action) {
+            moveKeyDown_ = null;
+            sendQueue_ = new Queue();
+        }
     };
 
     var handleMouseEvent_ = function (e) {
