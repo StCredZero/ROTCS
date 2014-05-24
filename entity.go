@@ -371,7 +371,7 @@ detectqloop:
 		openAt := func(coord Coord) bool {
 			return grid.WalkableAt(coord)
 		}
-		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
+		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 200)
 		if pathFound {
 			return path[0]
 		}
