@@ -226,7 +226,7 @@ func (self *SubGrid) WriteEntities(player Entity, buffer *bytes.Buffer) {
 	for _, id := range self.Grid {
 		if id != player.EntityID() {
 			ntt := self.Entities[id]
-			if player.Coord().InRange(ntt.Coord()) {
+			if player.InMaxRange(ntt) {
 				ntt.WriteFor(player, buffer)
 				ntt.Detect(player)
 			}

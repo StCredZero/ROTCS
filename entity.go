@@ -40,6 +40,7 @@ type Entity interface {
 	Health() int
 	Inbox() []string
 	Initialized() bool
+	InMaxRange(Entity) bool
 	IsDead() bool
 	IsPlayer() bool
 	IsTransient() bool
@@ -124,6 +125,9 @@ func (ntt *EntityT) Inbox() []string {
 }
 func (ntt *EntityT) Initialized() bool {
 	return ntt.Init
+}
+func (ntt *EntityT) InMaxRange(other Entity) bool {
+	return ntt.Location.InMaxRange(other.Coord())
 }
 func (ntt *EntityT) IsDead() bool      { return true }
 func (ntt *EntityT) IsPlayer() bool    { return false }
