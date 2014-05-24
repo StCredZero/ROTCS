@@ -6,7 +6,6 @@ import (
 	"math/big"
 	//"math/rand"
 	"sort"
-	"strconv"
 )
 
 const subgrid_width = 79
@@ -97,12 +96,18 @@ func (self Coord) VisibleGrids(xdist int64, ydist int64, gcoords []GridCoord) []
 	return gcoords[:count]
 }
 
+var Base91Table = []rune{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '#', '$', '%', '&', '(', ')', '*', '+', ',', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', ']', '^', '_', '`', '{', '|', '}', '~', '-'}
+
 func (self Coord) WriteDisplay(player Entity, buffer *bytes.Buffer) {
-	buffer.WriteString(`"`)
-	buffer.WriteString(strconv.FormatInt(self.x, 10))
-	buffer.WriteString(`,`)
-	buffer.WriteString(strconv.FormatInt(self.y, 10))
-	buffer.WriteString(`"`)
+	dx := self.x - player.Coord().x + (subgrid_width / 2)
+	dy := self.y - player.Coord().y + (subgrid_height / 2)
+	buffer.WriteRune(Base91Table[dx])
+	buffer.WriteRune(Base91Table[dy])
+}
+
+func (self Coord) InRange(other Coord) bool {
+	return abs(self.x-other.x) < subgrid_width/2 &&
+		abs(self.y-other.y) < subgrid_height/2
 }
 
 type GridCoord struct {

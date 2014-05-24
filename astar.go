@@ -110,7 +110,8 @@ func astarSearch(
 			return []Coord{}, false
 		}
 		if current == goal {
-			return reconstructPath(cameFrom, goal), true
+			path := reconstructPath(cameFrom, goal)
+			return path, len(path) > 0
 		}
 		delete(openSet, current)
 		closedSet[current] = true

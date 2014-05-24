@@ -226,9 +226,10 @@ func (self *SubGrid) WriteEntities(player Entity, buffer *bytes.Buffer) {
 	for _, id := range self.Grid {
 		if id != player.EntityID() {
 			ntt := self.Entities[id]
-			ntt.WriteFor(player, buffer)
-			ntt.Detect(player)
-			buffer.WriteString(`,`)
+			if player.Coord().InRange(ntt.Coord()) {
+				ntt.WriteFor(player, buffer)
+				ntt.Detect(player)
+			}
 		}
 	}
 }
@@ -280,13 +281,13 @@ func (self *SubGrid) WriteDisplay(ntt Entity, gproc GridProcessor, buffer *bytes
 	}
 
 	buffer.WriteRune(',')
-	buffer.WriteString(`"entities":{`)
+	buffer.WriteString(`"entities":`)
 
 	// This call to parent works concurrently. It's read only.
 	// It has to be the parent to coordinate all visible SubGrids
 	self.parent.WriteEntities(ntt, buffer)
 
-	buffer.WriteString(`},`)
+	buffer.WriteRune(',')
 	buffer.WriteString(`"collided":`)
 	buffer.WriteRune(bool2rune(ntt.Collided()))
 	buffer.WriteRune(',')
@@ -448,13 +449,14 @@ func (self *WorldGrid) WriteEntities(player Entity, buffer *bytes.Buffer) {
 	coord := player.Coord()
 	var gcoords [4]GridCoord
 	visibleGrids := coord.VisibleGrids(39, 12, gcoords[:])
+	buffer.WriteRune('"')
 	for _, gcoord := range visibleGrids {
 		subgrid, present := self.grid[gcoord]
 		if present {
 			subgrid.WriteEntities(player, buffer)
 		}
 	}
-	buffer.WriteString(`"e":""`)
+	buffer.WriteRune('"')
 }
 func (self *WorldGrid) DungeonAt(coord Coord) int8 {
 	return self.dunGenCache.DungeonAt(coord)

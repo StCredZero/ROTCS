@@ -226,11 +226,11 @@ var ADisplay = {
                 for (var i = 0; i < dwidth_; i++) {
                     var cellValue = bufferCell_(i,j);
                     var key = [(cornerx+i), (cornery+j)].join(","); //var key = coord_(i,j);
-                    var entity = entities_[key];
-                    if (entity) {
-                        cellValue = entity.symbol; 
+                    var symbol = entities_[key];
+                    if (symbol) {
+                        cellValue = symbol;
                     }
-                    commitCell_(drawMap,i,j,cellValue);
+                    commitCell_(drawMap,i,j,cellValue);                    
                 }
             }
             // ensure you draw the player differently
@@ -238,8 +238,25 @@ var ADisplay = {
             drawQueue_.enqueue(drawMap);
         };
         
+        var setEntities_ = function(entities, loc) {
+            var px = loc[0];
+            var py = loc[1];
+            var entityMap = {};
+            for (var i = 0; i < entities.length; i += 3) {
+                var x0 = base91Table_[entities.charAt(i)];
+                var y0 = base91Table_[entities.charAt(i+1)];
+                var x = x0 + px - Math.floor(dwidth_/2);
+                var y = y0 + py - Math.floor(dheight_/2);
+                var key = [x,y].join(",");
+                entityMap[key] = entities.charAt(i+2);
+            }
+            entities_ = entityMap;
+        };
+
         var renderDisplay_ = function(updateObj) {
-            if (updateObj.entities) { entities_ = updateObj.entities; }
+            if (updateObj.entities && updateObj.location) { 
+                setEntities_(updateObj.entities, updateObj.location); 
+            }
             if (updateObj.health) { health_ = updateObj.health; }
             if (updateObj.pop) { pop_ = updateObj.pop }
             if (updateObj.load) { load_ = updateObj.load }
@@ -500,6 +517,99 @@ var ADisplay = {
             "9":[1,0,1,1,1,1],
             "+":[0,1,1,1,1,1],
             "/":[1,1,1,1,1,1]};
+
+        var base91Table_ = {
+            "A":0,
+            "B":1,
+            "C":2,
+            "D":3,
+            "E":4,
+            "F":5,
+            "G":6,
+            "H":7,
+            "I":8,
+            "J":9,
+            "K":10,
+            "L":11,
+            "M":12,
+            "N":13,
+            "O":14,
+            "P":15,
+            "Q":16,
+            "R":17,
+            "S":18,
+            "T":19,
+            "U":20,
+            "V":21,
+            "W":22,
+            "X":23,
+            "Y":24,
+            "Z":25,
+            "a":26,
+            "b":27,
+            "c":28,
+            "d":29,
+            "e":30,
+            "f":31,
+            "g":32,
+            "h":33,
+            "i":34,
+            "j":35,
+            "k":36,
+            "l":37,
+            "m":38,
+            "n":39,
+            "o":40,
+            "p":41,
+            "q":42,
+            "r":43,
+            "s":44,
+            "t":45,
+            "u":46,
+            "v":47,
+            "w":48,
+            "x":49,
+            "y":50,
+            "z":51,
+            "0":52,
+            "1":53,
+            "2":54,
+            "3":55,
+            "4":56,
+            "5":57,
+            "6":58,
+            "7":59,
+            "8":60,
+            "9":61,
+            "!":62,
+            "#":63,
+            "$":64,
+            "%":65,
+            "&":66,
+            "(":67,
+            ")":68,
+            "*":69,
+            "+":70,
+            ",":71,
+            ".":72,
+            "/":73,
+            ":":74,
+            ";":75,
+            "<":76,
+            "=":77,
+            ">":78,
+            "?":79,
+            "@":80,
+            "[":81,
+            "]":82,
+            "^":83,
+            "_":84,
+            "`":85,
+            "{":86,
+            "|":87,
+            "}":88,
+            "~":89,
+            "-":90};
         
         return {
             canvas: canvas_,

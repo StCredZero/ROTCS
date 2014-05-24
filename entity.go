@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"math"
+	//"math"
 	"math/rand"
 	"strings"
 	"time"
@@ -181,9 +181,7 @@ func (ntt *EntityT) TurnRight() {
 }
 func (self *EntityT) WriteFor(player Entity, buffer *bytes.Buffer) {
 	self.Location.WriteDisplay(player, buffer)
-	buffer.WriteString(`:{"symbol":"`)
 	buffer.WriteRune(self.Symbol)
-	buffer.WriteString(`"}`)
 }
 
 type Player struct {
@@ -323,8 +321,9 @@ type detection struct {
 
 type Monster struct {
 	EntityT
-	detections chan detection
-	state      int
+	detections  []detection
+	detectQueue chan detection
+	state       int
 }
 
 const mstStart int = 0
@@ -340,27 +339,31 @@ func NewMonster(id EntityID) Entity {
 		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
 	return &Monster{
-		EntityT:    entity,
-		detections: make(chan detection, (subgrid_width * subgrid_height)),
-		state:      mstStart,
+		EntityT:     entity,
+		detections:  make([]detection, 0, 4),
+		detectQueue: make(chan detection, (subgrid_width * subgrid_height)),
+		state:       mstStart,
 	}
 }
 
 func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
-	var min, det detection
-	min = detection{
-		dist: math.MaxInt32,
-	}
-	done, minFound := false, false
-	for !done {
+detectqloop:
+	for {
 		select {
-		case det = <-ntt.detections:
-			if det.dist < min.dist {
-				min = det
-				minFound = true
-			}
+		case det := <-ntt.detectQueue:
+			ntt.detections = append(ntt.detections, det)
 		default:
-			done = true
+			break detectqloop
+		}
+	}
+	min := detection{
+		dist: 1000000.0,
+	}
+	minFound := false
+	for _, det := range ntt.detections {
+		if det.dist < min.dist {
+			min = det
+			minFound = true
 		}
 	}
 	if minFound {
@@ -368,7 +371,7 @@ func (ntt *Monster) CalcMove(grid GridKeeper) Coord {
 		openAt := func(coord Coord) bool {
 			return grid.WalkableAt(coord)
 		}
-		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 200)
+		path, pathFound := astarSearch(distance, openAt, neighbors4, ntt.Coord(), min.loc, 100)
 		if pathFound {
 			return path[0]
 		}
@@ -435,15 +438,17 @@ func (ntt *Monster) DeathSpawn() (Entity, bool) {
 	return NewLoot(), true
 }
 func (ntt *Monster) Detect(player Entity) {
-	loc1, loc2 := ntt.Coord(), player.Coord()
-	dist := distance(loc1, loc2)
-	if dist <= 7 {
-		det := detection{
-			id:   player.EntityID(),
-			loc:  loc2,
-			dist: dist,
+	if player.IsPlayer() {
+		loc1, loc2 := ntt.Coord(), player.Coord()
+		dist := distance(loc1, loc2)
+		if dist <= 7 {
+			det := detection{
+				id:   player.EntityID(),
+				loc:  loc2,
+				dist: dist,
+			}
+			ntt.detectQueue <- det
 		}
-		ntt.detections <- det
 	}
 }
 func (ntt *Monster) DisplayString() string {
@@ -451,6 +456,13 @@ func (ntt *Monster) DisplayString() string {
 }
 func (ntt *Monster) IsDead() bool {
 	return ntt.Health() <= 0
+}
+func (ntt *Monster) IsPlayer() bool {
+	return false
+}
+
+func (ntt *Monster) MoveCommit() {
+	ntt.detections = make([]detection, 0, 4)
 }
 
 type Loot struct {
