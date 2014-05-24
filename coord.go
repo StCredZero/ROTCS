@@ -106,8 +106,8 @@ func (self Coord) WriteDisplay(player Entity, buffer *bytes.Buffer) {
 }
 
 func (self Coord) InRange(other Coord) bool {
-	return abs(self.x-other.x) < subgrid_width/2 &&
-		abs(self.y-other.y) < subgrid_height/2
+	return abs(self.x-other.x) <= int64(subgrid_width/2) &&
+		abs(self.y-other.y) <= int64(subgrid_height/2)
 }
 
 type GridCoord struct {
