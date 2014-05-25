@@ -173,10 +173,10 @@ var CreateGame = function(term) {
 	if (code == 39) { action = "e"; } 
 
 	if (code === "0") { return; }
-        if (moveKeyDown_ === action) { return; }
 
 	e.preventDefault();
 	e.stopPropagation();
+        if (moveKeyDown_ === action) { return; }
         moveKeyDown_ = action;
 	sendMove_(action);
     };
