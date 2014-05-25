@@ -33,6 +33,7 @@ type Entity interface {
 	Coord() Coord
 	DeathSpawn() (Entity, bool)
 	Detect(Entity)
+	Direction() rune
 	DisplayString() string
 	FormattedMessage(string) string
 	GetSubgrid() *SubGrid
@@ -98,6 +99,9 @@ func (ntt *EntityT) DeathSpawn() (Entity, bool) {
 	return nil, false
 }
 func (ntt *EntityT) Detect(player Entity) {}
+func (ntt *EntityT) Direction() rune {
+	return ntt.direction
+}
 func (ntt *EntityT) DisplayString() string {
 	return fmt.Sprintf("%X%X%X%X", ntt.ID[0], ntt.ID[1], ntt.ID[2], ntt.ID[3])
 }
@@ -202,6 +206,7 @@ type Player struct {
 
 func NewPlayer(c *connection) *Player {
 	entity := EntityT{
+		direction:    '0',
 		health:       80,
 		ID:           c.id,
 		Symbol:       '@',

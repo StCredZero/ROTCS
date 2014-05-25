@@ -6,6 +6,7 @@ var ADisplay = {
         var centery_ = Math.floor(dheight_ / 2);
         var location_ = null;
         var oldLocation_ = null;
+        var direction_ = "0";
         
         var display_ = new ROT.Display({
             "width":dwidth_,
@@ -227,7 +228,17 @@ var ADisplay = {
                 }
             }
             // ensure you draw the player differently
-            drawMap[coord_(centerx_,centery_)] = [centerx_,centery_,"@","#FFAA00", "#000"];
+            var playerCell = "@";
+            if (direction_ === "e") { 
+                playerCell = "◐";
+            } else if (direction_ === "w") {
+                playerCell = "◑";
+            } else if (direction_ === "s") {
+                playerCell = "◓";
+            } else if (direction_ === "n") {
+                playerCell = "◒";
+            }
+            drawMap[coord_(centerx_,centery_)] = [centerx_,centery_,playerCell,"#004DFF","#000"];
             drawQueue_.enqueue(drawMap);
         };
         
@@ -250,6 +261,8 @@ var ADisplay = {
             if (updateObj.entities && updateObj.location) { 
                 setEntities_(updateObj.entities, updateObj.location); 
             }
+            if (updateObj.d) { direction_ = updateObj.d }
+
             if (updateObj.health) { health_ = updateObj.health; }
             if (updateObj.pop) { pop_ = updateObj.pop }
             if (updateObj.load) { load_ = updateObj.load }

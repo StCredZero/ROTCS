@@ -270,6 +270,11 @@ func (self *SubGrid) WriteDisplay(ntt Entity, gproc GridProcessor, buffer *bytes
 	buffer.WriteString(strconv.FormatInt(y, 10))
 	buffer.WriteString(`],`)
 
+	// direction
+	buffer.WriteString(`"d":"`)
+	buffer.WriteRune(ntt.Direction())
+	buffer.WriteString(`",`)
+
 	buffer.WriteString(`"health":`)
 	buffer.WriteString(strconv.FormatInt(int64(ntt.Health()), 10))
 	buffer.WriteRune(',')
