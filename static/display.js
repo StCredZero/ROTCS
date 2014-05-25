@@ -168,13 +168,6 @@ var ADisplay = {
                 }
         };
         
-        var draw_ = function(aMapToDraw) {
-            var mapToDraw = drawQueue_.dequeue();
-            display_.drawEntire(mapToDraw);
-            // Draw the player 
-            display_.draw(centerx_, centery_, "@", "#FFAA00", "#000");
-        }
-        
         var walkableAt_ = function (i,j) {
             return previousCell_(i,j) == (".".charCodeAt(0))
         }
