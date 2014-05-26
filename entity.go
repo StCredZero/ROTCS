@@ -268,7 +268,7 @@ func (ntt *Player) CollisionFrom(other Entity) {
 			ntt.AddMessage("shield hit, damage -1")
 		} else {
 			ntt.ChangeHealth(-2)
-			ntt.AddMessage("flank hit, damage -2")
+			ntt.AddMessage("flank hit, damage -3")
 		}
 	}
 }
@@ -491,8 +491,8 @@ func NewLoot() Entity {
 
 func (ntt *Loot) CollisionFrom(other Entity) {
 	if other.IsPlayer() {
-		other.ChangeHealth(5)
-		other.AddMessage("heal +5")
+		other.ChangeHealth(3)
+		other.AddMessage("heal +3")
 	}
 }
 
