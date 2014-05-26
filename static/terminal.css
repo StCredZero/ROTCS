@@ -191,6 +191,7 @@ iframe#fsn {
 }
 .cmdwrap {
   display: inline-block;
+  width: 650px;
 }
 .cmdline {
   display: inline-block;
