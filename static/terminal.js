@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Google Inc.
+Copyright 2014 Peter Kwangjun Suk.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Author: Eric Bidelman (ericbidelman@chromium.org)
+Derived from Html5 terminal by Eric Bidelman (ericbidelman@chromium.org)
+http://www.htmlfivewow.com/demos/terminal/terminal.html
 */
 
 var util = util || {};
@@ -32,35 +33,6 @@ util.getDocHeight = function() {
 };
 
 
-// TODO(ericbidelman): add fallback to html5 audio.
-function Sound(opt_loop) {
-  var self_ = this;
-  var context_ = null;
-  var source_ = null;
-  var loop_ = opt_loop || false;
-
-  window.AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (window.AudioContext) {
-    context_ = new window.AudioContext();
-  }
-
-  this.play = function() {
-    if (context_) {
-      source_ = context_.createBufferSource();
-      source_.buffer = self_.sample;
-      source_.looping = loop_;
-      source_.connect(context_.destination);
-      source_.noteOn(0);
-    }
-  };
-
-  this.stop = function() {
-    if (source_) {
-      source_.noteOff(0);
-      source_.disconnect(0);
-    }
-  };
-}
 
 var Terminal = Terminal || function(containerId) {
   window.URL = window.URL || window.webkitURL;
@@ -97,8 +69,6 @@ var Terminal = Terminal || function(containerId) {
   var cmdLine_ = container_.querySelector('#input-line .cmdline');
   var output_ = container_.querySelector('output');
   var interlace_ = document.querySelector('.interlace');
-  //var bell_ = new Sound(false);
-  //bell_.load('beep.mp3', false);
 
   output_.addEventListener('click', function(e) {
     var el = e.target;
@@ -203,16 +173,8 @@ var Terminal = Terminal || function(containerId) {
   function processNewCommand_(e) {
     if (! (hasFocus_ === "term")) { return; }
 
-    // Beep on backspace and no value on command line.
-    if (!this.value && e.keyCode == 8) {
-      bell_.stop();
-      bell_.play();
-      return;
-    }
-
     if (e.keyCode == 9) { // Tab
       e.preventDefault();
-      // TODO(ericbidelman): Implement tab suggest.
     } else if (e.keyCode == 13) { // enter
 
       // Save shell history.
@@ -233,7 +195,6 @@ var Terminal = Terminal || function(containerId) {
       var lineText = '';
 
       // Parse out command, args, and trim off whitespace.
-      // TODO(ericbidelman): Support multiple comma separated commands.
       if (this.value && this.value.trim()) {
         lineText = this.value;
         var args = lineText.split(' ').filter(function(val, i) {
@@ -290,26 +251,6 @@ var Terminal = Terminal || function(containerId) {
       this.value = ''; // Clear/setup line for next input.
     }
   }
-
-  /*function formatColumns_(entries) {
-    var maxName = entries[0].name;
-    util.toArray(entries).forEach(function(entry, i) {
-      if (entry.name.length > maxName.length) {
-        maxName = entry.name;
-      }
-    });
-
-    // If we have 3 or less entries, shorten the output container's height.
-    // 15px height with a monospace font-size of ~12px;
-    var height = entries.length == 1 ? 'height: ' + (entries.length * 30) + 'px;' :
-                 entries.length <= 3 ? 'height: ' + (entries.length * 18) + 'px;' : '';
-
-    // ~12px monospace font yields ~8px screen width.
-    var colWidth = maxName.length * 16;//;8;
-
-    return ['<div class="ls-files" style="-webkit-column-width:',
-            colWidth, 'px;', height, '">'];
-  }*/
 
   function invalidOpForEntryType_(e, cmd, dest) {
     if (e.code == FileError.NOT_FOUND_ERR) {
