@@ -9,23 +9,23 @@
         <link rel="stylesheet" media="all" href="terminal.css">
     </head>
     <body>
+      <div id="leftColumn">
         <h3><div id="locationDisp">ROTCS</div></h3>
         <div id="displayArea" tabindex="1">&nbsp;</div>
 
-        <!--<div class="crt top"></div>-->
         <div class="interlace">&nbsp;</div>
         <div id="container" tabindex="2">&nbsp;</div>
-        <!--<div class="crt bottom"></div>-->
+      </div>
 
-        <script src="terminal.js"></script>
-        <script>
-          (function() {
-          var term = new Terminal('container');
-          term.initFS(false, 1024 * 1024);
-          var game = CreateGame(term);
-          term.setGame(game);
-          game.setFocus("term");
-          })();
-        </script>
+      <script src="terminal.js"></script>
+      <script>
+        (function() {
+        var term = new Terminal('container');
+        term.initFS(false, 1024 * 1024);
+        var game = CreateGame(term);
+        term.setGame(game);
+        game.setFocus("term");
+        })();
+      </script>
     </body>
 </html>

@@ -182,6 +182,8 @@ iframe#fsn {
 }
 
 #leftColumn {
+  position: absolute;
+  top: 0px;
   width:720px;
   height:100%;
 }
@@ -201,7 +203,7 @@ iframe#fsn {
 }
 .cmdwrap {
   display: inline-block;
-  width: 650px;
+  width: 600px;
 }
 .cmdline {
   display: inline-block;
