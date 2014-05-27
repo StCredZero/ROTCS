@@ -32,32 +32,13 @@ body {
   overflow-x: hidden;
 }
 #displayArea {
+    width: 720px;
     border-color: green;
     border-width: 1px;
 }
 
 .dropping {
   background: #E3E3E3;
-}
-.crt {
-  z-index: 50;
-  width: 100%;
-  height: 50px;
-  position: fixed;
-  background: black;
-}
-.crt.top {
-  top: 0;
-}
-.crt.bottom {
-  bottom: 0;
-}
-.hz {
-
-}
-
-.flicker {
-
 }
 .interlace {
   position: absolute;
