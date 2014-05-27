@@ -19,24 +19,6 @@ body {
   background: #021700;
   overflow-y: hidden;
 }
-.offscreen {
-  background: #333;
-}
-.offscreen #container {
-  background: rgba(0,0,0,0.7);
-  height: 100%;
-  position: fixed;
-  text-shadow: none;
-  box-shadow: 0 0 15px black;
-}
-.offscreen #container output {
-  overflow-x: hidden;
-  display: inline-block;
-  height: 100px;
-}
-.offscreen .interlace {
-  display: none;
-}
 #container {
   /*height: 200px;*/
   width: 720px;
