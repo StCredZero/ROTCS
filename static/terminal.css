@@ -5,53 +5,6 @@
   src: local('Inconsolata'), url('Inconsolata.woff') format('woff');
 }
 
-/*@-webkit-keyframes pulse {
- 0% {
-  opacity: 0;
- }
- 25% {
-  opacity: 0.2;
- }
- 50% {
-  opacity: 0;
- }
- 75% {
-  opacity: 0;
- }
- 100% {
-   opacity: 0.2;
- }
-}
-*/
-/*
-@-webkit-keyframes flicker {
-  0% { opacity: 0.95; }
-  10% { opacity: 0.9; }
-  20% { opacity: 0.85; }
-  30% { opacity: 0.9; }
-  40% { opacity: 0.95; }
-  50% { opacity: 0.9; }
-  60% { opacity: 0.95; }
-  70% { opacity: 0.92; }
-  80% { opacity: 0.85; }
-  90% { opacity: 0.92; }
-  100% { opacity: 0.9; }
-}
-*/
-/*@-webkit-keyframes flicker {
-  0% { opacity: 0.75; }
-  10% { opacity: 0.7; }
-  20% { opacity: 0.65; }
-  30% { opacity: 0.7; }
-  40% { opacity: 0.75; }
-  50% { opacity: 0.65; }
-  60% { opacity: 0.75; }
-  70% { opacity: 0.72; }
-  80% { opacity: 0.65; }
-  90% { opacity: 0.72; }
-  100% { opacity: 0.7; }
-}*/
-
 ::selection {
   background: #0080FF;
   text-shadow: none !important;
@@ -63,8 +16,6 @@ html, body {
 body {
   font-family: Inconsolata, monospace;
   color: white;
-  /*background: -webkit-radial-gradient(center center, contain, rgba(0,150,0,1), black) center center no-repeat, black; /*center center for the gradient scrolls with the page :(*/
-  /*background: -webkit-radial-gradient(center 75%, contain, rgba(0,75,0,0.8), black) center center no-repeat, black;*/
   background: #021700;
   overflow-y: hidden;
 }
@@ -215,18 +166,6 @@ iframe#fsn {
   border: none;
   color: inherit;
 }
-.folder {
-  color: #ffcc00;
-}
-.ls-files {
-  column-width: 100px;
-}
-.ls-files span {
-  cursor: pointer;
-}
-.ls-files span:hover {
-  text-decoration: underline;
-}
 button {
   background: #E3E3E3;
   border: 1px solid #ccc;
@@ -246,85 +185,4 @@ button:not([disabled]):active {
 }
 button[disabled] {
   color: #ccc;
-}
-.help {
-  font-family: 'Droid Sans', Arial, sans-serif;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
-  font-size: 10pt;
-}
-.help,
-.help > section {
-  border-radius: 10px;
-}
-.help > section {
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  color: white;
-  position: relative;
-  width: 610px;
-}
-.help section > div:first-child {
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-}
-.help section > div:last-child {
-  padding-top: 0;
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
-}
-.help > section > div {
-  background: rgba(0, 0, 0, 1);
-  padding: 20px;
-}
-.help h2 {
-  padding-bottom: 8px;
-  margin-top: 0;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #fff;
-  color: #ffcc00;
-}
-.help p strong {
-  width: 60px;
-  display: inline-block;
-}
-.help #close {
-  border-radius: 20px;
-  padding: 2px 6px 2px 7px;
-  border: 2px solid #fff;
-  position: absolute;
-  right: 20px;
-  top: 20px;
-  cursor: pointer;
-  font-size: 90%;
-  font-weight: bold;
-  line-height: 17px;
-}
-.help #close:active {
-  right: 19px;
-  top: 21px;
-}
-.help .shortcuts {
-  columns: 2;
-}
-
-
-/* Themes */
-.cream {
-  color: black;
-  background: #fffff3;
-}
-.cream .interlace {
-  opacity: 0.1;
-}
-.cream .prompt {
-  color: purple;
-}
-.cream .cmdline {
-  color: black;
 }
