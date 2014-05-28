@@ -54,18 +54,6 @@ body {
 .hidden {
   display: none !important;
 }
-.dim > * {
-  opacity: 0.4;
-}
-.dim .help {
-  opacity: 1;
-}
-iframe#fsn {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  border: none;
-}
 #container {
   padding: 1em 1.5em 1em 1em;
   text-shadow: 0 0 5px #C8C8C8;
