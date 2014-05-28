@@ -267,7 +267,7 @@ func (ntt *Player) CollisionFrom(other Entity) {
 			ntt.ChangeHealth(-1)
 			ntt.AddMessage("shield hit, damage -1")
 		} else {
-			ntt.ChangeHealth(-2)
+			ntt.ChangeHealth(-3)
 			ntt.AddMessage("flank hit, damage -3")
 		}
 	}
