@@ -26,6 +26,8 @@ func newConnection(ws *websocket.Conn) *connection {
 type connection struct {
 	id EntityID
 
+	IsBlurred bool
+
 	isOpen bool
 
 	outbox []string
@@ -59,6 +61,12 @@ readerLoop:
 			}
 		} else if strings.EqualFold(cmdType, "ch") {
 			c.player.outbox = append(c.player.outbox, data)
+		} else if strings.EqualFold(cmdType, "bl") {
+			flag, err := strconv.ParseUint(data, 10, 64)
+			if err != nil {
+				break readerLoop
+			}
+			c.IsBlurred = flag != 0
 		}
 		runtime.Gosched()
 	}

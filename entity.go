@@ -42,6 +42,7 @@ type Entity interface {
 	Inbox() []string
 	Initialized() bool
 	InMaxRange(Entity) bool
+	IsBlurred() bool
 	IsDead() bool
 	IsPlayer() bool
 	IsTransient() bool
@@ -133,6 +134,7 @@ func (ntt *EntityT) Initialized() bool {
 func (ntt *EntityT) InMaxRange(other Entity) bool {
 	return ntt.Location.InMaxRange(other.Coord())
 }
+func (ntt *EntityT) IsBlurred() bool   { return false }
 func (ntt *EntityT) IsDead() bool      { return true }
 func (ntt *EntityT) IsPlayer() bool    { return false }
 func (ntt *EntityT) IsTransient() bool { return true }
@@ -292,6 +294,9 @@ func (ntt *Player) FormattedMessage(msg string) string {
 func (ntt *Player) Inbox() []string {
 	return ntt.inbox
 }
+func (ntt *Player) IsBlurred() bool {
+	return ntt.Connection.IsBlurred
+}
 func (ntt *Player) IsDead() bool {
 	return ntt.Health() <= -10
 }
@@ -312,6 +317,10 @@ func (ntt *Player) Outbox() []string {
 }
 func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	LogTrace("Start SendDisplay ", ntt.Location)
+	if ntt.IsBlurred() {
+		LogTrace("No SendDisplay: Blurred ", ntt.Location)
+		return
+	}
 	var buffer bytes.Buffer
 	grid.WriteDisplay(ntt, gproc, &buffer)
 	ntt.Connection.send <- buffer.Bytes()

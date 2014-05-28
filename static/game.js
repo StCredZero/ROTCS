@@ -227,8 +227,18 @@ var CreateGame = function(term) {
 	//console.log(moves.join(""));
     };
 
+    var handleBlur_ = function(e) {
+        sendQueue_.enqueue("bl:1");
+    };
+    var handleFocus_ = function(e) {
+        sendQueue_.enqueue("bl:0");
+    };
+
     window.addEventListener("keydown", handleKeyboardInput_);
-    window.addEventListener("keyup", handleKeyboardUp_);
+    window.addEventListener("keyup",   handleKeyboardUp_);
+    window.addEventListener("blur",    handleBlur_);
+    window.addEventListener("focus",   handleFocus_);
+
     display_.canvas.addEventListener("mouseup", handleMouseEvent_);
 
     return {
