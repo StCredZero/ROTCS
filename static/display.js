@@ -458,6 +458,15 @@ var ADisplay = {
             return display_.eventToPosition(e);
         };
 
+        var handleBlur_ = function(e) {
+            var mapUpdateQueue_ = new Queue();
+            var drawQueue_ = new Queue();
+        };
+        var handleFocus_ = function(e) {
+            var mapUpdateQueue_ = new Queue();
+            var drawQueue_ = new Queue();
+        };
+
         var base64Table_ = {
             "A":[0,0,0,0,0,0],
             "B":[1,0,0,0,0,0],
@@ -621,6 +630,8 @@ var ADisplay = {
             canvas: canvas_,
             eventToPosition: eventToPosition_,
             findPath: findPath_,
+            handleBlur: handleBlur_,
+            handleFocus: handleFocus_,
             preMove: preMove_,
             queueUpdate: queueUpdate_,
             rotDisp: display_,

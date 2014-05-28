@@ -60,6 +60,10 @@ var CreateGame = function(term) {
 	window.msRequestAnimationFrame     ||
 	null ;
 
+    var sendImmediate_ = function(action) {
+        wsocket_.send([(new Date).getTime(),action].join(":"));
+    }
+
     var updateGame = function() {
 	display_.tick()
         if (((lastMoveTime_ + requestInterval_) < (new Date).getTime()) && 
@@ -69,7 +73,7 @@ var CreateGame = function(term) {
 	if (!sendQueue_.isEmpty()) {
 	    var actions = null;
 	    for (actions = sendQueue_.dequeue(); actions; actions = sendQueue_.dequeue()) {
-		wsocket_.send([(new Date).getTime(),actions].join(":"));
+		sendImmediate_(actions);
 	    }
 	} 
     };
@@ -227,11 +231,63 @@ var CreateGame = function(term) {
 	//console.log(moves.join(""));
     };
 
-    var handleBlur_ = function(e) {
+    /*$(window).blur(function(){
+        display_.handleBlur();
         sendQueue_.enqueue("bl:1");
+    });
+    $(window).focus(function(){
+        display_.handleFocus();
+        sendQueue_.enqueue("bl:0");
+    });*/
+
+    function addEvent(obj, evType, fn, isCapturing){
+      if (isCapturing==null) isCapturing=false; 
+      if (obj.addEventListener){
+        // Firefox
+        obj.addEventListener(evType, fn, isCapturing);
+        return true;
+      } else if (obj.attachEvent){
+        // MSIE
+        var r = obj.attachEvent('on'+evType, fn);
+        return r;
+      } else {
+        return false;
+      }
+    }
+
+    var handleBlur_ = function(e) {
+        display_.handleBlur();
+        sendImmediate_("bl:1");
     };
     var handleFocus_ = function(e) {
-        sendQueue_.enqueue("bl:0");
+        display_.handleFocus();
+        sendImmediate_("bl:0");
+    };
+
+    // register to the W3C Page Visibility API
+    var hidden=null;
+    var visibilityChange=null;
+    if (typeof document.mozHidden !== "undefined") {
+      hidden="mozHidden";
+      visibilityChange="mozvisibilitychange";
+    } else if (typeof document.msHidden !== "undefined") {
+      hidden="msHidden";
+      visibilityChange="msvisibilitychange";
+    } else if (typeof document.webkitHidden!=="undefined") {
+      hidden="webkitHidden";
+      visibilityChange="webkitvisibilitychange";
+    } else if (typeof document.hidden !=="hidden") {
+      hidden="hidden";
+      visibilityChange="visibilitychange";
+    }
+    if (hidden!=null && visibilityChange!=null) {
+      addEvent(document, visibilityChange, function(event) {
+        if (document[hidden]) {
+            handleBlur_();
+        } else {
+            handleFocus_();
+        }
+      });
     };
 
     window.addEventListener("keydown", handleKeyboardInput_);
