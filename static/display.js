@@ -17,7 +17,10 @@ var ADisplay = {
         
         var lastUpdateTimestamp_ = 0;
         var lastMoveTimestamp_ = 0;
+        var entities_ = {};
+        var lifeGrid_ = {};
         var lineStash_ = [];
+        var lifeAllowed_ = true;
         
         var mapUpdateQueue_ = new Queue();
         var drawQueue_ = new Queue();
@@ -142,33 +145,6 @@ var ADisplay = {
             }
         };
         
-        var displayScheme_ = {
-            ".":{ "disp":" ",
-                  "fg":"#FFF",
-                  "bg":"#000" 
-                },
-            " ":{ "disp":" ",
-                  "fg":"#000",
-                  "bg":"#B0B0B0"
-                },
-            "@":{ "disp":"@",
-                  "fg":"#004DFF",
-                  "bg":"#000"
-                },
-            "%":{ "disp":"%",
-                  "fg":"#FFF",
-                  "bg":"#000"
-                },
-            "+":{ "disp":"+",
-                  "fg":"#FFF",
-                  "bg":"#000"
-                },
-            "G":{ "disp":"G",
-                  "fg":"#004DFF",
-                  "bg":"#000"
-                }
-        };
-        
         var walkableAt_ = function (i,j) {
             return previousCell_(i,j) == (".".charCodeAt(0))
         }
@@ -223,6 +199,11 @@ var ADisplay = {
                     var symbol = entities_[key];
                     if (symbol) {
                         cellValue = symbol;
+                    } else {
+                        var lc = lifeGrid_[key];
+                        if (lc) {
+                            cellValue = "`";
+                        }
                     }
                     commitCell_(drawMap,i,j,cellValue);                    
                 }
@@ -257,10 +238,39 @@ var ADisplay = {
             entities_ = entityMap;
         };
 
+        var setLifeGrid_ = function(data, loc) {
+            var lmap = {}
+            var x = 0;
+            var y = 0;
+            var x0 = loc[0] - Math.floor(dwidth_ / 2);
+            var y0 = loc[1] - Math.floor(dheight_ / 2);
+            for (var di = 0; di < data.length; di++) {
+                var c = data.charAt(di);
+                var v = base64Table_[c];
+                for (var i = 0; i < 6; i++) {
+                    if (v[i] == 1 && x < dwidth_ && y < dheight_) {
+                        var key = [x + x0, y + y0].join(",");
+                        lmap[key] = 1;
+                    }
+                    x += 1;
+                    if (x == dwidth_) {
+                        x = 0;
+                        y += 1;
+                    }
+                }
+            }
+            lifeGrid_ = lmap;
+        };
+
         var renderDisplay_ = function(updateObj) {
             if (updateObj.entities && updateObj.location) { 
                 setEntities_(updateObj.entities, updateObj.location); 
             }
+            if (updateObj.li && updateObj.location) { 
+                setLifeGrid_(updateObj.li, updateObj.location); 
+            }
+            lifeAllowed_ = updateObj.la;
+
             if (updateObj.d) { direction_ = updateObj.d }
 
             if (updateObj.health) { health_ = updateObj.health; }
@@ -467,6 +477,37 @@ var ADisplay = {
             var drawQueue_ = new Queue();
         };
 
+        var displayScheme_ = {
+            ".":{ "disp":" ",
+                  "fg":"#FFF",
+                  "bg":"#000" 
+                },
+            " ":{ "disp":" ",
+                  "fg":"#000",
+                  "bg":"#B0B0B0"
+                },
+            "@":{ "disp":"@",
+                  "fg":"#004DFF",
+                  "bg":"#000"
+                },
+            "%":{ "disp":"%",
+                  "fg":"#FFF",
+                  "bg":"#000"
+                },
+            "+":{ "disp":"+",
+                  "fg":"#FFF",
+                  "bg":"#000"
+                },
+            "G":{ "disp":"G",
+                  "fg":"#004DFF",
+                  "bg":"#000"
+                },
+            "`":{ "disp":" ",
+                  "fg":"#000",
+                  "bg":"#FFF"
+                }
+        };
+
         var base64Table_ = {
             "A":[0,0,0,0,0,0],
             "B":[1,0,0,0,0,0],
@@ -632,6 +673,7 @@ var ADisplay = {
             findPath: findPath_,
             handleBlur: handleBlur_,
             handleFocus: handleFocus_,
+            lifeAllowed: (function(){ return lifeAllowed_ }),
             preMove: preMove_,
             queueUpdate: queueUpdate_,
             rotDisp: display_,

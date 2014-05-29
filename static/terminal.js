@@ -218,6 +218,8 @@ var Terminal = Terminal || function(containerId) {
       case 'help':
           output('<div class="ls-files">' + CMDS_.join('<br>') + '</div>');
           output('<p>Toggle command mode using the ESC key.</p>');
+          output('<p>Arrow keys/click to move</p>');
+          output('<p>L=LifePen. A=Activate Life System</p>');
           break;
       case 'login':
           output(cmd + ':  is under construction<br>');
@@ -321,11 +323,12 @@ var Terminal = Terminal || function(containerId) {
 
   return {
     initFS: function(persistent, size) {
-      output('<div>Welcome to ' + document.title +
+        output('<div>Welcome to ' + document.title +
              '! (v' + VERSION_ + ')</div>');
-      output((new Date()).toLocaleString());
-      output('<p>Documentation: ESC to toggle move/command mode</p>');
-      output('<p>        Command "help" for more</p>');
+        output((new Date()).toLocaleString());
+        output('<p>Documentation: ESC to toggle move/command mode</p>');
+        output('<p>        Arrow keys/click to move</p>');
+        output('<p>        Command "help" for more</p>');
     },
     output: output,
     setTheme: setTheme_,

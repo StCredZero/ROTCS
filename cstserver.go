@@ -40,6 +40,11 @@ func NewCstServer() *CstServer {
 	}
 	srv.world = NewWorldGrid()
 
+	for _, gc := range srv.world.spawnGrids {
+		sg := srv.world.subgridAtGrid(gc)
+		sg.lifeAllowed = false
+	}
+
 	srv.world.PutEntityAt(NewShipGuard(), Coord{10, 12})
 	srv.world.PutEntityAt(NewShipGuard(), Coord{19, 9})
 	srv.world.PutEntityAt(NewShipGuard(), Coord{19, 15})

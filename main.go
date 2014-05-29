@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	//"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,14 @@ import (
 	"runtime"
 	"text/template"
 )
+
+/*
+import "database/sql"
+import "github.com/coopernurse/gorp"
+import _ "github.com/lib/pq"
+*/
+
+//import "net/smtp"
 
 var DungeonEntropy = DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
 var DungeonProto = DunGen{
@@ -83,6 +92,35 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//runtime.GOMAXPROCS(1)
+
+	/*db, err := sql.Open("postgres", "dbname=rotcs host=localhost sslmode=disable")
+	if err != nil {
+		log.Fatalln("Failed to connect to database:", err)
+	}
+	fmt.Println(db)
+	// construct a gorp DbMap
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
+	table := dbmap.AddTable(UserT{}).SetKeys(false, "id")
+	dbmap.CreateTables()
+	fmt.Println(table)*/
+
+	/*auth := smtp.PlainAuth(
+		"",
+		"peter.kwangjun.suk@gmail.com",
+		"jtfzbotoraubwuit",
+		"smtp.gmail.com",
+	)
+
+	err := smtp.SendMail(
+		"smtp.gmail.com:587", // in our case, "smtp.google.com:587"
+		auth,
+		"admin@raidsphere.com", //emailUser.Username,
+		[]string{"peter.kwangjun.suk@gmail.com"},
+		[]byte("\nThis is the email body."),
+	)
+	if err != nil {
+		log.Print("ERROR: attempting to send email: ", err)
+	}*/
 
 	port := flag.String("port", ":8080", "http service port")
 	assets := flag.String("assets", ".", "path to assets")

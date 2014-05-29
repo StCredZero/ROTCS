@@ -20,6 +20,8 @@ type GridKeeper interface {
 	EmptyAt(Coord) bool
 	EntityAt(Coord) (Entity, bool)
 	EntityByID(EntityID) Entity
+	LifeActive() bool
+	LifeGridAt(Coord) bool
 	MarkDead(Entity)
 	MoveEntity(Entity, Coord)
 	NewEntity(Entity) (Entity, bool)
@@ -30,6 +32,7 @@ type GridKeeper interface {
 	ReplaceEntity(Entity, Entity)
 	RNG() *rand.Rand
 	SendDisplays(GridProcessor)
+	SetLifeGridAt(Coord, bool)
 	SwapEntities(Entity, Entity)
 	UpdateMovers(GridProcessor)
 	WalkableAt(Coord) bool
@@ -59,6 +62,12 @@ func ExecuteMove(ntt Entity, grid GridKeeper, loc Coord) {
 	} else {
 		ntt.CollideWall()
 	}
+	if grid.LifeActive() {
+		if grid.LifeGridAt(ntt.Coord()) {
+			ntt.ChangeHealth(-2)
+			ntt.AddMessage("life cell damage -2")
+		}
+	}
 	ntt.MoveCommit()
 }
 
@@ -71,9 +80,12 @@ type SubGrid struct {
 	chatQueue   chan string
 	deaths      []EntityID
 	dunGenCache *DunGenCache
+	Entities    map[EntityID]Entity
 	GridCoord   GridCoord
 	Grid        map[Coord]EntityID
-	Entities    map[EntityID]Entity
+	lifeActive  bool
+	lifeAllowed bool
+	lifeGrid    [subgrid_height][subgrid_width]bool
 	parent      *WorldGrid
 	ParentQueue chan DeferredMove
 	PlayerCount int
@@ -85,9 +97,10 @@ func NewSubGrid(gcoord GridCoord) *SubGrid {
 		chatQueue:   make(chan string, (subgrid_width * subgrid_height)),
 		deaths:      make([]EntityID, 0, 10),
 		dunGenCache: NewDunGenCache(10, DungeonEntropy, DungeonProto),
+		Entities:    make(map[EntityID]Entity),
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
-		Entities:    make(map[EntityID]Entity),
+		lifeAllowed: true,
 		ParentQueue: make(chan DeferredMove, ((2 * subgrid_width) + (2 * subgrid_height))),
 		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
@@ -130,6 +143,13 @@ func (self *SubGrid) EntityByID(id EntityID) Entity {
 	} else {
 		return nil
 	}
+}
+func (self *SubGrid) LifeActive() bool {
+	return self.lifeActive
+}
+func (self *SubGrid) LifeGridAt(loc Coord) bool {
+	local := loc.LCoord()
+	return self.lifeGrid[local.y][local.x]
 }
 func (self *SubGrid) MarkDead(ntt Entity) {
 	self.deaths = append(self.deaths, ntt.EntityID())
@@ -211,6 +231,10 @@ func (self *SubGrid) ReplaceEntity(ntt, replacement Entity) {
 func (self *SubGrid) RNG() *rand.Rand {
 	return self.rng
 }
+func (self *SubGrid) SetLifeGridAt(loc Coord, value bool) {
+	local := loc.LCoord()
+	self.lifeGrid[local.y][local.x] = value
+}
 func (self *SubGrid) SwapEntities(ntt, other Entity) {
 	nttLoc, otherLoc := ntt.Coord(), other.Coord()
 	grid1, grid2 := nttLoc.Grid(), otherLoc.Grid()
@@ -233,8 +257,74 @@ func (self *SubGrid) WriteEntities(player Entity, buffer *bytes.Buffer) {
 		}
 	}
 }
+
+/*Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+Any live cell with two or three live neighbours lives on to the next generation.
+Any live cell with more than three live neighbours dies, as if by overcrowding.
+Any dead cell with exactly three live neighbours becomes a live cell,
+	as if by reproduction.*/
+func (self *SubGrid) lifeGridLocal(x, y int) bool {
+	if x >= 0 && x < subgrid_width && y >= 0 && y < subgrid_height {
+		return self.lifeGrid[y][x]
+	}
+	return false
+}
+func (self *SubGrid) lifeGridNeighbors(x, y int) int {
+	n := 0
+	for j := y - 1; j <= y+1; j++ {
+		for i := x - 1; i <= x+1; i++ {
+			if (x != i || y != j) && self.lifeGridLocal(i, j) {
+				n++
+			}
+		}
+	}
+	return n
+}
+func (self *SubGrid) updateLifeGrid() {
+	var newGrid [subgrid_height][subgrid_width]bool
+	for y := 0; y < subgrid_height; y++ {
+		for x := 0; x < subgrid_width; x++ {
+			n := self.lifeGridNeighbors(x, y)
+			if self.lifeGridLocal(x, y) {
+				if n == 2 || n == 3 {
+					newGrid[y][x] = true
+				}
+			} else {
+				if n == 3 {
+					newGrid[y][x] = true
+				}
+			}
+		}
+	}
+	for y := 0; y < subgrid_height; y++ {
+		for x := 0; x < subgrid_width; x++ {
+			self.lifeGrid[y][x] = newGrid[y][x]
+		}
+	}
+}
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
+		if ntt.LActToggle() {
+			ntt.ClearLActToggle()
+			if self.lifeAllowed {
+				self.lifeActive = !self.lifeActive
+				if self.lifeActive {
+					ntt.AddMessage("Life System Activated")
+				} else {
+					ntt.AddMessage("Life System Dectivated")
+				}
+			} else {
+				self.lifeActive = false
+			}
+		}
+		if ntt.LifeToggle() {
+			ntt.ClearLifeToggle()
+			if self.lifeAllowed {
+				loc := ntt.Coord()
+				value := self.LifeGridAt(loc)
+				self.SetLifeGridAt(loc, !value)
+			}
+		}
 		if ntt.HasMove(gproc) {
 			loc := ntt.CalcMove(self)
 			ExecuteMove(ntt, self, loc)
@@ -242,6 +332,9 @@ func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 		if ntt.IsDead() {
 			self.MarkDead(ntt)
 		}
+	}
+	if self.lifeActive { //&& (gproc.TickNumber()%4 == 0) {
+		self.updateLifeGrid()
 	}
 }
 func (self *SubGrid) SendDisplays(gproc GridProcessor) {
@@ -284,15 +377,22 @@ func (self *SubGrid) WriteDisplay(ntt Entity, gproc GridProcessor, buffer *bytes
 	} else {
 		self.dunGenCache.WriteMap(ntt, buffer)
 	}
-
 	buffer.WriteRune(',')
-	buffer.WriteString(`"entities":`)
 
+	buffer.WriteString(`"entities":`)
 	// This call to parent works concurrently. It's read only.
 	// It has to be the parent to coordinate all visible SubGrids
 	self.parent.WriteEntities(ntt, buffer)
-
 	buffer.WriteRune(',')
+
+	buffer.WriteString(`"li":`)
+	self.parent.WriteLife(ntt, buffer)
+	buffer.WriteRune(',')
+
+	if self.lifeAllowed {
+		buffer.WriteString(`"la":1,`)
+	}
+
 	buffer.WriteString(`"collided":`)
 	buffer.WriteRune(bool2rune(ntt.Collided()))
 	buffer.WriteRune(',')
@@ -375,7 +475,7 @@ func (self *WorldGrid) discardEmpty() {
 			}
 		}
 		subgrid.deaths = subgrid.deaths[:0]
-		if subgrid.Count() == 0 {
+		if subgrid.Count() == 0 && !subgrid.lifeActive {
 			delete(self.grid, gc)
 		}
 	}
@@ -463,6 +563,31 @@ func (self *WorldGrid) WriteEntities(player Entity, buffer *bytes.Buffer) {
 	}
 	buffer.WriteRune('"')
 }
+
+func (self *WorldGrid) WriteLife(player Entity, buffer *bytes.Buffer) {
+	coord := player.Coord()
+	corner := Coord{coord.x - int64(subgrid_width/2), coord.y - int64(subgrid_height/2)}
+	buffer.WriteRune('"')
+	var x, y int64
+	i, v := 0, 0
+	for y = 0; y < subgrid_height; y++ {
+		for x = 0; x < subgrid_width; x++ {
+			if self.LifeGridAt(Coord{corner.x + x, corner.y + y}) {
+				v += int(1 << uint32(i%6))
+			}
+			if (i+1)%6 == 0 {
+				buffer.WriteRune(Base64Runes[v])
+				v = 0
+			}
+			i += 1
+		}
+	}
+	if i%6 != 0 {
+		buffer.WriteRune(Base64Runes[v])
+	}
+	buffer.WriteRune('"')
+}
+
 func (self *WorldGrid) DungeonAt(coord Coord) int8 {
 	return self.dunGenCache.DungeonAt(coord)
 }
@@ -498,7 +623,11 @@ func (self *WorldGrid) EntityByID(id EntityID) Entity {
 		return nil
 	}
 }
-
+func (self *WorldGrid) LifeActive() bool { return false }
+func (self *WorldGrid) LifeGridAt(loc Coord) bool {
+	subgrid := self.subgridAtGrid(loc.Grid())
+	return subgrid.LifeGridAt(loc)
+}
 func (self *WorldGrid) MarkDead(ntt Entity) {
 	self.deaths = append(self.deaths, ntt.EntityID())
 }
@@ -577,6 +706,10 @@ func (self *WorldGrid) ReplaceEntity(ntt, replacement Entity) {
 	loc := ntt.Coord()
 	self.RemoveEntityID(ntt.EntityID())
 	self.MoveEntity(replacement, loc)
+}
+func (self *WorldGrid) SetLifeGridAt(loc Coord, value bool) {
+	subgrid := self.subgridAtGrid(loc.Grid())
+	subgrid.SetLifeGridAt(loc, value)
 }
 func (self *WorldGrid) SwapEntities(ntt, other Entity) {
 	nttLoc, otherLoc := ntt.Coord(), other.Coord()

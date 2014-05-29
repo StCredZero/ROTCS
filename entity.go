@@ -27,6 +27,8 @@ type Entity interface {
 	CanDamage(Entity) bool
 	CanSwapWith(Entity) bool
 	ChangeHealth(int)
+	ClearLActToggle()
+	ClearLifeToggle()
 	Collided() bool
 	CollideWall()
 	CollisionFrom(other Entity)
@@ -48,6 +50,8 @@ type Entity interface {
 	IsTransient() bool
 	IsWalkable() bool
 	LastDispCoord() Coord
+	LActToggle() bool
+	LifeToggle() bool
 	MoveCommit()
 	MoveTimestamp() uint64
 	Outbox() []string
@@ -57,6 +61,8 @@ type Entity interface {
 	SetEntityID(EntityID)
 	SetHealth(int)
 	SetInitialized(bool)
+	SetLActToggle()
+	SetLifeToggle()
 	SetSubgrid(*SubGrid)
 	TickZero(GridProcessor) bool
 	WriteFor(Entity, *bytes.Buffer)
@@ -88,6 +94,8 @@ func (ntt *EntityT) CanSwapWith(c Entity) bool {
 func (ntt *EntityT) ChangeHealth(delta int) {
 	ntt.health += delta
 }
+func (ntt *EntityT) ClearLActToggle() {}
+func (ntt *EntityT) ClearLifeToggle() {}
 func (ntt *EntityT) Collided() bool {
 	return false
 }
@@ -142,6 +150,8 @@ func (ntt *EntityT) IsWalkable() bool  { return false }
 func (ntt *EntityT) LastDispCoord() Coord {
 	return ntt.Location
 }
+func (ntt *EntityT) LActToggle() bool { return false }
+func (ntt *EntityT) LifeToggle() bool { return false }
 func (ntt *EntityT) LocAhead() Coord {
 	return ntt.Location.MovedBy(ntt.direction)
 }
@@ -173,6 +183,8 @@ func (ntt *EntityT) SetEntityID(id EntityID) {
 func (ntt *EntityT) SetHealth(x int) {
 	ntt.health = x
 }
+func (ntt *EntityT) SetLActToggle() {}
+func (ntt *EntityT) SetLifeToggle() {}
 func (ntt *EntityT) SetInitialized(flag bool) {
 	ntt.Init = flag
 }
@@ -200,6 +212,8 @@ type Player struct {
 	Connection    *connection
 	inbox         []string
 	LastUpdateLoc Coord
+	lactToggle    bool
+	lifeToggle    bool
 	moveBuffer    []moveRequest
 	moveQueue     chan moveRequest
 	moveTimestamp uint64
@@ -256,6 +270,12 @@ func (ntt *Player) CanDamage(other Entity) bool {
 func (ntt *Player) CanSwapWith(other Entity) bool {
 	return other.IsPlayer()
 }
+func (ntt *Player) ClearLActToggle() {
+	ntt.lactToggle = false
+}
+func (ntt *Player) ClearLifeToggle() {
+	ntt.lifeToggle = false
+}
 func (ntt *Player) Collided() bool {
 	return ntt.collided
 }
@@ -300,8 +320,14 @@ func (ntt *Player) IsBlurred() bool {
 func (ntt *Player) IsDead() bool {
 	return ntt.Health() <= -10
 }
-func (ntt *Player) IsPlayer() bool       { return true }
-func (ntt *Player) IsTransient() bool    { return false }
+func (ntt *Player) IsPlayer() bool    { return true }
+func (ntt *Player) IsTransient() bool { return false }
+func (ntt *Player) LActToggle() bool {
+	return ntt.lactToggle
+}
+func (ntt *Player) LifeToggle() bool {
+	return ntt.lifeToggle
+}
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
 func (ntt *Player) MoveCommit() {
 	if len(ntt.moveBuffer) > 0 {
@@ -329,6 +355,12 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	ntt.inbox = ntt.inbox[:0]
 	ntt.outbox = ntt.outbox[:0]
 	LogTrace("End SendDisplay ", ntt.Location)
+}
+func (ntt *Player) SetLActToggle() {
+	ntt.lactToggle = true
+}
+func (ntt *Player) SetLifeToggle() {
+	ntt.lifeToggle = true
 }
 
 type detection struct {
@@ -500,8 +532,8 @@ func NewLoot() Entity {
 
 func (ntt *Loot) CollisionFrom(other Entity) {
 	if other.IsPlayer() {
-		other.ChangeHealth(3)
-		other.AddMessage("heal +3")
+		other.ChangeHealth(2)
+		other.AddMessage("heal +2")
 	}
 }
 

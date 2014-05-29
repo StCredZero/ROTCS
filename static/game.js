@@ -188,6 +188,28 @@ var CreateGame = function(term) {
     var handleKeyboardUp_ = function (e) {
 	if (! (hasFocus_ === "game")) { return; }
 	var code = e.keyCode; 
+        //console.log(code)
+
+        // a for life activate
+        if (code == 65) {
+	    e.preventDefault();
+	    e.stopPropagation();
+            if (display_.lifeAllowed()) {
+                sendQueue_.enqueue("al:0");
+            } else {
+                showMessage_("Life System Inactive");
+            }
+            return
+        }
+
+        // l for life pen
+        if (code == 76) {
+            sendQueue_.enqueue("li:0");
+	    e.preventDefault();
+	    e.stopPropagation();
+            return
+        }
+
 	var action = "0";
 	if (code == 38) { action = "n"; }
 	if (code == 40) { action = "s"; }
@@ -231,14 +253,16 @@ var CreateGame = function(term) {
 	//console.log(moves.join(""));
     };
 
-    /*$(window).blur(function(){
+    var handleBlur_ = function(e) {
         display_.handleBlur();
-        sendQueue_.enqueue("bl:1");
-    });
-    $(window).focus(function(){
+        sendImmediate_("bl:1");
+        $.blockUI({ message: "<h1>Display Paused</h1> <h3>Running in Background</h3>" }); 
+    };
+    var handleFocus_ = function(e) {
         display_.handleFocus();
-        sendQueue_.enqueue("bl:0");
-    });*/
+        sendImmediate_("bl:0");
+        $.unblockUI();
+    };
 
     function addEvent(obj, evType, fn, isCapturing){
       if (isCapturing==null) isCapturing=false; 
@@ -254,17 +278,6 @@ var CreateGame = function(term) {
         return false;
       }
     }
-
-    var handleBlur_ = function(e) {
-        display_.handleBlur();
-        sendImmediate_("bl:1");
-        $.blockUI({ message: "<h1>Display Paused</h1> <h3>Running in Background</h3>" }); 
-    };
-    var handleFocus_ = function(e) {
-        display_.handleFocus();
-        sendImmediate_("bl:0");
-        $.unblockUI();
-    };
 
     // register to the W3C Page Visibility API
     var hidden=null;

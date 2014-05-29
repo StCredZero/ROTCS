@@ -67,6 +67,10 @@ readerLoop:
 				break readerLoop
 			}
 			c.IsBlurred = flag != 0
+		} else if strings.EqualFold(cmdType, "li") {
+			c.player.SetLifeToggle()
+		} else if strings.EqualFold(cmdType, "al") {
+			c.player.SetLActToggle()
 		}
 		runtime.Gosched()
 	}
