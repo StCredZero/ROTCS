@@ -258,7 +258,7 @@ var CreateGame = function(term) {
     var handleBlur_ = function(e) {
         display_.handleBlur();
         sendImmediate_("bl:1");
-        $.blockUI({ message: "<h1>Game Paused</h1>" }); 
+        $.blockUI({ message: "<h1>Display Paused</h1> <h3>Running in Background</h3>" }); 
     };
     var handleFocus_ = function(e) {
         display_.handleFocus();
