@@ -258,10 +258,12 @@ var CreateGame = function(term) {
     var handleBlur_ = function(e) {
         display_.handleBlur();
         sendImmediate_("bl:1");
+        $.blockUI({ message: "<h1>Game Paused</h1>" }); 
     };
     var handleFocus_ = function(e) {
         display_.handleFocus();
         sendImmediate_("bl:0");
+        $.unblockUI();
     };
 
     // register to the W3C Page Visibility API
