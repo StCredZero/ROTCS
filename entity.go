@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	//"math"
+	"html/template"
 	"math/rand"
 	"strings"
 	"time"
@@ -298,9 +299,9 @@ func (ntt *Player) Detect(player Entity) {
 	//if player.IsPlayer() {
 	var buffer bytes.Buffer
 	for _, message := range player.Outbox() {
-		escaped := strings.Replace(message, `"`, `&quot;`, -1)
+		safe := template.HTMLEscapeString(message)
 		buffer.WriteString(`{"type":"message","data":"`)
-		buffer.WriteString(player.FormattedMessage(escaped))
+		buffer.WriteString(player.FormattedMessage(safe))
 		buffer.WriteString(`"}`)
 		ntt.Connection.send <- []byte(buffer.Bytes())
 		buffer.Truncate(0)
