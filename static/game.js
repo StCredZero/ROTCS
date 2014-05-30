@@ -197,7 +197,7 @@ var CreateGame = function(term) {
             if (display_.lifeAllowed()) {
                 sendQueue_.enqueue("al:0");
             } else {
-                showMessage_("Life System Inactive");
+                showMessage_("Life System Inactive. Try a different grid.");
             }
             return
         }
