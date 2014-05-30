@@ -213,7 +213,7 @@ var Terminal = Terminal || function(containerId) {
           output((new Date()).toLocaleString());
           break;
       case 'exit':
-          output(cmd + ':  is under construction<br>');
+          output('command under construction<br>');
           break;
       case 'help':
           output('<div class="ls-files">' + CMDS_.join('<br>') + '</div>');
@@ -222,10 +222,10 @@ var Terminal = Terminal || function(containerId) {
           output('<p>L=LifePen. A=Activate Life System</p>');
           break;
       case 'login':
-          output(cmd + ':  is under construction<br>');
+          output('command under construction<br>');
           break;
       case 'mission':
-          output(cmd + ':  is under construction<br>');
+          output('command under construction<br>');
           break;
       case 's':
       case 'say':
@@ -242,11 +242,11 @@ var Terminal = Terminal || function(containerId) {
           output(VERSION_);
           break;
       case 'who':
-          output(cmd + ':  is under construction<br>');
+          output('command is under construction<br>');
           break;
       default:
           if (cmd) {
-              output(cmd + ': command not found');
+              output('command not found');
           }
       };
 
