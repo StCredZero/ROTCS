@@ -230,11 +230,12 @@ var Terminal = Terminal || function(containerId) {
       case 's':
       case 'say':
           if (game_) {
-              if (args.length == 0) {
+              output('say (chat) is disabled (temporarily)<br>');
+              /*if (args.length == 0) {
                   output('you said nothing<br>');
               } else {
                   game_.sendMessage(args.join(' '));
-              }
+              }*/
           }
           break;
       case 'version':

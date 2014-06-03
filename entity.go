@@ -219,6 +219,7 @@ type Player struct {
 	moveQueue     chan moveRequest
 	moveTimestamp uint64
 	outbox        []string
+	outQueue      chan string
 }
 
 func NewPlayer(c *connection) *Player {
@@ -237,6 +238,7 @@ func NewPlayer(c *connection) *Player {
 		moveBuffer: make([]moveRequest, 0, 4),
 		moveQueue:  make(chan moveRequest, 64),
 		outbox:     make([]string, 0, 20),
+		outQueue:   make(chan string, 256),
 	}
 }
 

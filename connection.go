@@ -60,7 +60,7 @@ readerLoop:
 				c.player.moveQueue <- moveRequest{mv, timestamp}
 			}
 		} else if strings.EqualFold(cmdType, "ch") {
-			c.player.outbox = append(c.player.outbox, data)
+			//c.player.outbox = append(c.player.outbox, data)
 		} else if strings.EqualFold(cmdType, "bl") {
 			flag, err := strconv.ParseUint(data, 10, 64)
 			if err != nil {
