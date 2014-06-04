@@ -652,13 +652,12 @@ func (self *WorldGrid) NewEntity(ntt Entity) (Entity, bool) {
 	ntt.SetEntityID(NewEntityID())
 	ok := false
 	for !ok {
-		for i := 0; !ok && i < len(self.spawnGrids); i++ {
-			gridCoord := self.spawnGrids[i]
-			subgrid := self.subgridAtGrid(gridCoord)
-			newEntity, ok = subgrid.NewEntity(ntt)
-			if ok {
-				self.entityGrid[ntt.EntityID()] = gridCoord
-			}
+		i := rand.Intn(len(self.spawnGrids))
+		gridCoord := self.spawnGrids[i]
+		subgrid := self.subgridAtGrid(gridCoord)
+		newEntity, ok = subgrid.NewEntity(ntt)
+		if ok {
+			self.entityGrid[ntt.EntityID()] = gridCoord
 		}
 	}
 	return newEntity, ok

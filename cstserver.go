@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -69,7 +70,19 @@ func (srv *CstServer) TickNumber() uint64 {
 func (srv *CstServer) registerConnection(c *connection) {
 	LogTrace("starting register")
 	var buffer bytes.Buffer
-	if srv.load > 0.95 {
+
+	x := 1.0 - srv.load
+	p := x * x
+
+	if rand.Float64() < p {
+		player := NewPlayer(c)
+		entity, _ := srv.world.NewEntity(player)
+		c.id = entity.EntityID()
+		c.player = player
+		srv.connections[c] = c.id
+		buffer.WriteString(`{"type":"init","approved":1}`)
+		LogTrace("Initialized entity: ", entity)
+	} else {
 		buffer.WriteString(`{"type":"init",`)
 		buffer.WriteString(`"pop":`)
 		buffer.WriteString(strconv.FormatInt(int64(srv.population), 10))
@@ -79,14 +92,6 @@ func (srv *CstServer) registerConnection(c *connection) {
 		buffer.WriteString(strconv.FormatFloat(srv.load, 'f', 2, 64))
 		buffer.WriteString(`}`)
 		LogTrace("refused registration")
-	} else {
-		player := NewPlayer(c)
-		entity, _ := srv.world.NewEntity(player)
-		c.id = entity.EntityID()
-		c.player = player
-		srv.connections[c] = c.id
-		buffer.WriteString(`{"type":"init","approved":1}`)
-		LogTrace("Initialized entity: ", entity)
 	}
 	c.send <- buffer.Bytes()
 
