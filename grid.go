@@ -5,6 +5,7 @@ import (
 	//"fmt"
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -719,16 +720,15 @@ func (self *WorldGrid) SwapEntities(ntt, other Entity) {
 }
 func (self *WorldGrid) ParallelExec(doWork func(*SubGrid)) {
 	n := len(self.grid)
-	semaphore := make(chan empty, n)
+	var wg sync.WaitGroup
+	wg.Add(n)
 	for _, subgrid := range self.grid {
 		go func(sg *SubGrid) {
+			defer wg.Done()
 			doWork(sg)
-			semaphore <- empty{}
 		}(subgrid)
 	}
-	for i := 0; i < n; i++ {
-		<-semaphore
-	}
+	wg.Wait()
 }
 func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	self.ParallelExec(func(subgrid *SubGrid) {
