@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	//"fmt"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -94,10 +94,13 @@ type SubGrid struct {
 }
 
 func NewSubGrid(gcoord GridCoord) *SubGrid {
+	dgc := NewDunGenCache(10, DungeonEntropy, DungeonProto)
+	dgc.InitAtGrid(gcoord)
+
 	return &SubGrid{
 		chatQueue:   make(chan string, (subgrid_width * subgrid_height)),
 		deaths:      make([]EntityID, 0, 10),
-		dunGenCache: NewDunGenCache(10, DungeonEntropy, DungeonProto),
+		dunGenCache: dgc,
 		Entities:    make(map[EntityID]Entity),
 		GridCoord:   gcoord,
 		Grid:        make(map[Coord]EntityID),
@@ -529,7 +532,7 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 		if i == n {
 			ok := true
 			// monster population
-			for tries := 0; ok && tries < 20; tries++ {
+			for tries := 0; ok && tries < 3; tries++ {
 				monster := NewMonster(NewEntityID())
 				_, ok = self.NewEntityInGrid(monster, gcoord)
 			}
@@ -730,6 +733,24 @@ func (self *WorldGrid) ParallelExec(doWork func(*SubGrid)) {
 	}
 	wg.Wait()
 }
+func (self *WorldGrid) EntityExec(doWork func(Entity, GridKeeper, GridProcessor), gproc GridProcessor) {
+	n := self.playerCount()
+	fmt.Println("N: ", n)
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for _, subgrid := range self.grid {
+		for _, ntt := range subgrid.Entities {
+			if ntt.IsPlayer() {
+				go func(e Entity, sg GridKeeper, gp GridProcessor) {
+					defer wg.Done()
+					doWork(e, sg, gp)
+				}(ntt, subgrid, gproc)
+			}
+		}
+	}
+	wg.Wait()
+	println("finished entityexec")
+}
 func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	self.ParallelExec(func(subgrid *SubGrid) {
 		subgrid.UpdateMovers(gproc)
@@ -751,10 +772,16 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 		}
 	}
 }
-func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
+
+/*func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
 	self.ParallelExec(func(subgrid *SubGrid) {
 		subgrid.SendDisplays(gproc)
 	})
+}*/
+func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
+	self.EntityExec(func(ntt Entity, grid GridKeeper, gproc GridProcessor) {
+		ntt.SendDisplay(grid, gproc)
+	}, gproc)
 }
 func (self *WorldGrid) WriteDisplay(ntt Entity, gproc GridProcessor, buffer *bytes.Buffer) {
 	ERROR.Panic("Should not call on World!")

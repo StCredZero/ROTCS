@@ -64,6 +64,8 @@ var CreateGame = function(term) {
         wsocket_.send([(new Date).getTime(),action].join(":"));
     }
 
+    var wss = [];
+
     var updateGame = function() {
 	display_.tick()
         if (((lastMoveTime_ + requestInterval_) < (new Date).getTime()) && 
@@ -165,7 +167,7 @@ var CreateGame = function(term) {
 	    // keyCode for "u"
 	    e.preventDefault();
 	    e.stopPropagation();
-	    loadTestMode_ = ! loadTestMode_;
+            loadTestMode_ = !loadTestMode_;
 	    return;
 	};
 

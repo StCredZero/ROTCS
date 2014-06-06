@@ -4,39 +4,48 @@ import (
 	"bytes"
 	"strconv"
 
-	"github.com/golang/groupcache/lru"
+	//"github.com/golang/groupcache/lru"
 )
 
 type DunGenCache struct {
 	entropy DunGenEntropy
-	cache   *lru.Cache
+	cache   map[GridCoord]*DunGen
 	proto   DunGen
 }
 
 func NewDunGenCache(maxEntries int, entropy DunGenEntropy, proto DunGen) *DunGenCache {
 	dgc := DunGenCache{
 		entropy: entropy,
-		cache:   lru.New(maxEntries),
+		cache:   make(map[GridCoord]*DunGen),
 		proto:   proto,
 	}
 	return &dgc
 }
 
 func (self *DunGenCache) basicDungeonAt(gcoord GridCoord) *DunGen {
-	var intf interface{}
-	var present bool
-	intf, present = self.cache.Get(lru.Key(gcoord))
+	dg, present := self.cache[gcoord]
 	if present {
-		var d *DunGen = intf.(*DunGen)
-		return d
+		return dg
 	} else {
 		newdg := NewDunGen(&self.proto)
 		newdg.createDungeon(gcoord, self.entropy)
 		if gcoord == (GridCoord{0, 0}) {
 			newdg.readFile("resources/shipmap0")
 		}
-		self.cache.Add(lru.Key(gcoord), newdg)
+		self.cache[gcoord] = newdg
 		return newdg
+	}
+}
+
+func (self *DunGenCache) InitAtGrid(gcoord GridCoord) {
+	self.DungeonAtGrid(gcoord)
+	var x, y int64
+	for y = -1; y <= 1; y++ {
+		for x = -1; x <= 1; x++ {
+			if x != 0 && y != 0 {
+				self.DungeonAtGrid(GridCoord{gcoord.x + x, gcoord.y + y})
+			}
+		}
 	}
 }
 
