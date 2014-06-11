@@ -272,7 +272,6 @@ func (ntt *Player) CanSwapWith(other Entity) bool {
 	return other.IsPlayer()
 }
 func (ntt *Player) ClearFlag(x uint64) {
-	fmt.Printf("%x  %x\n", x, (^x))
 	ntt.flags &= ^x
 }
 func (ntt *Player) Collided() bool {
