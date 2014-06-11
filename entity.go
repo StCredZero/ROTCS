@@ -20,6 +20,9 @@ func NewEntityID() EntityID {
 	return EntityID(uuid.NewV1())
 }
 
+const LifeActivateTogl uint64 = 0x01 << 1
+const LifeCellTogl uint64 = 0x01 << 2
+
 type Entity interface {
 	EntityID() EntityID
 
@@ -28,8 +31,7 @@ type Entity interface {
 	CanDamage(Entity) bool
 	CanSwapWith(Entity) bool
 	ChangeHealth(int)
-	ClearLActToggle()
-	ClearLifeToggle()
+	ClearFlag(uint64)
 	Collided() bool
 	CollideWall()
 	CollisionFrom(other Entity)
@@ -38,6 +40,7 @@ type Entity interface {
 	Detect(Entity)
 	Direction() rune
 	DisplayString() string
+	FlagAt(uint64) bool
 	FormattedMessage(string) string
 	GetSubgrid() *SubGrid
 	HasMove(GridProcessor) bool
@@ -51,8 +54,6 @@ type Entity interface {
 	IsTransient() bool
 	IsWalkable() bool
 	LastDispCoord() Coord
-	LActToggle() bool
-	LifeToggle() bool
 	MoveCommit()
 	MoveTimestamp() uint64
 	Outbox() []string
@@ -60,10 +61,9 @@ type Entity interface {
 	SetCoord(Coord)
 	SetCollided()
 	SetEntityID(EntityID)
+	SetFlag(uint64)
 	SetHealth(int)
 	SetInitialized(bool)
-	SetLActToggle()
-	SetLifeToggle()
 	SetSubgrid(*SubGrid)
 	TickZero(GridProcessor) bool
 	WriteFor(Entity, *bytes.Buffer)
@@ -95,8 +95,7 @@ func (ntt *EntityT) CanSwapWith(c Entity) bool {
 func (ntt *EntityT) ChangeHealth(delta int) {
 	ntt.health += delta
 }
-func (ntt *EntityT) ClearLActToggle() {}
-func (ntt *EntityT) ClearLifeToggle() {}
+func (ntt *EntityT) ClearFlag(x uint64) {}
 func (ntt *EntityT) Collided() bool {
 	return false
 }
@@ -117,6 +116,9 @@ func (ntt *EntityT) DisplayString() string {
 }
 func (ntt *EntityT) EntityID() EntityID {
 	return ntt.ID
+}
+func (ntt *EntityT) FlagAt(uint64) bool {
+	return false
 }
 func (ntt *EntityT) FormattedMessage(s string) string {
 	return s
@@ -151,8 +153,6 @@ func (ntt *EntityT) IsWalkable() bool  { return false }
 func (ntt *EntityT) LastDispCoord() Coord {
 	return ntt.Location
 }
-func (ntt *EntityT) LActToggle() bool { return false }
-func (ntt *EntityT) LifeToggle() bool { return false }
 func (ntt *EntityT) LocAhead() Coord {
 	return ntt.Location.MovedBy(ntt.direction)
 }
@@ -178,14 +178,13 @@ func (ntt *EntityT) SetCollided()                                     {}
 func (ntt *EntityT) SetCoord(coord Coord) {
 	ntt.Location = coord
 }
+func (ntt *EntityT) SetFlag(x uint64) {}
 func (ntt *EntityT) SetEntityID(id EntityID) {
 	ntt.ID = id
 }
 func (ntt *EntityT) SetHealth(x int) {
 	ntt.health = x
 }
-func (ntt *EntityT) SetLActToggle() {}
-func (ntt *EntityT) SetLifeToggle() {}
 func (ntt *EntityT) SetInitialized(flag bool) {
 	ntt.Init = flag
 }
@@ -211,10 +210,9 @@ type Player struct {
 	EntityT
 	collided      bool
 	Connection    *connection
+	flags         uint64
 	inbox         []string
 	LastUpdateLoc Coord
-	lactToggle    bool
-	lifeToggle    bool
 	moveBuffer    []moveRequest
 	moveQueue     chan moveRequest
 	moveTimestamp uint64
@@ -273,11 +271,9 @@ func (ntt *Player) CanDamage(other Entity) bool {
 func (ntt *Player) CanSwapWith(other Entity) bool {
 	return other.IsPlayer()
 }
-func (ntt *Player) ClearLActToggle() {
-	ntt.lactToggle = false
-}
-func (ntt *Player) ClearLifeToggle() {
-	ntt.lifeToggle = false
+func (ntt *Player) ClearFlag(x uint64) {
+	fmt.Printf("%x  %x\n", x, (^x))
+	ntt.flags &= ^x
 }
 func (ntt *Player) Collided() bool {
 	return ntt.collided
@@ -314,6 +310,9 @@ func (ntt *Player) FormattedMessage(msg string) string {
 	s := []string{ntt.DisplayString(), `: `, msg}
 	return strings.Join(s, "")
 }
+func (ntt *Player) FlagAt(x uint64) bool {
+	return (ntt.flags & x) > 0
+}
 func (ntt *Player) Inbox() []string {
 	return ntt.inbox
 }
@@ -323,14 +322,8 @@ func (ntt *Player) IsBlurred() bool {
 func (ntt *Player) IsDead() bool {
 	return ntt.Health() <= -10
 }
-func (ntt *Player) IsPlayer() bool    { return true }
-func (ntt *Player) IsTransient() bool { return false }
-func (ntt *Player) LActToggle() bool {
-	return ntt.lactToggle
-}
-func (ntt *Player) LifeToggle() bool {
-	return ntt.lifeToggle
-}
+func (ntt *Player) IsPlayer() bool       { return true }
+func (ntt *Player) IsTransient() bool    { return false }
 func (ntt *Player) LastDispCoord() Coord { return ntt.LastUpdateLoc }
 func (ntt *Player) MoveCommit() {
 	if len(ntt.moveBuffer) > 0 {
@@ -359,11 +352,8 @@ func (ntt *Player) SendDisplay(grid GridKeeper, gproc GridProcessor) {
 	ntt.outbox = ntt.outbox[:0]
 	LogTrace("End SendDisplay ", ntt.Location)
 }
-func (ntt *Player) SetLActToggle() {
-	ntt.lactToggle = true
-}
-func (ntt *Player) SetLifeToggle() {
-	ntt.lifeToggle = true
+func (ntt *Player) SetFlag(x uint64) {
+	ntt.flags |= x
 }
 
 type detection struct {

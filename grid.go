@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	//"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -308,8 +308,8 @@ func (self *SubGrid) updateLifeGrid() {
 }
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
-		if ntt.LActToggle() {
-			ntt.ClearLActToggle()
+		if ntt.FlagAt(LifeActivateTogl) {
+			ntt.ClearFlag(LifeActivateTogl)
 			if self.lifeAllowed {
 				self.lifeActive = !self.lifeActive
 				if self.lifeActive {
@@ -321,8 +321,8 @@ func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 				self.lifeActive = false
 			}
 		}
-		if ntt.LifeToggle() {
-			ntt.ClearLifeToggle()
+		if ntt.FlagAt(LifeCellTogl) {
+			ntt.ClearFlag(LifeCellTogl)
 			if self.lifeAllowed {
 				loc := ntt.Coord()
 				value := self.LifeGridAt(loc)
@@ -733,9 +733,8 @@ func (self *WorldGrid) ParallelExec(doWork func(*SubGrid)) {
 	}
 	wg.Wait()
 }
-func (self *WorldGrid) EntityExec(doWork func(Entity, GridKeeper, GridProcessor), gproc GridProcessor) {
+func (self *WorldGrid) PlayerExec(doWork func(Entity, GridKeeper, GridProcessor), gproc GridProcessor) {
 	n := self.playerCount()
-	fmt.Println("N: ", n)
 	var wg sync.WaitGroup
 	wg.Add(n)
 	for _, subgrid := range self.grid {
@@ -749,7 +748,6 @@ func (self *WorldGrid) EntityExec(doWork func(Entity, GridKeeper, GridProcessor)
 		}
 	}
 	wg.Wait()
-	println("finished entityexec")
 }
 func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	self.ParallelExec(func(subgrid *SubGrid) {
@@ -779,7 +777,7 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	})
 }*/
 func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
-	self.EntityExec(func(ntt Entity, grid GridKeeper, gproc GridProcessor) {
+	self.PlayerExec(func(ntt Entity, grid GridKeeper, gproc GridProcessor) {
 		ntt.SendDisplay(grid, gproc)
 	}, gproc)
 }
