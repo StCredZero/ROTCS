@@ -86,7 +86,8 @@ type SubGrid struct {
 	Grid        map[Coord]EntityID
 	lifeActive  bool
 	lifeAllowed bool
-	lifeGrid    [subgrid_height][subgrid_width]bool
+	lifeGrid    [2][subgrid_height][subgrid_width]bool
+	lifePhase   int
 	parent      *WorldGrid
 	ParentQueue chan DeferredMove
 	PlayerCount int
@@ -153,7 +154,7 @@ func (self *SubGrid) LifeActive() bool {
 }
 func (self *SubGrid) LifeGridAt(loc Coord) bool {
 	local := loc.LCoord()
-	return self.lifeGrid[local.y][local.x]
+	return self.lifeGrid[self.lifePhase][local.y][local.x]
 }
 func (self *SubGrid) MarkDead(ntt Entity) {
 	self.deaths = append(self.deaths, ntt.EntityID())
@@ -237,7 +238,7 @@ func (self *SubGrid) RNG() *rand.Rand {
 }
 func (self *SubGrid) SetLifeGridAt(loc Coord, value bool) {
 	local := loc.LCoord()
-	self.lifeGrid[local.y][local.x] = value
+	self.lifeGrid[self.lifePhase][local.y][local.x] = value
 }
 func (self *SubGrid) SwapEntities(ntt, other Entity) {
 	nttLoc, otherLoc := ntt.Coord(), other.Coord()
@@ -269,7 +270,7 @@ Any dead cell with exactly three live neighbours becomes a live cell,
 	as if by reproduction.*/
 func (self *SubGrid) lifeGridLocal(x, y int) bool {
 	if x >= 0 && x < subgrid_width && y >= 0 && y < subgrid_height {
-		return self.lifeGrid[y][x]
+		return self.lifeGrid[self.lifePhase][y][x]
 	}
 	return false
 }
@@ -285,26 +286,18 @@ func (self *SubGrid) lifeGridNeighbors(x, y int) int {
 	return n
 }
 func (self *SubGrid) updateLifeGrid() {
-	var newGrid [subgrid_height][subgrid_width]bool
+	var nextPhase = (self.lifePhase + 1) % 2
 	for y := 0; y < subgrid_height; y++ {
 		for x := 0; x < subgrid_width; x++ {
 			n := self.lifeGridNeighbors(x, y)
 			if self.lifeGridLocal(x, y) {
-				if n == 2 || n == 3 {
-					newGrid[y][x] = true
-				}
+				self.lifeGrid[nextPhase][y][x] = (n == 2 || n == 3)
 			} else {
-				if n == 3 {
-					newGrid[y][x] = true
-				}
+				self.lifeGrid[nextPhase][y][x] = (n == 3)
 			}
 		}
 	}
-	for y := 0; y < subgrid_height; y++ {
-		for x := 0; x < subgrid_width; x++ {
-			self.lifeGrid[y][x] = newGrid[y][x]
-		}
-	}
+	self.lifePhase = nextPhase
 }
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
@@ -445,6 +438,13 @@ func (self *WorldGrid) subgridAtGrid(gridCoord GridCoord) *SubGrid {
 		subgrid = NewSubGrid(gridCoord)
 		subgrid.parent = self
 		self.grid[gridCoord] = subgrid
+	}
+	return subgrid
+}
+func (self *WorldGrid) safeSubgridAtGrid(gridCoord GridCoord) *SubGrid {
+	subgrid, present := self.grid[gridCoord]
+	if !present {
+		return nil
 	}
 	return subgrid
 }
