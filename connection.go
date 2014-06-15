@@ -85,7 +85,7 @@ writerLoop:
 			break writerLoop
 		}
 		LogTrace("writer about to WriteMessage", c.id)
-		deadline := time.Now().Add(time.Duration(time.Millisecond * 120))
+		deadline := time.Now().Add(time.Duration(time.Millisecond * 1200))
 		err1 := c.ws.SetWriteDeadline(deadline)
 		if err1 != nil {
 			break writerLoop
