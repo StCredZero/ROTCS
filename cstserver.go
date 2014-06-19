@@ -151,6 +151,7 @@ func (srv *CstServer) runLoop() {
 		now := time.Now()
 		for id, c := range srv.dropped {
 			if c.deadline.Add(time.Second * 20).After(now) {
+				LogTrace("Remove from dropped: ", id)
 				delete(srv.dropped, id)
 				srv.unregister <- c
 			}
