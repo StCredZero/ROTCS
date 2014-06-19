@@ -15,9 +15,15 @@ type CstServer struct {
 	// Registered connections.
 	connections map[*connection]EntityID
 
+	dropped map[EntityID](*connection)
+
+	droppedQueue chan *connection
+
 	load float64
 
 	population int
+
+	reconnectQueue chan reconnect
 
 	// Register requests from the connections.
 	register chan *connection
@@ -35,9 +41,12 @@ type CstServer struct {
 func NewCstServer() *CstServer {
 
 	var srv = CstServer{
-		register:    make(chan *connection, 1000),
-		unregister:  make(chan *connection, 1000),
-		connections: make(map[*connection]EntityID),
+		reconnectQueue: make(chan reconnect, 1000),
+		register:       make(chan *connection, 1000),
+		dropped:        make(map[EntityID](*connection)),
+		droppedQueue:   make(chan *connection, 1000),
+		unregister:     make(chan *connection, 1000),
+		connections:    make(map[*connection]EntityID),
 	}
 	srv.world = NewWorldGrid()
 
@@ -80,7 +89,13 @@ func (srv *CstServer) registerConnection(c *connection) {
 		c.id = entity.EntityID()
 		c.player = player
 		srv.connections[c] = c.id
-		buffer.WriteString(`{"type":"init","approved":1}`)
+		buffer.WriteString(`{"type":"init",`)
+
+		buffer.WriteString(`"uuid":"`)
+		buffer.WriteString(c.id.String())
+		buffer.WriteString(`",`)
+
+		buffer.WriteString(`"approved":1}`)
 		LogTrace("Initialized entity: ", entity)
 	} else {
 		buffer.WriteString(`{"type":"init",`)
@@ -103,6 +118,17 @@ func (srv *CstServer) unregisterConnection(c *connection) {
 	delete(srv.connections, c)
 }
 
+func (srv *CstServer) reconnect(oldConn, newConn *connection) {
+	LogTrace("reconnecting: ", oldConn.id)
+	delete(srv.connections, oldConn)
+
+	newConn.id = oldConn.id
+	newConn.player = oldConn.player
+
+	srv.connections[newConn] = oldConn.id
+	LogTrace("Reconnected player: ", newConn.id)
+}
+
 const ticksPerSec = 8
 const tickSecs = 1.0 / ticksPerSec
 
@@ -112,6 +138,36 @@ func (srv *CstServer) runLoop() {
 		startTime := time.Now()
 		runtime.Gosched()
 
+	dropped:
+		for {
+			select {
+			case c := <-srv.droppedQueue:
+				srv.dropped[c.id] = c
+			default:
+				break dropped
+			}
+		}
+
+		now := time.Now()
+		for id, c := range srv.dropped {
+			if c.deadline.Add(time.Second * 20).After(now) {
+				delete(srv.dropped, id)
+			}
+		}
+
+	reconnect:
+		for {
+			select {
+			case rc := <-srv.reconnectQueue:
+				oldConn, present := srv.dropped[rc.oldId]
+				if present {
+					delete(srv.dropped, rc.oldId)
+					srv.reconnect(oldConn, rc.newConn)
+				}
+			default:
+				break reconnect
+			}
+		}
 	register:
 		for {
 			select {
@@ -172,7 +228,7 @@ func (srv *CstServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	c := newConnection(ws)
 	srv.register <- c
-	defer func() { srv.unregister <- c }()
+	defer func() { srv.droppedQueue <- c }()
 	go c.writer()
 	c.reader(srv)
 }

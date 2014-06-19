@@ -1,5 +1,7 @@
 var CreateGame = function(term) {
 
+    var gameState_ = "START";
+
     var display_ = ADisplay.init(79,25);
 
     var displayNode_ = document.getElementById('displayArea');
@@ -12,9 +14,6 @@ var CreateGame = function(term) {
     var moveKeyDown_ = null;
 
     var sendQueue_ = new Queue();
-    var initialized_ = false;
-
-
 
     var initReq = new XMLHttpRequest();
     initReq.open("get", "/wsaddr", false);
@@ -22,34 +21,20 @@ var CreateGame = function(term) {
 
     var uuid_ = null;
 
-    var wsaddr = (initReq.responseText).trim();
-    var wsocket_ = new WebSocket(wsaddr);
-    wsocket_.onmessage = function(event) {
-	var jsonObj = JSON.parse(event.data);
-	if (jsonObj.type === "init") {
-	    uuid_ = jsonObj.uuid; 
-	    if (jsonObj.approved) {
-		initialized_ = true;
-	    } else {
-		Game.showMessage("Server full. Try again later.");
-		Game.showMessage("Pop:" + jsonObj.pop + " Load:" + jsonObj.load);
-	    }
-	}
-	if (initialized_ && (jsonObj.type === "update")) {
-	    if (jsonObj.messages) {
-		var messages = jsonObj.messages
-		for (var i = 0; i < messages.length; i++) {
-		    if (messages[i].length > 0) {
-			showMessage_(messages[i]);
-		    }
-		}
-	    }
-	    display_.queueUpdate(jsonObj);
-	}
-	if (jsonObj.type === "message") {
-	    showMessage_(jsonObj.data);
-	}
+    var generateInterval_ = function(k) {
+        var maxInterval = (Math.pow(2, k) - 1) * 1000;
+  
+        if (maxInterval > 30*1000) {
+            maxInterval = 30*1000; // If the generated interval is more than 30 seconds, truncate it down to 30 seconds.
+        }
+  
+        // generate the interval to a random number between 0 and the maxInterval determined from above
+        return Math.random() * maxInterval; 
     };
+
+    var wsaddr = (initReq.responseText).trim();
+    var wsocket_ = null;
+    var reconnectAttempts_ = 1;
 
     var animFrame = null;
 
@@ -313,6 +298,76 @@ var CreateGame = function(term) {
     window.addEventListener("focus",   handleFocus_);
 
     display_.canvas.addEventListener("mouseup", handleMouseEvent_);
+
+
+    var initWebSockets_ = function(){
+       try {
+            wsocket_ = new WebSocket(wsaddr);
+        } catch (err) {
+            return false;
+        };
+
+        wsocket_.onmessage = function(event) {
+	    var jsonObj = JSON.parse(event.data);
+	    if (jsonObj.type === "init") {
+	        if (jsonObj.approved) {
+                    if (gameState_ === "RECONNECT") {
+                        sendImmediate_([(new Date()).getTime(),"reconnect",uuid_].join(":"));
+                    } else {
+	                uuid_ = jsonObj.uuid; 
+                        reconnectAttempts_ = 1;
+                        gameState_ = "INITIALIZED";
+                    }
+	        } else {
+		    Game.showMessage("Server full. Try again later.");
+		    Game.showMessage("Pop:" + jsonObj.pop + " Load:" + jsonObj.load);
+	        }
+	    }
+	    if ((gameState_ === "RECONNECT") && (jsonObj.type === "re")) {
+                 if (jsonObj.approved) {
+	             if (uuid_ !== jsonObj.uuid) {
+                         throw "UUIDs don't match!";
+                     }; 
+                     reconnectAttempts_ = 1;
+                     gameState_ = "INITIALIZED";
+	        }
+            }
+	    if ((gameState_ === "INITIALIZED") && (jsonObj.type === "update")) {
+	        if (jsonObj.messages) {
+		    var messages = jsonObj.messages
+		    for (var i = 0; i < messages.length; i++) {
+		        if (messages[i].length > 0) {
+			    showMessage_(messages[i]);
+		        }
+		    }
+	        }
+	        display_.queueUpdate(jsonObj);
+	    }
+	    if (jsonObj.type === "message") {
+	        showMessage_(jsonObj.data);
+	    }
+        };
+
+        wsocket_.onclose = function(event) {
+            console.log("websocket closed");
+            gameState_ = "RECONNECT";
+
+            var time = generateInterval_(reconnectAttempts_);
+    
+            setTimeout(function () {
+                // We've tried to reconnect so increment the attempts by 1
+                reconnectAttempts_++;
+                
+                // Connection has closed so try to reconnect every 10
+                // seconds.
+                console.log("websocket reconnect");
+                initWebSockets_(); 
+            }, time);
+        };
+
+        return true;
+    };
+    initWebSockets_();
 
     return {
 	focusID: (function() {return hasFocus_}),

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/satori/go.uuid"
 )
 
 type moveRequest struct {
@@ -26,6 +27,8 @@ func newConnection(ws *websocket.Conn) *connection {
 type connection struct {
 	id EntityID
 
+	deadline time.Time
+
 	IsBlurred bool
 
 	isOpen bool
@@ -41,7 +44,18 @@ type connection struct {
 	ws *websocket.Conn
 }
 
+type reconnect struct {
+	oldId   EntityID
+	newConn *connection
+}
+
 func (c *connection) reader(srv *CstServer) {
+
+	defer func() {
+		LogTrace("closing reader")
+		c.isOpen = false
+	}()
+
 readerLoop:
 	for c.isOpen {
 		_, message, err := c.ws.ReadMessage()
@@ -71,22 +85,33 @@ readerLoop:
 			c.player.SetFlag(LifeCellTogl)
 		} else if strings.EqualFold(cmdType, "al") {
 			c.player.SetFlag(LifeActivateTogl)
+		} else if strings.EqualFold(cmdType, "reconnect") {
+			id, err := uuid.FromString(data)
+			if err != nil {
+				srv.reconnectQueue <- reconnect{EntityID(id), c}
+			}
 		}
 		runtime.Gosched()
 	}
-	LogTrace("closing reader")
-	c.isOpen = false
+
 }
 
 func (c *connection) writer() {
+
+	defer func() {
+		LogTrace("closing writer")
+		c.isOpen = false
+		c.ws.Close()
+	}()
+
 writerLoop:
 	for message := range c.send {
 		if !c.isOpen {
 			break writerLoop
 		}
 		LogTrace("writer about to WriteMessage", c.id)
-		deadline := time.Now().Add(time.Duration(time.Millisecond * 1200))
-		err1 := c.ws.SetWriteDeadline(deadline)
+		c.deadline = time.Now().Add(time.Duration(time.Millisecond * 1200))
+		err1 := c.ws.SetWriteDeadline(c.deadline)
 		if err1 != nil {
 			break writerLoop
 		}
@@ -97,7 +122,4 @@ writerLoop:
 		}
 		runtime.Gosched()
 	}
-	LogTrace("closing writer")
-	c.isOpen = false
-	c.ws.Close()
 }

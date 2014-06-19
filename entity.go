@@ -16,6 +16,11 @@ var offsetRNG = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 type EntityID [16]byte
 
+func (id EntityID) String() string {
+	myUuid := uuid.UUID(id)
+	return myUuid.String()
+}
+
 func NewEntityID() EntityID {
 	return EntityID(uuid.NewV1())
 }
@@ -68,6 +73,10 @@ type Entity interface {
 	TickZero(GridProcessor) bool
 	WriteFor(Entity, *bytes.Buffer)
 }
+
+type EntityStoreT map[EntityID]Entity
+
+//var EntityStore = make(map
 
 type EntityT struct {
 	ID EntityID
