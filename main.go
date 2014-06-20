@@ -23,8 +23,7 @@ import _ "github.com/lib/pq"
 
 var DungeonEntropy = DunGenEntropy([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 55, 13, 14, 15, 16})
 var DungeonProto = DunGen{
-	xsize:      subgrid_width,
-	ysize:      subgrid_height,
+	size:       GridSize{subgrid_width, subgrid_height},
 	targetObj:  20,
 	chanceRoom: 50,
 }

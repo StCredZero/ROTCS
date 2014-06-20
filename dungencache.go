@@ -22,6 +22,10 @@ func NewDunGenCache(maxEntries int, entropy DunGenEntropy, proto DunGen) *DunGen
 	return &dgc
 }
 
+func (self *DunGenCache) GridSize() GridSize {
+	return self.proto.GridSize()
+}
+
 func (self *DunGenCache) basicDungeonAt(gcoord GridCoord) *DunGen {
 	dg, present := self.cache[gcoord]
 	if present {
@@ -71,14 +75,14 @@ func (self *DunGenCache) DungeonAtGrid(gcoord GridCoord) *DunGen {
 }
 
 func (self *DunGenCache) DungeonAt(coord Coord) int8 {
-	dgrid := self.DungeonAtGrid(coord.Grid())
-	lcoord := coord.LCoord()
+	dgrid := self.DungeonAtGrid(coord.Grid(self))
+	lcoord := coord.LCoord(self)
 	return dgrid.TileAt(lcoord)
 }
 
 func (self *DunGenCache) WalkableAt(coord Coord) bool {
-	dgrid := self.DungeonAtGrid(coord.Grid())
-	lcoord := coord.LCoord()
+	dgrid := self.DungeonAtGrid(coord.Grid(self))
+	lcoord := coord.LCoord(self)
 	return dgrid.isWalkable(lcoord.x, lcoord.y)
 }
 
@@ -97,14 +101,15 @@ func (self *DunGenCache) WriteEntityMap(ntt Entity, buffer *bytes.Buffer) {
 }
 
 func (self *DunGenCache) WriteLineMap(ntt Entity, buffer *bytes.Buffer) {
+	size := self.GridSize()
 	corner := ntt.Coord().Corner()
 	move := ntt.LastDispCoord().AsMoveTo(ntt.Coord())
 	var start Coord
 	switch move {
 	case 's':
-		start = Coord{corner.x, corner.y + subgrid_height - 1}
+		start = Coord{corner.x, corner.y + int64(size.y) - 1}
 	case 'e':
-		start = Coord{corner.x + subgrid_width - 1, corner.y}
+		start = Coord{corner.x + int64(size.x) - 1, corner.y}
 	default:
 		start = corner
 	}
@@ -120,19 +125,20 @@ func (self *DunGenCache) WriteLineMap(ntt Entity, buffer *bytes.Buffer) {
 	buffer.WriteString(`"line":"`)
 	switch move {
 	case 'n', 's':
-		WriteBase64Map(start, subgrid_width, 1, self, buffer)
+		WriteBase64Map(start, size.x, 1, self, buffer)
 	case 'w', 'e':
-		WriteBase64Map(start, 1, subgrid_height, self, buffer)
+		WriteBase64Map(start, 1, size.y, self, buffer)
 	}
 	buffer.WriteRune('"')
 }
 
 func (self *DunGenCache) WriteBasicMap(ntt Entity, buffer *bytes.Buffer) {
+	size := self.GridSize()
 	buffer.WriteString(`"maptype":"basic",`)
 	buffer.WriteString(`"map":"`)
-	xstart := ntt.Coord().x - (subgrid_width / 2)
-	ystart := ntt.Coord().y - (subgrid_height / 2)
-	WriteBase64Map(Coord{xstart, ystart}, subgrid_width, subgrid_height, self, buffer)
+	xstart := ntt.Coord().x - (int64(size.x) / 2)
+	ystart := ntt.Coord().y - (int64(size.y) / 2)
+	WriteBase64Map(Coord{xstart, ystart}, size.x, size.y, self, buffer)
 	buffer.WriteRune('"')
 	ntt.SetInitialized(true)
 }

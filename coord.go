@@ -11,6 +11,15 @@ import (
 const subgrid_width = 79
 const subgrid_height = 25
 
+type GridSize struct {
+	x int
+	y int
+}
+
+type Sizer interface {
+	GridSize() GridSize
+}
+
 type Coord struct {
 	x int64
 	y int64
@@ -18,18 +27,20 @@ type Coord struct {
 
 var NullGCoord = GridCoord{math.MaxInt64, math.MaxInt64}
 
-func (self Coord) Grid() GridCoord {
+func (self Coord) Grid(sizer Sizer) GridCoord {
+	size := sizer.GridSize()
 	return GridCoord{
-		x: loc2grid(self.x, subgrid_width),
-		y: loc2grid(self.y, subgrid_height),
+		x: loc2grid(self.x, int64(size.x)),
+		y: loc2grid(self.y, int64(size.y)),
 	}
 }
 
-func (self Coord) LCoord() LCoord {
-	mygrid := self.Grid()
+func (self Coord) LCoord(sizer Sizer) LCoord {
+	size := sizer.GridSize()
+	mygrid := self.Grid(sizer)
 	return LCoord{
-		x: int(self.x - (mygrid.x * subgrid_width)),
-		y: int(self.y - (mygrid.y * subgrid_height)),
+		x: int(self.x - (mygrid.x * int64(size.x))),
+		y: int(self.y - (mygrid.y * int64(size.y))),
 	}
 }
 
@@ -77,10 +88,10 @@ func neighbors4(coord Coord) []Coord {
 	}
 }
 
-func (self Coord) VisibleGrids(xdist int64, ydist int64, gcoords []GridCoord) []GridCoord {
+func (self Coord) VisibleGrids(xdist int64, ydist int64, sizer Sizer, gcoords []GridCoord) []GridCoord {
 	var c0, c1 = Coord{self.x - xdist, self.y - ydist}, Coord{self.x - xdist, self.y + ydist}
 	var c2, c3 = Coord{self.x + xdist, self.y - ydist}, Coord{self.x + xdist, self.y + ydist}
-	gcoords[0], gcoords[1], gcoords[2], gcoords[3] = c0.Grid(), c1.Grid(), c2.Grid(), c3.Grid()
+	gcoords[0], gcoords[1], gcoords[2], gcoords[3] = c0.Grid(sizer), c1.Grid(sizer), c2.Grid(sizer), c3.Grid(sizer)
 	sort.Sort(SortableGCoords(gcoords))
 	var count int = 4
 	prev := NullGCoord

@@ -44,8 +44,7 @@ func (self *DRect) right() int {
 }
 
 type DunGen struct {
-	xsize     int
-	ysize     int
+	size      GridSize
 	objects   int
 	targetObj int
 
@@ -56,7 +55,7 @@ type DunGen struct {
 	passagedEast  bool
 	passagedWest  bool
 
-	dungeon_map [subgrid_width * subgrid_height]int8
+	dungeon_map []int8
 
 	walls [4](map[LCoord]bool)
 	rooms []DRect
@@ -68,31 +67,37 @@ type DunGen struct {
 	passageNorthEnd  int
 	passageWestEnd   int
 
-	columns [subgrid_width]bool
-	rows    [subgrid_height]bool
+	columns []bool
+	rows    []bool
 
 	rng *rand.Rand
 }
 
 func NewDunGen(proto *DunGen) *DunGen {
 	return &DunGen{
-		xsize:      proto.xsize,
-		ysize:      proto.ysize,
-		targetObj:  proto.targetObj,
-		chanceRoom: proto.chanceRoom,
+		columns:     make([]bool, proto.size.x),
+		dungeon_map: make([]int8, proto.size.x*proto.size.y),
+		rows:        make([]bool, proto.size.y),
+		size:        GridSize{proto.size.x, proto.size.y},
+		targetObj:   proto.targetObj,
+		chanceRoom:  proto.chanceRoom,
 	}
 }
 
+func (self *DunGen) GridSize() GridSize {
+	return self.size
+}
+
 func (self *DunGen) setCell(x int, y int, value int8) {
-	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
-		self.dungeon_map[x+(self.xsize*y)] = value
+	if x >= 0 && x < self.size.x && y >= 0 && y < self.size.y {
+		self.dungeon_map[x+(self.size.x*y)] = value
 		self.clearWalls(x, y)
 	}
 }
 
 func (self *DunGen) getCell(x int, y int) int8 {
-	if x >= 0 && x < self.xsize && y >= 0 && y < self.ysize {
-		return self.dungeon_map[x+(self.xsize*y)]
+	if x >= 0 && x < self.size.x && y >= 0 && y < self.size.y {
+		return self.dungeon_map[x+(self.size.x*y)]
 	} else {
 		return TileUnused
 	}
@@ -106,8 +111,8 @@ func (self *DunGen) isWalkable(x int, y int) bool {
 
 func (self *DunGen) debugPrint() string {
 	var buffer bytes.Buffer
-	for y := 0; y < self.ysize; y++ {
-		for x := 0; x < self.xsize; x++ {
+	for y := 0; y < self.size.y; y++ {
+		for x := 0; x < self.size.x; x++ {
 			if self.passageSouth.x == x && self.passageSouth.y == y {
 				buffer.WriteString("V")
 			} else if self.passageEast.x == x && self.passageEast.y == y {
@@ -153,8 +158,8 @@ func (self *DunGen) firstRoom() DRect {
 	var rHeight = self.getRand(minRoomDim, maxRoomHeight)
 	var xoff = self.rng.Intn(10) - 5
 	var yoff = self.rng.Intn(5) - 2
-	var x = self.xsize/2 - rWidth/2 + xoff
-	var y = self.ysize/2 - rHeight/2 + yoff
+	var x = self.size.x/2 - rWidth/2 + xoff
+	var y = self.size.y/2 - rHeight/2 + yoff
 
 	return DRect{
 		x: x,
@@ -198,7 +203,7 @@ func (self *DunGen) setRect(rect DRect) bool {
 			self.setWall(LCoord{x, rect.y - 1}, North)
 		}
 	}
-	if rect.bottom() < (self.ysize - 2) {
+	if rect.bottom() < (self.size.y - 2) {
 		for x := rect.x; x < rect.right(); x++ {
 			self.setWall(LCoord{x, rect.bottom()}, South)
 		}
@@ -208,7 +213,7 @@ func (self *DunGen) setRect(rect DRect) bool {
 			self.setWall(LCoord{rect.x - 1, y}, West)
 		}
 	}
-	if rect.right() < (self.xsize - 2) {
+	if rect.right() < (self.size.x - 2) {
 		for y := rect.y; y < rect.bottom(); y++ {
 			self.setWall(LCoord{rect.right(), y}, East)
 		}
@@ -269,14 +274,14 @@ func (self *DunGen) newShyRect(x int, y int, w int, h int) DRect {
 	if y <= 0 {
 		y1, h1 = 1, h-1
 	}
-	if x1+w1 > self.xsize-1 {
-		if self.xsize-1-x1 > 0 {
-			w1 = self.xsize - 1 - x1
+	if x1+w1 > self.size.x-1 {
+		if self.size.x-1-x1 > 0 {
+			w1 = self.size.x - 1 - x1
 		}
 	}
-	if y1+h1 > self.ysize-1 {
-		if self.ysize-1-y1 > 0 {
-			h1 = self.ysize - 1 - y1
+	if y1+h1 > self.size.y-1 {
+		if self.size.y-1-y1 > 0 {
+			h1 = self.size.y - 1 - y1
 		}
 	}
 	return DRect{x1, y1, w1, h1}
@@ -388,8 +393,8 @@ func (self *DunGen) createDungeon(gridCoord GridCoord, entropy DunGenEntropy) {
 		self.passageEastTrys[i] = self.pickStartDir(East)
 	}
 
-	self.passageNorthEnd = self.getRand(1, self.ysize-2)
-	self.passageWestEnd = self.getRand(1, self.xsize-2)
+	self.passageNorthEnd = self.getRand(1, self.size.y-2)
+	self.passageWestEnd = self.getRand(1, self.size.x-2)
 
 	for i := 0; i < 4; i++ {
 		self.walls[i] = nil
@@ -410,7 +415,7 @@ func (self *DunGen) makePassagesEast(eastDg *DunGen) {
 		if !self.passagedEast {
 			self.passageEast = self.passageEastTrys[7]
 		}
-		for x := self.passageEast.x; x < subgrid_width; x++ {
+		for x := self.passageEast.x; x < self.size.x; x++ {
 			self.setCell(x, self.passageEast.y, TileCorridor)
 		}
 		self.passagedEast = true
@@ -430,7 +435,7 @@ func (self *DunGen) makePassagesSouth(southDg *DunGen) {
 		if !self.passagedSouth {
 			self.passageSouth = self.passageSouthTrys[7]
 		}
-		for y := self.passageSouth.y; y < subgrid_height; y++ {
+		for y := self.passageSouth.y; y < self.size.y; y++ {
 			self.setCell(self.passageSouth.x, y, TileCorridor)
 		}
 		self.passagedSouth = true
@@ -441,7 +446,7 @@ func (self *DunGen) makePassagesNorth(northDg *DunGen) {
 	if !self.passagedNorth {
 		northDg.makePassagesSouth(self)
 		nx := northDg.passageSouth.x
-		for y := 0; y < subgrid_height-2; y++ {
+		for y := 0; y < self.size.y-2; y++ {
 			if self.isWalkable(nx, y) {
 				break
 			} else {
@@ -456,7 +461,7 @@ func (self *DunGen) makePassagesWest(westDg *DunGen) {
 	if !self.passagedWest {
 		westDg.makePassagesEast(self)
 		ny := westDg.passageEast.y
-		for x := 0; x < subgrid_width-2; x++ {
+		for x := 0; x < self.size.x-2; x++ {
 			if self.isWalkable(x, ny) {
 				break
 			} else {
@@ -468,7 +473,7 @@ func (self *DunGen) makePassagesWest(westDg *DunGen) {
 }
 
 func (self *DunGen) TileAt(lcoord LCoord) int8 {
-	return self.dungeon_map[lcoord.x+(lcoord.y*self.xsize)]
+	return self.dungeon_map[lcoord.x+(lcoord.y*self.size.x)]
 }
 
 func (self *DunGen) readFile(path string) error {
@@ -483,7 +488,7 @@ func (self *DunGen) readFile(path string) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		for i, c := range line {
-			if i >= subgrid_width {
+			if i >= self.size.x {
 				break
 			}
 			if c == '0' {
