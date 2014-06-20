@@ -187,10 +187,10 @@ func (self *SubGrid) MoveEntity(ntt Entity, loc Coord) {
 	}
 }
 func (self *SubGrid) RandomCoord() Coord {
-	lx := self.rng.Intn(subgrid_width)
-	ly := self.rng.Intn(subgrid_height)
-	x := (self.GridCoord.x * subgrid_width) + int64(lx)
-	y := (self.GridCoord.y * subgrid_height) + int64(ly)
+	lx := int64(self.rng.Intn(self.size.x))
+	ly := int64(self.rng.Intn(self.size.y))
+	x := (self.GridCoord.x * int64(self.size.x)) + lx
+	y := (self.GridCoord.y * int64(self.size.y)) + ly
 	return Coord{x, y}
 }
 
@@ -282,7 +282,7 @@ Any live cell with more than three live neighbours dies, as if by overcrowding.
 Any dead cell with exactly three live neighbours becomes a live cell,
 	as if by reproduction.*/
 func (self *SubGrid) lifeGridLocal(x, y int) bool {
-	if x >= 0 && x < subgrid_width && y >= 0 && y < subgrid_height {
+	if x >= 0 && x < self.size.x && y >= 0 && y < self.size.y {
 		return self.lifeGrid[self.lifePhase][y*self.size.x+x]
 	}
 	return false
@@ -548,7 +548,7 @@ func (self *WorldGrid) prepopulateGrids(grids *(map[GridCoord]bool)) {
 			ok := true
 			// monster population
 			for tries := 0; ok && tries < 3; tries++ {
-				monster := NewMonster(NewEntityID())
+				monster := NewMonster(NewEntityID(), self)
 				_, ok = self.NewEntityInGrid(monster, gcoord)
 			}
 			break
@@ -585,12 +585,12 @@ func (self *WorldGrid) WriteEntities(player Entity, buffer *bytes.Buffer) {
 
 func (self *WorldGrid) WriteLife(player Entity, buffer *bytes.Buffer) {
 	coord := player.Coord()
-	corner := Coord{coord.x - int64(subgrid_width/2), coord.y - int64(subgrid_height/2)}
+	corner := Coord{coord.x - int64(self.size.x/2), coord.y - int64(self.size.y/2)}
 	buffer.WriteRune('"')
 	var x, y int64
 	i, v := 0, 0
-	for y = 0; y < subgrid_height; y++ {
-		for x = 0; x < subgrid_width; x++ {
+	for y = 0; int(y) < self.size.y; y++ {
+		for x = 0; int(x) < self.size.x; x++ {
 			if self.LifeGridAt(Coord{corner.x + x, corner.y + y}) {
 				v += int(1 << uint32(i%6))
 			}

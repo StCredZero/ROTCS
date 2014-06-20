@@ -116,9 +116,9 @@ func (self Coord) WriteDisplay(player Entity, buffer *bytes.Buffer) {
 	buffer.WriteRune(Base91Table[dy])
 }
 
-func (self Coord) InMaxRange(other Coord) bool {
-	return abs(self.x-other.x) <= int64(subgrid_width/2) &&
-		abs(self.y-other.y) <= int64(subgrid_height/2)
+func (self Coord) InRange(other Coord, xrange int, yrange int) bool {
+	return abs(self.x-other.x) <= int64(xrange) &&
+		abs(self.y-other.y) <= int64(yrange)
 }
 
 type GridCoord struct {

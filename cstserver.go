@@ -84,7 +84,7 @@ func (srv *CstServer) registerConnection(c *connection) {
 	p := x * x
 
 	if rand.Float64() < p {
-		player := NewPlayer(c)
+		player := NewPlayer(c, srv.world)
 		entity, _ := srv.world.NewEntity(player)
 		c.id = entity.EntityID()
 		c.player = player

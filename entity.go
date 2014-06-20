@@ -152,7 +152,7 @@ func (ntt *EntityT) Initialized() bool {
 	return ntt.Init
 }
 func (ntt *EntityT) InMaxRange(other Entity) bool {
-	return ntt.Location.InMaxRange(other.Coord())
+	return false
 }
 func (ntt *EntityT) IsBlurred() bool   { return false }
 func (ntt *EntityT) IsDead() bool      { return true }
@@ -229,7 +229,7 @@ type Player struct {
 	outQueue      chan string
 }
 
-func NewPlayer(c *connection) *Player {
+func NewPlayer(c *connection, sizer Sizer) *Player {
 	entity := EntityT{
 		direction:    '0',
 		health:       80,
@@ -238,10 +238,11 @@ func NewPlayer(c *connection) *Player {
 		MoveSchedule: 0xFF,
 		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
+	size := sizer.GridSize()
 	return &Player{
 		Connection: c,
 		EntityT:    entity,
-		inbox:      make([]string, 0, (subgrid_width * subgrid_height)),
+		inbox:      make([]string, 0, (size.x * size.y)),
 		moveBuffer: make([]moveRequest, 0, 4),
 		moveQueue:  make(chan moveRequest, 64),
 		outbox:     make([]string, 0, 20),
@@ -324,6 +325,9 @@ func (ntt *Player) FlagAt(x uint64) bool {
 func (ntt *Player) Inbox() []string {
 	return ntt.inbox
 }
+func (ntt *Player) InMaxRange(other Entity) bool {
+	return ntt.Location.InRange(other.Coord(), 39, 12)
+}
 func (ntt *Player) IsBlurred() bool {
 	return ntt.Connection.IsBlurred
 }
@@ -381,7 +385,7 @@ const mstStart int = 0
 const mstToWall int = 1
 const mstFollow int = 2
 
-func NewMonster(id EntityID) Entity {
+func NewMonster(id EntityID, sizer Sizer) Entity {
 	entity := EntityT{
 		health:       8,
 		ID:           id,
@@ -389,10 +393,11 @@ func NewMonster(id EntityID) Entity {
 		MoveSchedule: 0x55,
 		TickOffset:   uint64(offsetRNG.Intn(23)),
 	}
+	size := sizer.GridSize()
 	return &Monster{
 		EntityT:     entity,
 		detections:  make([]detection, 0, 4),
-		detectQueue: make(chan detection, (subgrid_width * subgrid_height)),
+		detectQueue: make(chan detection, (size.x * size.y)),
 		state:       mstStart,
 	}
 }
