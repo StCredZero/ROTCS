@@ -75,8 +75,9 @@ func (self Coord) AsMoveTo(other Coord) rune {
 	}
 }
 
-func (self Coord) Corner() Coord {
-	return Coord{self.x - 39, self.y - 12}
+func (self Coord) Corner(sizer Sizer) Coord {
+	size := sizer.GridSize()
+	return Coord{self.x - int64(size.x/2), self.y - int64(size.y/2)}
 }
 
 func neighbors4(coord Coord) []Coord {
@@ -126,9 +127,9 @@ type GridCoord struct {
 	y int64
 }
 
-func (self GridCoord) Corner() Coord {
+/*func (self GridCoord) Corner() Coord {
 	return Coord{self.x * subgrid_width, self.y * subgrid_height}
-}
+}*/
 
 func (self GridCoord) Expansion() []GridCoord {
 	result := make([]GridCoord, 0, 9)

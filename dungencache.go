@@ -102,7 +102,7 @@ func (self *DunGenCache) WriteEntityMap(ntt Entity, buffer *bytes.Buffer) {
 
 func (self *DunGenCache) WriteLineMap(ntt Entity, buffer *bytes.Buffer) {
 	size := self.GridSize()
-	corner := ntt.Coord().Corner()
+	corner := ntt.Coord().Corner(self)
 	move := ntt.LastDispCoord().AsMoveTo(ntt.Coord())
 	var start Coord
 	switch move {
