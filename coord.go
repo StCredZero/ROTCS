@@ -127,10 +127,6 @@ type GridCoord struct {
 	y int64
 }
 
-/*func (self GridCoord) Corner() Coord {
-	return Coord{self.x * subgrid_width, self.y * subgrid_height}
-}*/
-
 func (self GridCoord) Expansion() []GridCoord {
 	result := make([]GridCoord, 0, 9)
 	var x, y int64
@@ -156,14 +152,10 @@ type LCoord struct {
 	y int
 }
 
-func (self LCoord) inBounds() bool {
+func (self LCoord) inBounds(sizer Sizer) bool {
+	size := sizer.GridSize()
 	return self.x >= 0 && self.y >= 0 &&
-		self.x < subgrid_width && self.y < subgrid_height
-}
-
-func (self LCoord) inShyBounds() bool {
-	return self.x >= 1 && self.y >= 1 &&
-		self.x < subgrid_width-1 && self.y < subgrid_height-1
+		self.x < size.x && self.y < size.y
 }
 
 type SortableLCoords []LCoord

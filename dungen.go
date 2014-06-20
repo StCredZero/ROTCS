@@ -170,7 +170,7 @@ func (self *DunGen) firstRoom() DRect {
 }
 
 func (self *DunGen) setWall(coord LCoord, direction int) {
-	if coord.inBounds() && self.getCell(coord.x, coord.y) == TileUnused {
+	if coord.inBounds(self) && self.getCell(coord.x, coord.y) == TileUnused {
 		for dir := 0; dir < 4; dir++ {
 			if dir == direction {
 				(self.walls[dir])[coord] = true
