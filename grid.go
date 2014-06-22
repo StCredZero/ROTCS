@@ -789,11 +789,6 @@ func (self *WorldGrid) UpdateMovers(gproc GridProcessor) {
 	}
 }
 
-/*func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
-	self.ParallelExec(func(subgrid *SubGrid) {
-		subgrid.SendDisplays(gproc)
-	})
-}*/
 func (self *WorldGrid) SendDisplays(gproc GridProcessor) {
 	self.PlayerExec(func(ntt Entity, grid GridKeeper, gproc GridProcessor) {
 		ntt.SendDisplay(grid, gproc)
