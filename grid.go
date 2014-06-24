@@ -636,7 +636,7 @@ func (self *WorldGrid) EntityAt(loc Coord) (Entity, bool) {
 func (self *WorldGrid) EntityByID(id EntityID) Entity {
 	gc, present := self.entityGrid[id]
 	if present {
-		sg := self.subgridAtGrid(gc)
+		sg := self.safeSubgridAtGrid(gc)
 		return sg.EntityByID(id)
 	} else {
 		return nil
@@ -647,8 +647,8 @@ func (self *WorldGrid) GridSize() GridSize {
 }
 func (self *WorldGrid) LifeActive() bool { return false }
 func (self *WorldGrid) LifeGridAt(loc Coord) bool {
-	subgrid := self.subgridAtGrid(loc.Grid(self))
-	return subgrid.LifeGridAt(loc)
+	subgrid := self.safeSubgridAtGrid(loc.Grid(self))
+	return subgrid != nil && subgrid.LifeGridAt(loc)
 }
 func (self *WorldGrid) MarkDead(ntt Entity) {
 	self.deaths = append(self.deaths, ntt.EntityID())
