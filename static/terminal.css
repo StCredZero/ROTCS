@@ -86,13 +86,13 @@ body {
 #leftColumn {
   position: absolute;
   top: 0px;
-  width:720px;
+  width:800px;
   height:100%;
 }
 #rightColumn {
   position: absolute;
   top: 0px;
-  left:725px;
+  left:805px;
   height:100%;
 }
 
