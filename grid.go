@@ -314,7 +314,7 @@ func (self *SubGrid) updateLifeGrid() {
 }
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
-		if ntt.FlagAt(LifeActivateTogl) {
+		if self.lifePhase == 0 && ntt.FlagAt(LifeActivateTogl) {
 			ntt.ClearFlag(LifeActivateTogl)
 			if self.lifeAllowed {
 				self.lifeActive = !self.lifeActive
