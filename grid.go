@@ -314,27 +314,7 @@ func (self *SubGrid) updateLifeGrid() {
 }
 func (self *SubGrid) UpdateMovers(gproc GridProcessor) {
 	for _, ntt := range self.Entities {
-		if self.lifePhase == 0 && ntt.FlagAt(LifeActivateTogl) {
-			ntt.ClearFlag(LifeActivateTogl)
-			if self.lifeAllowed {
-				self.lifeActive = !self.lifeActive
-				if self.lifeActive {
-					ntt.AddMessage("Life System Activated")
-				} else {
-					ntt.AddMessage("Life System Dectivated")
-				}
-			} else {
-				self.lifeActive = false
-			}
-		}
-		if ntt.FlagAt(LifeCellTogl) {
-			ntt.ClearFlag(LifeCellTogl)
-			if self.lifeAllowed {
-				loc := ntt.Coord()
-				value := self.LifeGridAt(loc)
-				self.SetLifeGridAt(loc, !value)
-			}
-		}
+		ntt.DoToggleActions(self, gproc)
 		if ntt.HasMove(gproc) {
 			loc := ntt.CalcMove(self)
 			ExecuteMove(ntt, self, loc)

@@ -45,6 +45,7 @@ type Entity interface {
 	Detect(Entity)
 	Direction() rune
 	DisplayString() string
+	DoToggleActions(*SubGrid, GridProcessor)
 	FlagAt(uint64) bool
 	FormattedMessage(string) string
 	GetSubgrid() *SubGrid
@@ -123,6 +124,7 @@ func (ntt *EntityT) Direction() rune {
 func (ntt *EntityT) DisplayString() string {
 	return fmt.Sprintf("%X%X%X%X", ntt.ID[0], ntt.ID[1], ntt.ID[2], ntt.ID[3])
 }
+func (ntt *EntityT) DoToggleActions(sg *SubGrid, gp GridProcessor) {}
 func (ntt *EntityT) EntityID() EntityID {
 	return ntt.ID
 }
@@ -314,6 +316,29 @@ func (ntt *Player) Detect(player Entity) {
 		buffer.Truncate(0)
 	}
 	//}
+}
+func (ntt *Player) DoToggleActions(subgrid *SubGrid, gp GridProcessor) {
+	if subgrid.lifePhase == 0 && ntt.FlagAt(LifeActivateTogl) {
+		ntt.ClearFlag(LifeActivateTogl)
+		if subgrid.lifeAllowed {
+			subgrid.lifeActive = !subgrid.lifeActive
+			if subgrid.lifeActive {
+				ntt.AddMessage("Life System Activated")
+			} else {
+				ntt.AddMessage("Life System Dectivated")
+			}
+		} else {
+			subgrid.lifeActive = false
+		}
+	}
+	if ntt.FlagAt(LifeCellTogl) {
+		ntt.ClearFlag(LifeCellTogl)
+		if subgrid.lifeAllowed {
+			loc := ntt.Coord()
+			value := subgrid.LifeGridAt(loc)
+			subgrid.SetLifeGridAt(loc, !value)
+		}
+	}
 }
 func (ntt *Player) FormattedMessage(msg string) string {
 	s := []string{ntt.DisplayString(), `: `, msg}
